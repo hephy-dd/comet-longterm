@@ -18,7 +18,7 @@ setup(
         'git+https://github.com/hephy-dd/comet-qt.git@master',
     ],
     entry_points={
-        'scripts': [
+        'gui_scripts': [
             'comet-longterm = comet_longterm.main:main',
         ],
     },
