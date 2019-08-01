@@ -2,7 +2,7 @@
 <ui version="4.0">
  <author>Bernhard Arnold</author>
  <class>Dashboard</class>
- <widget class="QWidget" name="dashboard">
+ <widget class="QWidget" name="Dashboard">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -659,7 +659,7 @@
   <connection>
    <sender>startButton</sender>
    <signal>clicked()</signal>
-   <receiver>dashboard</receiver>
+   <receiver>Dashboard</receiver>
    <slot>onStart()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -675,7 +675,7 @@
   <connection>
    <sender>stopButton</sender>
    <signal>clicked()</signal>
-   <receiver>dashboard</receiver>
+   <receiver>Dashboard</receiver>
    <slot>onStop()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -691,7 +691,7 @@
   <connection>
    <sender>outputSelectButton</sender>
    <signal>clicked()</signal>
-   <receiver>dashboard</receiver>
+   <receiver>Dashboard</receiver>
    <slot>selectOutputDir()</slot>
    <hints>
     <hint type="sourcelabel">
