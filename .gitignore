@@ -1,3 +1,7 @@
+# Ignore UI files
+comet_longterm/ui/*.py
+!comet_longterm/ui/__init__.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

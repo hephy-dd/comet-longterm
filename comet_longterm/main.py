@@ -1,35 +1,42 @@
-import sys, os
 import time
 import threading
+import sys, os
+import signal
 
-from PyQt5 import QtCore, QtWidgets, uic
-from lantz.core import ureg
+from PyQt5 import QtCore, QtWidgets
 
-from comet.qt import MainWindow
+from slave.transport import Socket, Visa
+
+from comet.units import ureg
+from comet.widgets import MainWindow
 from comet.drivers.cts import ITC
+from comet.drivers.keithley import K2410, K2700
 
-class CentralWidget(QtWidgets.QWidget):
+from ui.dashboard import Ui_Dashboard
+
+class DashboardWidget(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'main.ui'), self, 'comet.qt')
-        self.rampUpEndSpinBox.setUnit(ureg.volt)
-        self.rampUpStepSpinBox.setUnit(ureg.volt)
-        self.rampUpDelaySpinBox.setUnit(ureg.second)
-        self.biasVoltageSpinBox.setUnit(ureg.volt)
-        self.totalComplianceSpinBox.setUnit(ureg.uA)
-        self.singleComplianceSpinBox.setUnit(ureg.uA)
-        self.timingSpinBox.setUnit(ureg.hour)
-        self.timingDelaySpinBox.setUnit(ureg.second)
+        self.ui = Ui_Dashboard()
+        self.ui.setupUi(self)
+        self.ui.rampUpEndSpinBox.setUnit(ureg.volt)
+        self.ui.rampUpStepSpinBox.setUnit(ureg.volt)
+        self.ui.rampUpDelaySpinBox.setUnit(ureg.second)
+        self.ui.biasVoltageSpinBox.setUnit(ureg.volt)
+        self.ui.totalComplianceSpinBox.setUnit(ureg.uA)
+        self.ui.singleComplianceSpinBox.setUnit(ureg.uA)
+        self.ui.timingSpinBox.setUnit(ureg.hour)
+        self.ui.timingDelaySpinBox.setUnit(ureg.second)
         settings = QtCore.QSettings()
         settings.beginGroup('preferences')
         operators = settings.value('operators', [])
         index = int(settings.value('currentOperator', 0))
         settings.endGroup()
-        self.operatorComboBox.addItems(operators)
-        self.operatorComboBox.setCurrentIndex(index)
-        self.operatorComboBox.currentIndexChanged[int].connect(self.updateOperator)
-        self.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'HPK'))
+        self.ui.operatorComboBox.addItems(operators)
+        self.ui.operatorComboBox.setCurrentIndex(index)
+        self.ui.operatorComboBox.currentIndexChanged[int].connect(self.updateOperator)
+        self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'HPK'))
 
     def updateOperator(self, index):
         settings = QtCore.QSettings()
@@ -38,20 +45,26 @@ class CentralWidget(QtWidgets.QWidget):
         settings.endGroup()
 
     def selectOutputDir(self):
-        path = self.outputComboBox.currentText() or os.path.expanduser("~")
+        path = self.ui.outputComboBox.currentText() or os.path.expanduser("~")
         path = QtWidgets.QFileDialog.getExistingDirectory(self, self.tr("Select Output Directory"), path)
         if path:
-            self.outputComboBox.setCurrentText(path)
+            self.ui.outputComboBox.setCurrentText(path)
 
     def onStart(self):
-        self.startButton.setEnabled(False)
-        self.stopButton.setEnabled(True)
-        self.operatorComboBox.setEnabled(False)
+        self.ui.startButton.setEnabled(False)
+        self.ui.stopButton.setEnabled(True)
+        self.ui.operatorComboBox.setEnabled(False)
+
+        try:
+            with K2700(Visa('TCPIP::10.0.0.3::10002::SOCKET')) as multi:
+                print(multi.idn)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", format(e))
 
     def onStop(self):
-        self.startButton.setEnabled(True)
-        self.stopButton.setEnabled(False)
-        self.operatorComboBox.setEnabled(True)
+        self.ui.startButton.setEnabled(True)
+        self.ui.stopButton.setEnabled(False)
+        self.ui.operatorComboBox.setEnabled(True)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
@@ -63,8 +76,10 @@ def main():
     QtCore.QSettings()
 
     w = MainWindow()
-    w.setCentralWidget(CentralWidget(w))
+    w.setCentralWidget(DashboardWidget(w))
     w.show()
+
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     timer = QtCore.QTimer()
     timer.timeout.connect(lambda: None)

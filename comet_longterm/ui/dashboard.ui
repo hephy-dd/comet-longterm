@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <author>Bernhard Arnold</author>
- <class>dashboard</class>
+ <class>Dashboard</class>
  <widget class="QWidget" name="dashboard">
   <property name="geometry">
    <rect>
@@ -388,7 +388,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="rampUpEndSpinBox">
+         <widget class="SpinBox" name="rampUpEndSpinBox">
           <property name="maximum">
            <double>1000.000000000000000</double>
           </property>
@@ -405,7 +405,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="rampUpStepSpinBox">
+         <widget class="SpinBox" name="rampUpStepSpinBox">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -422,7 +422,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="rampUpDelaySpinBox">
+         <widget class="SpinBox" name="rampUpDelaySpinBox">
           <property name="value">
            <double>1.000000000000000</double>
           </property>
@@ -458,7 +458,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="biasVoltageSpinBox">
+         <widget class="SpinBox" name="biasVoltageSpinBox">
           <property name="maximum">
            <double>1000.000000000000000</double>
           </property>
@@ -475,7 +475,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="totalComplianceSpinBox">
+         <widget class="SpinBox" name="totalComplianceSpinBox">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -495,7 +495,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="singleComplianceSpinBox">
+         <widget class="SpinBox" name="singleComplianceSpinBox">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -537,7 +537,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="timingSpinBox">
+         <widget class="SpinBox" name="timingSpinBox">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -557,7 +557,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QuantitySpinBox" name="timingDelaySpinBox">
+         <widget class="SpinBox" name="timingDelaySpinBox">
           <property name="value">
            <double>1.000000000000000</double>
           </property>
@@ -611,14 +611,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QuantitySpinBox</class>
+   <class>SpinBox</class>
    <extends>QDoubleSpinBox</extends>
-   <header>.quantityspinbox</header>
+   <header>comet.widgets.spinbox</header>
   </customwidget>
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>.plotwidget</header>
+   <header>comet.widgets.plotwidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
