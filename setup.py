@@ -5,9 +5,10 @@ from PyQt5 import uic
 from setuptools import setup, find_packages
 from setuptools.command.build_py import build_py
 
-package_dir = os.path.join(os.path.dirname(__file__), 'comet_longterm')
+package = 'comet_longterm'
+package_dir = os.path.join(os.path.dirname(__file__), package)
 
-version = importlib.import_module('comet', os.path.join(package_dir, '__init__.py')).__version__
+version = importlib.import_module(package, os.path.join(package_dir, '__init__.py')).__version__
 
 class BuildPyCommand(build_py):
     def run(self):

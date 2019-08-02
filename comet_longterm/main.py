@@ -3,16 +3,37 @@ import threading
 import sys, os
 import signal
 
+os.environ['PYVISA_LIBRARY'] = '@sim'
+
 from PyQt5 import QtCore, QtWidgets
 
-from slave.transport import Socket, Visa
+from comet.transport import Visa
 
 from comet.units import ureg
+from comet.worker import Worker
 from comet.widgets import MainWindow
 from comet.drivers.cts import ITC
 from comet.drivers.keithley import K2410, K2700
 
 from ui.dashboard import Ui_Dashboard
+
+class LongtermItWorker(Worker):
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        self.setMessage("Starting measurement...")
+        self.setProgress(0)
+        for i in range(10):
+            if not self.isGood():
+                self.setProgress(0)
+                self.setMessage("Measurement aborted.")
+                return
+            time.sleep(1)
+            self.setProgress(self.progress() + 10)
+        self.setProgress(100)
+        self.setMessage("Done")
 
 class DashboardWidget(QtWidgets.QWidget):
 
@@ -38,6 +59,13 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.operatorComboBox.currentIndexChanged[int].connect(self.updateOperator)
         self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'HPK'))
 
+        self.ui.statusbar = self.parent().ui.statusbar
+        self.ui.messageLabel = QtWidgets.QLabel(self)
+        self.ui.statusbar.addWidget(self.ui.messageLabel)
+        self.ui.progressBar = QtWidgets.QProgressBar(self)
+        self.ui.statusbar.addWidget(self.ui.progressBar)
+        self.ui.progressBar.hide()
+
     def updateOperator(self, index):
         settings = QtCore.QSettings()
         settings.beginGroup('preferences')
@@ -54,17 +82,50 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.startButton.setEnabled(False)
         self.ui.stopButton.setEnabled(True)
         self.ui.operatorComboBox.setEnabled(False)
+        self.ui.rampUpGroupBox.setEnabled(False)
+        self.ui.longtermGroupBox.setEnabled(False)
+        self.ui.progressBar.show()
+        # Create thread
+        self.thread = QtCore.QThread()
+        # Create worker
+        self.worker = LongtermItWorker()
+        self.worker.moveToThread(self.thread)
+        # Connect worker signals
+        self.worker.finished.connect(self.onFinished)
+        self.worker.messageChanged.connect(self.updateMessage)
+        self.worker.progressChanged.connect(self.updateProgress)
+        self.worker.exceptionOccured.connect(self.exceptionOccured)
+        # Connect thread signals
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.started.connect(self.worker.start)
+        # Start thread
+        self.thread.start()
 
-        try:
-            with K2700(Visa('TCPIP::10.0.0.3::10002::SOCKET')) as multi:
-                print(multi.idn)
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Error", format(e))
+    def updateMessage(self, message):
+        self.ui.messageLabel.setText(message)
+
+    def updateProgress(self, percent):
+        self.ui.progressBar.setValue(percent)
+
+    def exceptionOccured(self, exception):
+        QtWidgets.QMessageBox.critical(self, "Error", format(exception))
 
     def onStop(self):
+        self.ui.startButton.setEnabled(False)
+        self.ui.stopButton.setEnabled(False)
+        self.ui.operatorComboBox.setEnabled(False)
+        self.worker.stopRequest()
+
+    def onFinished(self):
         self.ui.startButton.setEnabled(True)
         self.ui.stopButton.setEnabled(False)
         self.ui.operatorComboBox.setEnabled(True)
+        self.ui.rampUpGroupBox.setEnabled(True)
+        self.ui.longtermGroupBox.setEnabled(True)
+        self.thread.quit()
+        self.thread.wait()
+        self.ui.progressBar.hide()
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
@@ -76,6 +137,7 @@ def main():
     QtCore.QSettings()
 
     w = MainWindow()
+
     w.setCentralWidget(DashboardWidget(w))
     w.show()
 

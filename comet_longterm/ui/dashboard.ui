@@ -375,7 +375,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QGroupBox" name="groupBox">
+      <widget class="QGroupBox" name="rampUpGroupBox">
        <property name="title">
         <string>Ramp Up</string>
        </property>
@@ -445,7 +445,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QGroupBox" name="groupBox_3">
+      <widget class="QGroupBox" name="longtermGroupBox">
        <property name="title">
         <string>Longterm</string>
        </property>
@@ -524,7 +524,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QGroupBox" name="groupBox_4">
+      <widget class="QGroupBox" name="timingGroupBox">
        <property name="title">
         <string>Timing</string>
        </property>
