@@ -3,11 +3,11 @@ import threading
 import sys, os
 import signal
 
-os.environ['PYVISA_LIBRARY'] = '@sim'
+os.environ['PYVISA_LIBRARY'] = '@py'
 
 from PyQt5 import QtCore, QtWidgets
 
-from slave.transport import Visa
+from slave.transport import Visa, Socket
 
 from comet.units import ureg
 from comet.worker import Worker
@@ -24,6 +24,7 @@ class LongtermItWorker(Worker):
     def __init__(self):
         super().__init__()
         self.__duration = 0
+        self.__itc = None
 
     def duration(self):
         return self.__duration
@@ -186,6 +187,38 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.progressBar = QtWidgets.QProgressBar(self)
         self.ui.statusbar.addWidget(self.ui.progressBar)
         self.ui.progressBar.hide()
+
+        self.ui.environPlotWidget.setYRange(-40, +180)
+        self.tempCurve = self.ui.environPlotWidget.plot(pen='r')
+        self.humidCurve = self.ui.environPlotWidget.plot(pen='b')
+
+        self.__its = ITC(Socket(address=('192.168.100.205', 1080)))
+        self.__environ = dict(time=[], temp=[], humid=[])
+
+        self.__environTimer = QtCore.QTimer()
+        self.__environTimer.timeout.connect(self.updateEnviron)
+        self.__environTimer.start(2500)
+
+    def updateEnviron(self):
+        t = time.time()
+        self.__its._transport.write(b'A0')
+        temp = float(self.__its._transport.read_bytes(14).decode().split(' ')[1])
+        self.__its._transport.write(b'A1')
+        humid = float(self.__its._transport.read_bytes(14).decode().split(' ')[1])
+        self.__environ.get('time').append(t)
+        self.__environ.get('temp').append(temp)
+        self.__environ.get('humid').append(humid)
+        print(t, temp, humid, flush=True)
+        self.tempCurve.setData(
+            x=self.__environ.get('time'),
+            y=self.__environ.get('temp')
+        )
+        self.humidCurve.setData(
+            x=self.__environ.get('time'),
+            y=self.__environ.get('humid')
+        )
+        self.ui.tempLineEdit.setText('{:.1f} °C'.format(temp))
+        self.ui.humidLineEdit.setText('{:.1f} %'.format(humid))
 
     def updateOperator(self, index):
         settings = QtCore.QSettings()
