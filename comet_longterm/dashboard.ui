@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1024</width>
+    <width>1034</width>
     <height>769</height>
    </rect>
   </property>
@@ -597,12 +597,6 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>320</height>
-        </size>
-       </property>
        <property name="title">
         <string>Longterm Current</string>
        </property>
@@ -617,8 +611,8 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>400</width>
-            <height>0</height>
+            <width>450</width>
+            <height>320</height>
            </size>
           </property>
           <property name="styleSheet">

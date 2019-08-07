@@ -115,9 +115,16 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.statusbar.addWidget(self.ui.progressBar)
         self.ui.progressBar.hide()
 
+
         self.ui.environPlotWidget.setYRange(-40, +180)
-        self.tempCurve = self.ui.environPlotWidget.plot(pen='r')
-        self.humidCurve = self.ui.environPlotWidget.plot(pen='b')
+        self.ui.environPlotWidget.plotItem.addLegend(offset=(-10,10))
+        self.tempCurve = self.ui.environPlotWidget.plot(pen='r', name='temp')
+        self.humidCurve = self.ui.environPlotWidget.plot(pen='b', name='humid')
+
+        self.ui.currentPlotWidget.setYRange(0, 500)
+        self.ui.currentPlotWidget.plotItem.addLegend(offset=(-0,0))
+        for i in range(1, 11):
+            curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
 
         self.__its = ITC(Socket(address=('192.168.100.205', 1080)))
         self.__environ = dict(time=[], temp=[], humid=[])
