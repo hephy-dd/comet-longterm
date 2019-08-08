@@ -118,7 +118,6 @@ class DashboardWidget(QtWidgets.QWidget):
         for i in range(1, 11):
             curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
 
-        return
         self.__its = ITC(Socket(address=('192.168.100.205', 1080)))
         self.__environ = dict(time=[], temp=[], humid=[])
 
