@@ -1,23 +1,26 @@
-import time
-import threading
+"""Longterm current measurement."""
+
 import sys, os
-import signal
 
 os.environ['PYVISA_LIBRARY'] = '@py'
 
-from comet.widgets import Application
-
+import comet
 from .dashboard import DashboardWidget
 
-class Application(Application):
+ApplicationName = 'Longterm It'
 
-    name = "Longterm It"
+class MainWindow(comet.MainWindow):
 
-    def createCentralWidget(self, context):
-        return DashboardWidget(context)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(ApplicationName)
+        dashboard = DashboardWidget(self)
+        self.setCentralWidget(dashboard)
 
 def main():
-    app = Application()
+    app = comet.Application()
+    app.setName(ApplicationName)
+    app.addWindow(MainWindow())
     return app.run()
 
 if __name__ == '__main__':

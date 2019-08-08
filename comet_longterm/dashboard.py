@@ -4,14 +4,12 @@ import sys, os
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from slave.transport import Visa, Socket
 
-from comet.units import ureg
+from comet import ureg
 from comet.drivers.cts import ITC
 
 from .worker import Worker
 
 __all__ = ['DashboardWidget']
-
-Ui_Dashboard, DashboardBase = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'dashboard.ui'))
 
 class SampleModel(QtCore.QAbstractTableModel):
 
@@ -75,9 +73,11 @@ class SampleModel(QtCore.QAbstractTableModel):
                 return True
         return False
 
+Ui_Dashboard, DashboardBase = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'dashboard.ui'))
+
 class DashboardWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_Dashboard()
         self.ui.setupUi(self)
@@ -108,14 +108,6 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.samplesTableView.resizeColumnsToContents()
         self.ui.samplesTableView.resizeRowsToContents()
 
-        self.ui.statusbar = self.parent().ui.statusbar
-        self.ui.messageLabel = QtWidgets.QLabel(self)
-        self.ui.statusbar.addWidget(self.ui.messageLabel)
-        self.ui.progressBar = QtWidgets.QProgressBar(self)
-        self.ui.statusbar.addWidget(self.ui.progressBar)
-        self.ui.progressBar.hide()
-
-
         self.ui.environPlotWidget.setYRange(-40, +180)
         self.ui.environPlotWidget.plotItem.addLegend(offset=(-10,10))
         self.tempCurve = self.ui.environPlotWidget.plot(pen='r', name='temp')
@@ -126,6 +118,7 @@ class DashboardWidget(QtWidgets.QWidget):
         for i in range(1, 11):
             curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
 
+        return
         self.__its = ITC(Socket(address=('192.168.100.205', 1080)))
         self.__environ = dict(time=[], temp=[], humid=[])
 

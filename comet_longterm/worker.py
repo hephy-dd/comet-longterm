@@ -1,5 +1,4 @@
 import time
-import sys, os
 
 from PyQt5 import QtCore
 
@@ -24,65 +23,60 @@ class Worker(comet.Worker):
 
     def _setup(self):
         self.setMessage("Setup instruments...")
-        self.setProgress(0)
+        self.setProgress(0, 3)
         for i in range(3):
             time.sleep(.50)
-            self.setProgress(self.progress() + 100/3)
-        self.setProgress(100)
+            self.setProgress(i + 1, 3)
         self.setMessage("Done")
 
     def _rampUp(self):
         self.setMessage("Ramping up...")
-        self.setProgress(0)
+        self.setProgress(0, 10)
         for i in range(10):
             if not self.isGood():
                 self.setMessage("Measurement aborted.")
                 return False
             time.sleep(1)
-            self.setProgress(self.progress() + 100/10)
-        self.setProgress(100)
+            self.setProgress(i + 1, 10)
         self.setMessage("Done")
         return True
 
     def _rampBias(self):
         self.setMessage("Ramping to bias...")
-        self.setProgress(0)
+        self.setProgress(0, 4)
         for i in range(4):
             time.sleep(.25)
-            self.setProgress(self.progress() + 100/4)
-        self.setProgress(100)
+            self.setProgress(i + 1, 4)
         self.setMessage("Done")
         return True
 
     def _longterm(self):
-        self.setMessage("Longterm measurement...")
-        self.setProgress(0)
+        self.setMessage("Starting longterm measurement")
         timeBegin = time.time()
-        timeEnd = timeBegin + self.duration() if self.duration() else None
-        if not timeEnd:
-            self.progressUnknown.emit(True)
+        timeEnd = timeBegin + self.duration()
+        if self.duration():
+            self.setProgress(0, timeEnd - timeBegin)
+        else:
+            self.setProgress(0, 0) # progress unknown, infinite run
         while True:
             currentTime = time.time()
             if not self.isGood():
-                self.setMessage("Measurement aborted.")
+                self.setMessage("Measurement aborted")
                 break
-            if timeEnd is not None:
-                self.setProgress((currentTime-timeBegin)/(self.duration()/100.))
+            if self.duration():
+                self.setProgress(currentTime - timeBegin, timeEnd - timeBegin)
                 if currentTime >= timeEnd:
                     break
-        if not timeEnd:
-            self.progressUnknown.emit(False)
-        self.setProgress(100)
+        self.setProgress(100, 100)
         self.setMessage("Done")
         return True
 
     def _rampDown(self):
         self.setMessage("Ramping down...")
-        self.setProgress(0)
+        self.setProgress(0, 10)
         for i in range(10):
             time.sleep(.15)
-            self.setProgress(self.progress() + 100/10)
-        self.setProgress(100)
+            self.setProgress(i + 1, 10)
         self.setMessage("Done")
         return True
 
