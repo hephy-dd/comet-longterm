@@ -4,12 +4,21 @@ import sys, os
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from slave.transport import Visa, Socket
 
+import comet
 from comet import ureg
 from comet.drivers.cts import ITC
 
-from .worker import Worker
+from .worker import *
 
 __all__ = ['DashboardWidget']
+
+class Function(object):
+
+    def __init__(self):
+        pass
+
+    def __iter__(self):
+        return iter(self)
 
 class SampleModel(QtCore.QAbstractTableModel):
 
@@ -118,33 +127,42 @@ class DashboardWidget(QtWidgets.QWidget):
         for i in range(1, 11):
             curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
 
-        self.__its = ITC(Socket(address=('192.168.100.205', 1080)))
-        self.__environ = dict(time=[], temp=[], humid=[])
+        # Create environmental buffer
+        self.environBuffer = comet.Buffer()
+        self.environBuffer.addChannel('time')
+        self.environBuffer.addChannel('temp')
+        self.environBuffer.addChannel('humid')
 
-        self.__environTimer = QtCore.QTimer()
-        self.__environTimer.timeout.connect(self.updateEnviron)
-        self.__environTimer.start(2500)
+        # Create environmental and worker
+        self.environWorker = EnvironmentWorker(self, interval=2.5)
+        self.environWorker.reading.connect(self.updateEnviron)
+        self.parent().startWorker(self.environWorker)
 
-    def updateEnviron(self):
-        t = time.time()
-        self.__its._transport.write(b'A0')
-        temp = float(self.__its._transport.read_bytes(14).decode().split(' ')[1])
-        self.__its._transport.write(b'A1')
-        humid = float(self.__its._transport.read_bytes(14).decode().split(' ')[1])
-        self.__environ.get('time').append(t)
-        self.__environ.get('temp').append(temp)
-        self.__environ.get('humid').append(humid)
-        print(t, temp, humid, flush=True)
+        # Create measurement worker
+        self.worker = MeasurementWorker(self)
+
+        # Setup total bias display
+        totalBias = 0. * ureg.uA
+        self.ui.totalBiasLineEdit.setText("{:.3f~}".format(totalBias))
+
+    def updateEnviron(self, reading):
+        self.environBuffer.append(reading)
+        comet.logger().info("environ: %s", reading)
+
+        # How to upate pyqtgraph properly?
+        data = self.environBuffer.data()
         self.tempCurve.setData(
-            x=self.__environ.get('time'),
-            y=self.__environ.get('temp')
+            x=data.get('time'),
+            y=data.get('temp')
         )
         self.humidCurve.setData(
-            x=self.__environ.get('time'),
-            y=self.__environ.get('humid')
+            x=data.get('time'),
+            y=data.get('humid')
         )
-        self.ui.tempLineEdit.setText('{:.1f} °C'.format(temp))
-        self.ui.humidLineEdit.setText('{:.1f} %'.format(humid))
+
+        # Update display
+        self.ui.tempLineEdit.setText('{:.1f} °C'.format(reading.get('temp')))
+        self.ui.humidLineEdit.setText('{:.1f} %'.format(reading.get('humid')))
 
     def updateOperator(self, index):
         settings = QtCore.QSettings()
@@ -164,43 +182,23 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.operatorComboBox.setEnabled(False)
         self.ui.rampUpGroupBox.setEnabled(False)
         self.ui.longtermGroupBox.setEnabled(False)
-        self.ui.progressBar.show()
-        # Create thread
-        self.thread = QtCore.QThread()
-        # Create worker
-        self.worker = Worker()
-        self.worker.setDuration(self.ui.timingDurationSpinBox.value().to(ureg.second).m)
-        self.worker.moveToThread(self.thread)
-        # Connect worker signals
+        # Setup worker
+        self.worker.end_voltage = self.ui.rampUpEndSpinBox.value().to(ureg.volt).m
+        self.worker.step_size = self.ui.rampUpStepSpinBox.value().to(ureg.volt).m
+        self.worker.step_delay = self.ui.rampUpDelaySpinBox.value().to(ureg.seconds).m
+        self.worker.bias_voltage = self.ui.biasVoltageSpinBox.value().to(ureg.volt).m
+        self.worker.total_compliance = self.ui.totalComplianceSpinBox.value().to(ureg.uA).m
+        self.worker.single_compliance = self.ui.singleComplianceSpinBox.value().to(ureg.uA).m
+        self.worker.duration = self.ui.timingDurationSpinBox.value().to(ureg.second).m
+        self.worker.measurement_delay = self.ui.timingDelaySpinBox.value().to(ureg.second).m
         self.worker.finished.connect(self.onFinished)
-        self.worker.messageChanged.connect(self.updateMessage)
-        self.worker.progressChanged.connect(self.updateProgress)
-        self.worker.exceptionOccured.connect(self.exceptionOccured)
-        self.worker.progressUnknown.connect(self.setProgressUnknown)
-        # Connect thread signals
-        self.thread.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.started.connect(self.worker.start)
-        # Start thread
-        self.thread.start()
-
-    def updateMessage(self, message):
-        self.ui.messageLabel.setText(message)
-
-    def updateProgress(self, percent):
-        self.ui.progressBar.setValue(percent)
-
-    def setProgressUnknown(self, state):
-        self.ui.progressBar.setMaximum(0 if state else 100)
-
-    def exceptionOccured(self, exception):
-        QtWidgets.QMessageBox.critical(self, "Error", format(exception))
+        self.parent().startWorker(self.worker)
 
     def onStop(self):
         self.ui.startButton.setEnabled(False)
         self.ui.stopButton.setEnabled(False)
         self.ui.operatorComboBox.setEnabled(False)
-        self.worker.stopRequest()
+        self.worker.stop()
 
     def onFinished(self):
         self.ui.startButton.setEnabled(True)
@@ -208,6 +206,3 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.operatorComboBox.setEnabled(True)
         self.ui.rampUpGroupBox.setEnabled(True)
         self.ui.longtermGroupBox.setEnabled(True)
-        self.thread.quit()
-        self.thread.wait()
-        self.ui.progressBar.hide()

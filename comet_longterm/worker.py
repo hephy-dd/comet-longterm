@@ -4,86 +4,135 @@ from PyQt5 import QtCore
 
 import comet
 
-__all__ = ['Worker']
+__all__ = ['EnvironmentWorker', 'MeasurementWorker']
 
-class Worker(comet.Worker):
+class StopRequest(Exception):
+    pass
 
-    progressUnknown = QtCore.pyqtSignal(bool)
+class EnvironmentWorker(comet.Worker):
 
-    def __init__(self):
-        super().__init__()
-        self.__duration = 0
-        self.__itc = None
+    reading = QtCore.pyqtSignal(object)
 
-    def duration(self):
-        return self.__duration
-
-    def setDuration(self, duration):
-        self.__duration = duration
-
-    def _setup(self):
-        self.setMessage("Setup instruments...")
-        self.setProgress(0, 3)
-        for i in range(3):
-            time.sleep(.50)
-            self.setProgress(i + 1, 3)
-        self.setMessage("Done")
-
-    def _rampUp(self):
-        self.setMessage("Ramping up...")
-        self.setProgress(0, 10)
-        for i in range(10):
-            if not self.isGood():
-                self.setMessage("Measurement aborted.")
-                return False
-            time.sleep(1)
-            self.setProgress(i + 1, 10)
-        self.setMessage("Done")
-        return True
-
-    def _rampBias(self):
-        self.setMessage("Ramping to bias...")
-        self.setProgress(0, 4)
-        for i in range(4):
-            time.sleep(.25)
-            self.setProgress(i + 1, 4)
-        self.setMessage("Done")
-        return True
-
-    def _longterm(self):
-        self.setMessage("Starting longterm measurement")
-        timeBegin = time.time()
-        timeEnd = timeBegin + self.duration()
-        if self.duration():
-            self.setProgress(0, timeEnd - timeBegin)
-        else:
-            self.setProgress(0, 0) # progress unknown, infinite run
-        while True:
-            currentTime = time.time()
-            if not self.isGood():
-                self.setMessage("Measurement aborted")
-                break
-            if self.duration():
-                self.setProgress(currentTime - timeBegin, timeEnd - timeBegin)
-                if currentTime >= timeEnd:
-                    break
-        self.setProgress(100, 100)
-        self.setMessage("Done")
-        return True
-
-    def _rampDown(self):
-        self.setMessage("Ramping down...")
-        self.setProgress(0, 10)
-        for i in range(10):
-            time.sleep(.15)
-            self.setProgress(i + 1, 10)
-        self.setMessage("Done")
-        return True
+    def __init__(self, parent=None, interval=1.0):
+        super().__init__(parent)
+        self.interval = interval
+        self.device = ITC(Socket(address=('192.168.100.205', 1080)))
 
     def run(self):
-        self.setMessage("Starting measurement...")
-        self._setup()
-        if self._rampUp():
-            self._longterm()
-        self._rampDown()
-        self.setMessage("Done")
+        while self.isGood():
+            t = time.time()
+            self.device._transport.write(b'A0')
+            temp = float(self.device.__its._transport.read_bytes(14).decode().split(' ')[1])
+            self.device._transport.write(b'A1')
+            humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
+            self.reading.emit(dict(time=t, temp=temp, humid=humid))
+            self.wait(self.interval)
+
+class MeasurementWorker(comet.Worker):
+
+    operator = None
+
+    end_voltage = 800.0
+    step_size = 5.0
+    step_delay = 1.00
+
+    bias_voltage = 600.0
+    total_compliance = 80.0
+    single_compliance = 25.0
+
+    durration = 0
+    measurement_delay = 1.00
+
+    current_voltage = 0.0
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.__itc = None
+
+    def setup(self):
+        self.showMessage("Setup instruments")
+        self.showProgress(0, 3)
+        for i in range(3):
+            time.sleep(.50)
+            self.showProgress(i + 1, 3)
+        self.showMessage("Done")
+        self.current_voltage = 0.0
+
+    def rampUp(self):
+        self.showMessage("Ramping up")
+        self.showProgress(self.current_voltage, self.end_voltage)
+        for value in comet.Range(self.current_voltage, self.end_voltage, self.step_delay):
+            self.current_voltage = value
+            if self.isGood():
+                self.showMessage("Ramping up ({:.2f} V)".format(self.current_voltage))
+                # self.smu.setVoltage(self.current_voltage)
+                self.showProgress(self.current_voltage, self.end_voltage)
+                self.wait(self.step_delay)
+            else:
+                raise StopRequest()
+        self.showProgress(self.current_voltage, self.end_voltage)
+        self.showMessage("Done")
+        return True
+
+    def rampBias(self):
+        step = 5.00
+        start_voltage = self.current_voltage - self.bias_voltage
+        delta_voltage = self.current_voltage - self.current_voltage
+        self.showMessage("Ramping to bias")
+        self.showProgress(delta_voltage, start_voltage)
+        for value in comet.Range(self.current_voltage, self.bias_voltage, -self.step_delay):
+            self.current_voltage = value
+            if self.isGood():
+                self.showMessage("Ramping to bias ({:.2f} V)".format(self.current_voltage))
+                # setVoltage(self.current_voltage)
+                delta_voltage = self.current_voltage - self.current_voltage
+                self.showProgress(delta_voltage, start_voltage)
+                time.sleep(.5)
+            else:
+                raise StopRequest()
+        self.showMessage("Done")
+
+    def longterm(self):
+        self.showMessage("Measuring...")
+        timeBegin = time.time()
+        timeEnd = timeBegin + self.duration
+        if self.duration:
+            self.showProgress(0, timeEnd - timeBegin)
+        else:
+            self.showProgress(0, 0) # progress unknown, infinite run
+        while self.isGood():
+            currentTime = time.time()
+            if self.duration:
+                self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
+                if currentTime >= timeEnd:
+                    break
+        self.showProgress(1, 1)
+        self.showMessage("Done")
+
+    def rampDown(self):
+        zero_voltage = 0.0
+        step = 10.0
+        start_voltage = self.current_voltage
+        delta_voltage = start_voltage - self.current_voltage
+        self.showMessage("Ramping down")
+        self.showProgress(delta_voltage, start_voltage)
+        for value in comet.Range(self.current_voltage, zero_voltage, -self.step_delay):
+            # Ramp down at any cost to save lifes!
+            self.current_voltage = value
+            delta_voltage = start_voltage - self.current_voltage
+            self.showProgress(delta_voltage, start_voltage)
+            time.sleep(.15)
+        self.showMessage("Done")
+
+    def run(self):
+        self.setup()
+        try:
+            self.rampUp()
+            self.rampBias()
+            self.longterm()
+        except StopRequest:
+            pass
+        finally:
+            self.rampDown()
+            self.showMessage("Stopped")
+            self.showProgress(0, 1)

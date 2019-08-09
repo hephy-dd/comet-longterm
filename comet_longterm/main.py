@@ -7,19 +7,17 @@ os.environ['PYVISA_LIBRARY'] = '@py'
 import comet
 from .dashboard import DashboardWidget
 
-ApplicationName = 'Longterm It'
-
 class MainWindow(comet.MainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(ApplicationName)
         dashboard = DashboardWidget(self)
         self.setCentralWidget(dashboard)
+        self.setWindowTitle(dashboard.windowTitle())
 
 def main():
     app = comet.Application()
-    app.setName(ApplicationName)
+    app.setName('LongtermIt')
     app.addWindow(MainWindow())
     return app.run()
 
