@@ -42,7 +42,7 @@ class MeasurementWorker(comet.Worker):
     total_compliance = 80.0
     single_compliance = 25.0
 
-    durration = 0
+    duration = 0
     measurement_delay = 1.00
 
     current_voltage = 0.0
@@ -108,6 +108,7 @@ class MeasurementWorker(comet.Worker):
                 self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                 if currentTime >= timeEnd:
                     break
+            self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
 
