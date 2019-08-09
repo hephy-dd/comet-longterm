@@ -2,11 +2,9 @@ import time
 import sys, os
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
-from slave.transport import Visa, Socket
 
 import comet
 from comet import ureg
-from comet.drivers.cts import ITC
 
 from .worker import *
 
@@ -162,7 +160,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         # Update display
         self.ui.tempLineEdit.setText('{:.1f} °C'.format(reading.get('temp')))
-        self.ui.humidLineEdit.setText('{:.1f} %'.format(reading.get('humid')))
+        self.ui.humidLineEdit.setText('{:.1f} %rH'.format(reading.get('humid')))
 
     def updateOperator(self, index):
         settings = QtCore.QSettings()

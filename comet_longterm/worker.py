@@ -3,6 +3,8 @@ import time
 from PyQt5 import QtCore
 
 import comet
+from slave.transport import Visa, Socket
+from comet.drivers.cts import ITC
 
 __all__ = ['EnvironmentWorker', 'MeasurementWorker']
 
@@ -22,7 +24,7 @@ class EnvironmentWorker(comet.Worker):
         while self.isGood():
             t = time.time()
             self.device._transport.write(b'A0')
-            temp = float(self.device.__its._transport.read_bytes(14).decode().split(' ')[1])
+            temp = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
             self.device._transport.write(b'A1')
             humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
             self.reading.emit(dict(time=t, temp=temp, humid=humid))
@@ -61,7 +63,7 @@ class MeasurementWorker(comet.Worker):
     def rampUp(self):
         self.showMessage("Ramping up")
         self.showProgress(self.current_voltage, self.end_voltage)
-        for value in comet.Range(self.current_voltage, self.end_voltage, self.step_delay):
+        for value in comet.Range(self.current_voltage, self.end_voltage, self.step_size):
             self.current_voltage = value
             if self.isGood():
                 self.showMessage("Ramping up ({:.2f} V)".format(self.current_voltage))
@@ -80,7 +82,7 @@ class MeasurementWorker(comet.Worker):
         delta_voltage = self.current_voltage - self.current_voltage
         self.showMessage("Ramping to bias")
         self.showProgress(delta_voltage, start_voltage)
-        for value in comet.Range(self.current_voltage, self.bias_voltage, -self.step_delay):
+        for value in comet.Range(self.current_voltage, self.bias_voltage, -self.step_size):
             self.current_voltage = value
             if self.isGood():
                 self.showMessage("Ramping to bias ({:.2f} V)".format(self.current_voltage))
@@ -116,7 +118,7 @@ class MeasurementWorker(comet.Worker):
         delta_voltage = start_voltage - self.current_voltage
         self.showMessage("Ramping down")
         self.showProgress(delta_voltage, start_voltage)
-        for value in comet.Range(self.current_voltage, zero_voltage, -self.step_delay):
+        for value in comet.Range(self.current_voltage, zero_voltage, -self.step_size):
             # Ramp down at any cost to save lifes!
             self.current_voltage = value
             delta_voltage = start_voltage - self.current_voltage
