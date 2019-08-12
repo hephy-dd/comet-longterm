@@ -18,16 +18,16 @@ class EnvironmentWorker(comet.Worker):
     def __init__(self, parent=None, interval=1.0):
         super().__init__(parent)
         self.interval = interval
-        self.device = ITC(Socket(address=('192.168.100.205', 1080)))
+        #self.device = ITC(Socket(address=('192.168.100.205', 1080)))
 
     def run(self):
         while self.isGood():
             t = time.time()
-            self.device._transport.write(b'A0')
-            temp = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
-            self.device._transport.write(b'A1')
-            humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
-            self.reading.emit(dict(time=t, temp=temp, humid=humid))
+            #self.device._transport.write(b'A0')
+            #temp = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
+            #self.device._transport.write(b'A1')
+            #humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
+            #self.reading.emit(dict(time=t, temp=temp, humid=humid))
             self.wait(self.interval)
 
 class MeasurementWorker(comet.Worker):

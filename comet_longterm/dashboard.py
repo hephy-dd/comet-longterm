@@ -10,19 +10,23 @@ from .worker import *
 
 __all__ = ['DashboardWidget']
 
-class Function(object):
+class Sample(object):
 
-    def __init__(self):
-        pass
+    class State:
+        OK = "OK"
+        BDA = "BAD"
 
-    def __iter__(self):
-        return iter(self)
+    def __init__(self, index):
+        self.index = index
+        self.enabled = False
+        self.name = ''
+        self.status = self.State.OK
+        self.current = 0.0
+        self.temp = None
 
 class SampleModel(QtCore.QAbstractTableModel):
 
     columns = ['', 'Name', 'Status', 'Current (uA)', 'PT100 Temp. (°C)']
-
-    status = ["OK", "BAD", "OK", "OK", "OK", "OK", "OK", "OK", "OK", "OK"]
 
     class Column:
         Enabled = 0
@@ -33,6 +37,9 @@ class SampleModel(QtCore.QAbstractTableModel):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.samples = []
+        for i in range(self.rowCount(None)):
+            self.samples.append(Sample(i))
 
     def rowCount(self, parent):
         return 10
@@ -50,35 +57,50 @@ class SampleModel(QtCore.QAbstractTableModel):
 
     def data(self, index, role):
         if index.isValid():
-            status = self.status[index.row()]
+            sample = self.samples[index.row()]
+
             if role == QtCore.Qt.DisplayRole:
-                if index.column() == self.Column.Enabled:
-                    return QtWidgets.QCheckBox()
-                elif index.column() == self.Column.State:
-                    return status
-                else:
-                    return ""
+                if index.column() == self.Column.Name:
+                    return sample.name
+                if index.column() == self.Column.State:
+                    if sample.enabled:
+                        return sample.status
+
             elif role == QtCore.Qt.ForegroundRole:
                 if index.column() == self.Column.State:
-                    if status == "OK":
+                    if sample.status == sample.State.OK:
                         return QtGui.QBrush(QtCore.Qt.darkGreen)
                     return QtGui.QBrush(QtCore.Qt.darkRed)
-            elif role == QtCore.Qt.EditRole:
-                if index.column() == self.Column.Name:
-                    return True
+
             elif role == QtCore.Qt.CheckStateRole:
                 if index.column() == self.Column.Enabled:
-                    return QtCore.Qt.Checked
+                    return [QtCore.Qt.Unchecked, QtCore.Qt.Checked][sample.enabled]
+
+            elif role == QtCore.Qt.EditRole:
+                if index.column() == self.Column.Name:
+                    return sample.name
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if role == QtCore.Qt.EditRole:
-            row = index.row()
-            column = index.column()
-            if column == self.Column.Enabled:
-                if value is None:
-                    value = ''
-                return True
+        if index.isValid():
+            sample = self.samples[index.row()]
+
+            if role == QtCore.Qt.CheckStateRole:
+                if index.column() == self.Column.Enabled:
+                    sample.enabled = value == QtCore.Qt.Checked
+                    return True
+
+            elif role == QtCore.Qt.EditRole:
+                if index.column() == self.Column.Name:
+                    sample.name = str(value)
+                    return True
         return False
+
+    def flags(self, index):
+        if index.column() == 0:
+            return super().flags(index) | QtCore.Qt.ItemIsUserCheckable
+        if index.column() == self.Column.Name:
+            return super().flags(index) | QtCore.Qt.ItemIsEditable
+        return super().flags(index)
 
 Ui_Dashboard, DashboardBase = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'dashboard.ui'))
 
@@ -111,6 +133,17 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'longterm'))
 
         self.model = SampleModel(self)
+
+        # TODO insert dummy data
+
+        sample = self.model.samples[0]
+        sample.enabled = True
+        sample.name = "DUMMY1"
+
+        sample = self.model.samples[1]
+        sample.enabled = True
+        sample.name = "DUMMY2"
+
         self.ui.samplesTableView.setModel(self.model)
         self.ui.samplesTableView.resizeColumnsToContents()
         self.ui.samplesTableView.resizeRowsToContents()
