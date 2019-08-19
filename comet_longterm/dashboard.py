@@ -139,6 +139,7 @@ class DashboardWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.ui = Ui_Dashboard()
         self.ui.setupUi(self)
+        self.ui.startButton.setEnabled(False)
         self.ui.rampUpEndSpinBox.setUnit(ureg.volt)
         self.ui.rampUpStepSpinBox.setUnit(ureg.volt)
         self.ui.rampUpDelaySpinBox.setUnit(ureg.second)
@@ -153,16 +154,6 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.operatorComboBox.setCurrentIndex(settings.currentOperator())
         self.ui.operatorComboBox.currentIndexChanged[int].connect(settings.setCurrentOperator)
         self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'longterm'))
-
-        # Devices
-        devices = settings.devices()
-
-        if 'cts' not in devices:
-            settings.setDevice('cts', 'TCPIP::192.168.100.205::1080::SOCKET')
-        if 'smu' not in devices:
-            settings.setDevice('smu', 'TCPIP::10.0.0.3::10002::SOCKET')
-        if 'multi' not in devices:
-            settings.setDevice('multi', 'TCPIP::10.0.0.3::10001::SOCKET')
 
         self.samples = []
         for i in range(N_SAMPLES):
@@ -208,6 +199,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environWorker = EnvironmentWorker(self, interval=2.5)
         self.environWorker.reading.connect(self.environBuffer.append)
         self.environWorker.reading.connect(self.setEnvironDisplay)
+        self.environWorker.ready.connect(self.setReady)
         self.parent().startWorker(self.environWorker)
 
         self.ivBuffer = IVBuffer()
@@ -258,7 +250,13 @@ class DashboardWidget(QtWidgets.QWidget):
         if path:
             self.ui.outputComboBox.setCurrentText(path)
 
+    def setReady(self):
+        self.ui.startButton.setEnabled(True)
+
     def onStart(self):
+        if not self.environWorker.isGood():
+            self.parent().showException("EnvironWorker died!")
+            return
         self.ui.startButton.setEnabled(False)
         self.ui.stopButton.setEnabled(True)
         self.ui.operatorComboBox.setEnabled(False)
