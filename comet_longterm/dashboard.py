@@ -10,11 +10,13 @@ from .worker import *
 
 __all__ = ['DashboardWidget']
 
+N_SAMPLES = 10
+
 class Sample(object):
 
     class State:
         OK = "OK"
-        BDA = "BAD"
+        BAD = "BAD"
 
     def __init__(self, index):
         self.index = index
@@ -35,14 +37,12 @@ class SampleModel(QtCore.QAbstractTableModel):
         Current = 3
         Temp = 4
 
-    def __init__(self, parent=None):
+    def __init__(self, samples, parent=None):
         super().__init__(parent)
-        self.samples = []
-        for i in range(self.rowCount(None)):
-            self.samples.append(Sample(i))
+        self.samples = samples
 
     def rowCount(self, parent):
-        return 10
+        return N_SAMPLES
 
     def columnCount(self, parent):
         return len(self.columns)
@@ -62,9 +62,12 @@ class SampleModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.DisplayRole:
                 if index.column() == self.Column.Name:
                     return sample.name
-                if index.column() == self.Column.State:
+                elif index.column() == self.Column.State:
                     if sample.enabled:
                         return sample.status
+                elif index.column() == self.Column.Current:
+                    if sample.enabled:
+                        return sample.current
 
             elif role == QtCore.Qt.ForegroundRole:
                 if index.column() == self.Column.State:
@@ -87,20 +90,46 @@ class SampleModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.CheckStateRole:
                 if index.column() == self.Column.Enabled:
                     sample.enabled = value == QtCore.Qt.Checked
+                    if not sample.name:
+                        sample.name = self.tr("Unnamed")
+                    self.dataChanged.emit(index, self.createIndex(index.row(), self.Column.Temp))
                     return True
 
             elif role == QtCore.Qt.EditRole:
                 if index.column() == self.Column.Name:
                     sample.name = str(value)
+                    self.dataChanged.emit(index, index)
+                    return True
+                if index.column() == self.Column.Current:
+                    sample.current = value
+                    self.dataChanged.emit(index, index)
                     return True
         return False
 
     def flags(self, index):
+        flags = super().flags(index)
         if index.column() == 0:
-            return super().flags(index) | QtCore.Qt.ItemIsUserCheckable
+            return flags | QtCore.Qt.ItemIsUserCheckable
         if index.column() == self.Column.Name:
-            return super().flags(index) | QtCore.Qt.ItemIsEditable
-        return super().flags(index)
+            return flags | QtCore.Qt.ItemIsEditable
+        return flags
+
+class IVBuffer(comet.Buffer):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.addChannel('time')
+        for i in range(N_SAMPLES):
+            self.addChannel(i)
+        self.addChannel('total')
+
+    def append(self, singles, total):
+        data = {}
+        data['time'] = time.time()
+        for i in range(N_SAMPLES):
+            data[i] = singles[i]
+        data['total'] = total
+        super().append(data)
 
 Ui_Dashboard, DashboardBase = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'dashboard.ui'))
 
@@ -132,7 +161,10 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.operatorComboBox.currentIndexChanged[int].connect(self.updateOperator)
         self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'longterm'))
 
-        self.model = SampleModel(self)
+        self.samples = []
+        for i in range(N_SAMPLES):
+            self.samples.append(Sample(i))
+        self.model = SampleModel(self.samples, self)
 
         # TODO insert dummy data
 
@@ -155,32 +187,36 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ui.currentPlotWidget.setYRange(0, 500)
         self.ui.currentPlotWidget.plotItem.addLegend(offset=(-0,0))
+        self.singleCurves = []
         for i in range(1, 11):
             curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
+            self.singleCurves.append(curve)
+        self.totalCurve = self.ui.currentPlotWidget.plot(pen='r', name='total')
 
         # Create environmental buffer
         self.environBuffer = comet.Buffer()
         self.environBuffer.addChannel('time')
         self.environBuffer.addChannel('temp')
         self.environBuffer.addChannel('humid')
+        self.environBuffer.dataChanged.connect(self.updateEnvironPlot)
 
         # Create environmental and worker
         self.environWorker = EnvironmentWorker(self, interval=2.5)
-        self.environWorker.reading.connect(self.updateEnviron)
+        self.environWorker.reading.connect(self.environBuffer.append)
+        self.environWorker.reading.connect(self.setEnvironDisplay)
         self.parent().startWorker(self.environWorker)
 
+        self.ivBuffer = IVBuffer()
+        self.ivBuffer.dataChanged.connect(self.updateIVPlot)
+
         # Create measurement worker
-        self.worker = MeasurementWorker(self)
+        self.worker = MeasurementWorker(self.samples, self.ivBuffer, self)
 
         # Setup total bias display
         totalBias = 0. * ureg.uA
         self.ui.totalBiasLineEdit.setText("{:.3f~}".format(totalBias))
 
-    def updateEnviron(self, reading):
-        self.environBuffer.append(reading)
-        comet.logger().info("environ: %s", reading)
-
-        # How to upate pyqtgraph properly?
+    def updateEnvironPlot(self):
         data = self.environBuffer.data()
         self.tempCurve.setData(
             x=data.get('time'),
@@ -191,9 +227,26 @@ class DashboardWidget(QtWidgets.QWidget):
             y=data.get('humid')
         )
 
+    def setEnvironDisplay(self, data):
         # Update display
-        self.ui.tempLineEdit.setText('{:.1f} °C'.format(reading.get('temp')))
-        self.ui.humidLineEdit.setText('{:.1f} %rH'.format(reading.get('humid')))
+        self.ui.tempLineEdit.setText('{:.1f} °C'.format(data.get('temp')))
+        self.ui.humidLineEdit.setText('{:.1f} %rH'.format(data.get('humid')))
+
+    def updateIVPlot(self):
+        data = self.ivBuffer.data()
+        self.totalCurve.setData(
+            x=data.get('time'),
+            y=data.get('total')
+        )
+        if data.get('total'):
+            self.ui.totalBiasLineEdit.setText('{:.1f} uA'.format(data.get('total')[-1]))
+        for i in range(10):
+            self.singleCurves[i].setData(
+                x=data.get('time'),
+                y=data.get(i)
+            )
+            if data.get(i):
+                self.model.setData(self.model.index(i, 3), '{:.1f} uA'.format(data.get(i)[-1]))
 
     def updateOperator(self, index):
         settings = QtCore.QSettings()

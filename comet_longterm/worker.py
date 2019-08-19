@@ -1,5 +1,5 @@
 import time
-
+import random
 from PyQt5 import QtCore
 
 import comet
@@ -10,6 +10,22 @@ __all__ = ['EnvironmentWorker', 'MeasurementWorker']
 
 class StopRequest(Exception):
     pass
+
+class FakeData(object):
+    """Fake data generator for testing purpose."""
+
+    def __init__(self):
+        self.singles = [0.0 for _ in range(10)]
+        self.total = 0.0
+
+    def up(self):
+        self.singles = [self.singles[i] + random.random() for i in range(10)]
+        self.total = sum(self.singles)
+
+    def down(self):
+        self.singles = [max(self.singles[i] - random.random(), 0.0) for i in range(10)]
+        self.total = sum(self.singles)
+
 
 class EnvironmentWorker(comet.Worker):
 
@@ -22,12 +38,15 @@ class EnvironmentWorker(comet.Worker):
 
     def run(self):
         while self.isGood():
+            import random
             t = time.time()
             #self.device._transport.write(b'A0')
             #temp = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
+            temp = random.random()
+            humid = random.random()
             #self.device._transport.write(b'A1')
             #humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
-            #self.reading.emit(dict(time=t, temp=temp, humid=humid))
+            self.reading.emit(dict(time=t, temp=temp, humid=humid))
             self.wait(self.interval)
 
 class MeasurementWorker(comet.Worker):
@@ -47,11 +66,16 @@ class MeasurementWorker(comet.Worker):
 
     current_voltage = 0.0
 
-    def __init__(self, parent=None):
+    def __init__(self, samples, buff, parent=None):
         super().__init__(parent)
         self.__itc = None
+        self.samples = samples
+        self.buff = buff
+        self.fake = FakeData()
 
     def setup(self):
+        self.showMessage("Clear buffers")
+        self.buff.clear()
         self.showMessage("Setup instruments")
         self.showProgress(0, 3)
         for i in range(3):
@@ -70,6 +94,9 @@ class MeasurementWorker(comet.Worker):
                 # self.smu.setVoltage(self.current_voltage)
                 self.showProgress(self.current_voltage, self.end_voltage)
                 self.wait(self.step_delay)
+                # TODO Reading
+                self.fake.up()
+                self.buff.append(self.fake.singles, self.fake.total)
             else:
                 raise StopRequest()
         self.showProgress(self.current_voltage, self.end_voltage)
@@ -89,6 +116,9 @@ class MeasurementWorker(comet.Worker):
                 # setVoltage(self.current_voltage)
                 delta_voltage = self.current_voltage - self.current_voltage
                 self.showProgress(delta_voltage, start_voltage)
+                # TODO Reading
+                self.fake.down()
+                self.buff.append(self.fake.singles, self.fake.total)
                 time.sleep(.5)
             else:
                 raise StopRequest()
@@ -108,6 +138,9 @@ class MeasurementWorker(comet.Worker):
                 self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                 if currentTime >= timeEnd:
                     break
+            # TODO Reading
+            if random.random() < 0.1: self.fake.down()
+            self.buff.append(self.fake.singles, self.fake.total)
             self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
@@ -124,6 +157,9 @@ class MeasurementWorker(comet.Worker):
             self.current_voltage = value
             delta_voltage = start_voltage - self.current_voltage
             self.showProgress(delta_voltage, start_voltage)
+            # TODO Reading
+            self.fake.down()
+            self.buff.append(self.fake.singles, self.fake.total)
             time.sleep(.15)
         self.showMessage("Done")
 
