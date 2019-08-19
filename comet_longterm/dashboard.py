@@ -148,18 +148,21 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.timingDurationSpinBox.setUnit(ureg.hour)
         self.ui.timingDelaySpinBox.setUnit(ureg.second)
 
-        settings = QtCore.QSettings()
-        settings.beginGroup('preferences')
-        operators = settings.value('operators', ['Monty'], type=list)
-        index = int(settings.value('currentOperator', 0, type=int))
-        devices = settings.value('devices', [['cts', '192.168.100.205']], type=list)
-        settings.setValue('devices', devices)
-        settings.endGroup()
-
-        self.ui.operatorComboBox.addItems(operators)
-        self.ui.operatorComboBox.setCurrentIndex(index)
-        self.ui.operatorComboBox.currentIndexChanged[int].connect(self.updateOperator)
+        settings = comet.Settings()
+        self.ui.operatorComboBox.addItems(settings.operators())
+        self.ui.operatorComboBox.setCurrentIndex(settings.currentOperator())
+        self.ui.operatorComboBox.currentIndexChanged[int].connect(settings.setCurrentOperator)
         self.ui.outputComboBox.addItem(os.path.join(os.path.expanduser("~"), 'longterm'))
+
+        # Devices
+        devices = settings.devices()
+
+        if 'cts' not in devices:
+            settings.setDevice('cts', 'TCPIP::192.168.100.205::1080::SOCKET')
+        if 'smu' not in devices:
+            settings.setDevice('smu', 'TCPIP::10.0.0.3::10002::SOCKET')
+        if 'multi' not in devices:
+            settings.setDevice('multi', 'TCPIP::10.0.0.3::10001::SOCKET')
 
         self.samples = []
         for i in range(N_SAMPLES):
@@ -178,6 +181,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ui.samplesTableView.setModel(self.model)
         self.ui.samplesTableView.resizeColumnsToContents()
+        self.ui.samplesTableView.setColumnWidth(1, 120)
         self.ui.samplesTableView.resizeRowsToContents()
 
         self.ui.environPlotWidget.setYRange(-40, +180)
@@ -247,12 +251,6 @@ class DashboardWidget(QtWidgets.QWidget):
             )
             if data.get(i):
                 self.model.setData(self.model.index(i, 3), '{:.1f} uA'.format(data.get(i)[-1]))
-
-    def updateOperator(self, index):
-        settings = QtCore.QSettings()
-        settings.beginGroup('preferences')
-        settings.setValue('currentOperator', index)
-        settings.endGroup()
 
     def selectOutputDir(self):
         path = self.ui.outputComboBox.currentText() or os.path.expanduser("~")
