@@ -179,7 +179,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.totalComplianceSpinBox.setUnit(ureg.uA)
         self.ui.singleComplianceSpinBox.setUnit(ureg.uA)
         self.ui.timingDurationSpinBox.setUnit(ureg.hour)
-        self.ui.timingDelaySpinBox.setUnit(ureg.second)
+        self.ui.timingDelaySpinBox.setUnit(ureg.minute)
 
         settings = comet.Settings()
         self.ui.operatorComboBox.addItems(settings.operators())
