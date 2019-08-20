@@ -44,8 +44,8 @@ class EnvironmentWorker(comet.Worker):
         with ITC(resource, visaLibrary) as device:
             while self.isGood():
                 t = time.time()
-                temp = device.analogChannel(1)
-                humid = device.analogChannel(2)
+                temp = device.analogChannel(1)[0]
+                humid = device.analogChannel(2)[0]
                 self.reading.emit(dict(time=t, temp=temp, humid=humid))
                 if not self.isReady:
                     self.isReady = True
