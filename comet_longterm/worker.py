@@ -1,34 +1,19 @@
 import time
 import random
 import logging
+
 from PyQt5 import QtCore
 
 import comet
 from comet.drivers.cts import ITC
 from comet.drivers.keithley import K2410, K2700
 
-len(self.samples) = 10
+N_SAMPLES = 10
 
 __all__ = ['EnvironmentWorker', 'MeasurementWorker']
 
 class StopRequest(Exception):
     pass
-
-# class FakeData(object):
-#     """Fake data generator for testing purpose."""
-#
-#     def __init__(self):
-#         self.singles = [0.0 for _ in range(10)]
-#         self.total = 0.0
-#
-#     def up(self):
-#         self.singles = [self.singles[i] + random.random() for i in range(10)]
-#         self.total = sum(self.singles)
-#
-#     def down(self):
-#         self.singles = [max(self.singles[i] - random.random(), 0.0) for i in range(10)]
-#         self.total = sum(self.singles)
-
 
 class EnvironmentWorker(comet.Worker):
 
@@ -64,8 +49,8 @@ class MeasurementWorker(comet.Worker):
     step_delay = 1.00
 
     bias_voltage = 600.0
-    total_compliance = 80.0
-    single_compliance = 25.0
+    total_compliance = 0.000080
+    single_compliance = 0.000025
 
     duration = 0
     measurement_delay = 1.00
@@ -77,7 +62,34 @@ class MeasurementWorker(comet.Worker):
         self.__itc = None
         self.samples = samples
         self.buff = buff
-        # self.fake = FakeData()
+        logging.getLogger().setLevel(logging.INFO)
+
+    def reset(self, smu, multi):
+        multi.reset()
+        smu.reset()
+        time.sleep(.5)
+
+    def scan(self, smu, multi):
+        # check SMU compliance
+        totalCurrent = smu.read()[1]
+        logging.info('SMU current (A): %s', totalCurrent)
+        if totalCurrent > self.total_compliance:
+            raise ValueError(totalCurrent)
+        # start measurement scan
+        multi.init()
+        time.sleep(.500)
+        # read buffer
+        results = multi.fetch()
+        logging.info("measurements: %s", results)
+        currents = []
+
+        for sample in self.samples:
+            R = 470000.0 # ohm, from calibration measurement array
+            u = results[sample.index].get('VDC')
+            logging.info("U(V): %s", u)
+            currents.append(u / R)
+
+        self.buff.append(currents, totalCurrent)
 
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
@@ -85,8 +97,9 @@ class MeasurementWorker(comet.Worker):
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
-        multi.reset()
-        smu.reset()
+        self.reset(smu, multi)
+        logging.info("Multimeter: %s", multi.identification())
+        logging.info("Source Unit: %s", smu.identification())
         time.sleep(1.0)
 
         self.showMessage("Setup multimeter")
@@ -121,7 +134,7 @@ class MeasurementWorker(comet.Worker):
         smu.resource().write('SENS:AVER ON')
         smu.resource().write('ROUT:TERM REAR')
         smu.resource().write(':SOUR:FUNC VOLT')
-        smu.resource().write('OUTP OFF')
+        smu.enableOutput(False)
         smu.resource().write('SOUR:VOLT:RANG MAX')
         # measure current DC
         smu.resource().write('SENS:FUNC "CURR"')
@@ -134,13 +147,13 @@ class MeasurementWorker(comet.Worker):
 
         time.sleep(.100) # value from labview
 
-        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(compliance_uamp))
+        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.total_compliance))
 
         # clear voltage
         self.current_voltage = 0.0
-        smu.resource().write('SOUR:VOLT:LEV {:E}'.format(self.current_voltage))
+        smu.setVoltage(self.current_voltage))
         # switch output ON
-        smu.resource().write('OUTP ON')
+        smu.enableOutput(True)
 
         self.showProgress(3, 3)
         self.showMessage("Done")
@@ -153,25 +166,10 @@ class MeasurementWorker(comet.Worker):
             if self.isGood():
                 self.showMessage("Ramping up ({:.2f} V)".format(self.current_voltage))
                 # Set voltage
-                smu.resource().write('SOUR:VOLT:LEV {:E}'.format(value))
+                smu.setVoltage(value)
                 self.showProgress(self.current_voltage, self.end_voltage)
                 self.wait(self.step_delay)
-                # check SMU compliance
-                totalCurrent = abs(float(smu.resource().query('READ?')))
-                if totalCurrent > total_compliance:
-                    raise ValueError(totalCurrent)
-                logging.info('SMU current: %s', totalCurrent)
-                for sample in self.samples:
-                    # start measurement scan
-                    multi.resource().write('INIT')
-                    time.sleep(.500)
-                    # read buffer
-                    result = multi.resource().query('FETCH?')
-                    # split result
-                    R = 470000.0 # ohm, from calibration measurement array
-                    u = results.split(',')[sample.index]
-                    currents.append(u / R)
-                self.buff.append(currents, totalCurrent)
+                self.scan(smu, multi)
             else:
                 raise StopRequest()
         self.showProgress(self.current_voltage, self.end_voltage)
@@ -189,13 +187,11 @@ class MeasurementWorker(comet.Worker):
             if self.isGood():
                 self.showMessage("Ramping to bias ({:.2f} V)".format(self.current_voltage))
                 # Set voltage
-                smu.resource().write('SOUR:VOLT:LEV {:E}'.format(value))
+                smu.setVoltage(value)
                 delta_voltage = self.current_voltage - self.current_voltage
                 self.showProgress(delta_voltage, start_voltage)
-                # TODO Reading
-                #self.fake.down()
-                #self.buff.append(self.fake.singles, self.fake.total)
                 self.wait(2.0) # value from labview
+                self.scan(smu, multi)
             else:
                 raise StopRequest()
         self.showMessage("Done")
@@ -217,10 +213,7 @@ class MeasurementWorker(comet.Worker):
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
-                # TODO Reading
-                #if random.random() < 0.1: self.fake.down()
-                #self.buff.append(self.fake.singles, self.fake.total)
-                #formatter.write(dict(time=currentTime, total=self.fake.total))
+                self.scan(smu, multi)
                 self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
@@ -236,25 +229,28 @@ class MeasurementWorker(comet.Worker):
             # Ramp down at any cost to save lives!
             self.current_voltage = value
             # Set voltage
-            smu.resource().write('SOUR:VOLT:LEV {:E}'.format(value))
+            smu.setVoltage(value)
             delta_voltage = start_voltage - self.current_voltage
             self.showProgress(delta_voltage, start_voltage)
-            # TODO Reading
-            #self.fake.down()
-            #self.buff.append(self.fake.singles, self.fake.total)
             time.sleep(.20) # value from labview
+            try:
+                self.scan(smu, multi)
+            except ValueError:
+                pass # continue at any cost!
+
         smu.reset()
         multi.reset()
         self.showMessage("Done")
 
     def run(self):
-        devices = comet.Settings().devices().get('smu')
+        devices = comet.Settings().devices()
         visaLibrary = comet.Settings().visaLibrary()
 
         with K2410(devices.get('smu'), visaLibrary) as smu:
             with K2700(devices.get('multi'), visaLibrary) as multi:
                 self.setup(smu, multi)
                 try:
+                    pass
                     self.rampUp(smu, multi)
                     self.rampBias(smu, multi)
                     self.longterm(smu, multi)
@@ -262,5 +258,6 @@ class MeasurementWorker(comet.Worker):
                     pass
                 finally:
                     self.rampDown(smu, multi)
+                    self.reset(smu, multi)
                     self.showMessage("Stopped")
                     self.hideProgress()

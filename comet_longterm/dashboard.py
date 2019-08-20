@@ -308,8 +308,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.worker.step_size = self.ui.rampUpStepSpinBox.value().to(ureg.volt).m
         self.worker.step_delay = self.ui.rampUpDelaySpinBox.value().to(ureg.seconds).m
         self.worker.bias_voltage = self.ui.biasVoltageSpinBox.value().to(ureg.volt).m
-        self.worker.total_compliance = self.ui.totalComplianceSpinBox.value().to(ureg.uA).m
-        self.worker.single_compliance = self.ui.singleComplianceSpinBox.value().to(ureg.uA).m
+        self.worker.total_compliance = self.ui.totalComplianceSpinBox.value().to(ureg.A).m
+        self.worker.single_compliance = self.ui.singleComplianceSpinBox.value().to(ureg.A).m
         self.worker.duration = self.ui.timingDurationSpinBox.value().to(ureg.second).m
         self.worker.measurement_delay = self.ui.timingDelaySpinBox.value().to(ureg.second).m
         self.worker.finished.connect(self.onFinished)
