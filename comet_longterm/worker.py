@@ -151,7 +151,7 @@ class MeasurementWorker(comet.Worker):
 
         # clear voltage
         self.current_voltage = 0.0
-        smu.setVoltage(self.current_voltage))
+        smu.setVoltage(self.current_voltage)
         # switch output ON
         smu.enableOutput(True)
 
