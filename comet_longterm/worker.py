@@ -40,17 +40,12 @@ class EnvironmentWorker(comet.Worker):
 
     def run(self):
         resource = comet.Settings().devices().get('cts')
-        with comet.Transport(resource) as transport:
-            device = ITC(transport)
+        visaLibrary = comet.Settings().visaLibrary()
+        with ITC(resource, visaLibrary) as device:
             while self.isGood():
                 t = time.time()
-                r = device.analogChannel(1)
-                logging.error(r)
-                #temp = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
-                temp = random.random()
-                humid = random.random()
-                #self.device._transport.write(b'A1')
-                #humid = float(self.device._transport.read_bytes(14).decode().split(' ')[1])
+                temp = device.analogChannel(1)
+                humid = device.analogChannel(2)
                 self.reading.emit(dict(time=t, temp=temp, humid=humid))
                 if not self.isReady:
                     self.isReady = True
@@ -140,16 +135,20 @@ class MeasurementWorker(comet.Worker):
             self.showProgress(0, timeEnd - timeBegin)
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
-        while self.isGood():
-            currentTime = time.time()
-            if self.duration:
-                self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
-                if currentTime >= timeEnd:
-                    break
-            # TODO Reading
-            if random.random() < 0.1: self.fake.down()
-            self.buff.append(self.fake.singles, self.fake.total)
-            self.wait(self.measurement_delay)
+        with open('total.csv', 'w') as f:
+            formatter = comet.CsvFormatter(f, ('time', 'total'), formats=dict(time='E', total='E'))
+            formatter.write_header()
+            while self.isGood():
+                currentTime = time.time()
+                if self.duration:
+                    self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
+                    if currentTime >= timeEnd:
+                        break
+                # TODO Reading
+                if random.random() < 0.1: self.fake.down()
+                self.buff.append(self.fake.singles, self.fake.total)
+                formatter.write(dict(time=currentTime, total=self.fake.total))
+                self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
 
@@ -161,7 +160,7 @@ class MeasurementWorker(comet.Worker):
         self.showMessage("Ramping down")
         self.showProgress(delta_voltage, start_voltage)
         for value in comet.Range(self.current_voltage, zero_voltage, -self.step_size):
-            # Ramp down at any cost to save lifes!
+            # Ramp down at any cost to save lives!
             self.current_voltage = value
             delta_voltage = start_voltage - self.current_voltage
             self.showProgress(delta_voltage, start_voltage)

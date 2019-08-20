@@ -11,6 +11,33 @@ from .worker import *
 __all__ = ['DashboardWidget']
 
 N_SAMPLES = 10
+"""Maximum number of samples."""
+
+COLORS = [
+    (230, 25, 75),
+    (60, 180, 75),
+    (255, 225, 25),
+    (0, 130, 200),
+    (245, 130, 48),
+    (145, 30, 180),
+    (70, 240, 240),
+    (240, 50, 230),
+    (210, 245, 60),
+    (250, 190, 190),
+    (0, 128, 128),
+    (230, 190, 255),
+    (170, 110, 40),
+    (255, 250, 200),
+    (128, 0, 0),
+    (170, 255, 195),
+    (128, 128, 0),
+    (255, 215, 180),
+    (0, 0, 128),
+    (128, 128, 128),
+    (255, 255, 255),
+    (0, 0, 0),
+]
+"""List of distinct colors used for plots."""
 
 class Sample(object):
 
@@ -21,6 +48,7 @@ class Sample(object):
     def __init__(self, index):
         self.index = index
         self.enabled = False
+        self.color = (255, 255, 255)
         self.name = ''
         self.status = self.State.OK
         self.current = 0.0
@@ -68,6 +96,10 @@ class SampleModel(QtCore.QAbstractTableModel):
                 elif index.column() == self.Column.Current:
                     if sample.enabled:
                         return sample.current
+
+            elif role == QtCore.Qt.DecorationRole:
+                if index.column() == self.Column.Enabled:
+                    return QtGui.QColor(*sample.color)
 
             elif role == QtCore.Qt.ForegroundRole:
                 if index.column() == self.Column.State:
@@ -157,7 +189,9 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.samples = []
         for i in range(N_SAMPLES):
-            self.samples.append(Sample(i))
+            sample = Sample(i)
+            sample.color = COLORS[i]
+            self.samples.append(sample)
         self.model = SampleModel(self.samples, self)
 
         # TODO insert dummy data
@@ -183,10 +217,10 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.currentPlotWidget.setYRange(0, 500)
         self.ui.currentPlotWidget.plotItem.addLegend(offset=(-0,0))
         self.singleCurves = []
-        for i in range(1, 11):
-            curve = self.ui.currentPlotWidget.plot(pen='g', name=format(i))
+        for sample in self.samples:
+            curve = self.ui.currentPlotWidget.plot(pen=sample.color, name=format(sample.index))
             self.singleCurves.append(curve)
-        self.totalCurve = self.ui.currentPlotWidget.plot(pen='r', name='total')
+        self.totalCurve = self.ui.currentPlotWidget.plot(pen='w', name='total')
 
         # Create environmental buffer
         self.environBuffer = comet.Buffer()
@@ -257,11 +291,18 @@ class DashboardWidget(QtWidgets.QWidget):
         if not self.environWorker.isGood():
             self.parent().showException("EnvironWorker died!")
             return
+
         self.ui.startButton.setEnabled(False)
         self.ui.stopButton.setEnabled(True)
         self.ui.operatorComboBox.setEnabled(False)
         self.ui.rampUpGroupBox.setEnabled(False)
         self.ui.longtermGroupBox.setEnabled(False)
+
+        # Setup output location
+        path = os.path.normpath(self.ui.outputComboBox.currentText())
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         # Setup worker
         self.worker.end_voltage = self.ui.rampUpEndSpinBox.value().to(ureg.volt).m
         self.worker.step_size = self.ui.rampUpStepSpinBox.value().to(ureg.volt).m
