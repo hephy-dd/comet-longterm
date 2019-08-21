@@ -16,6 +16,7 @@ class IVBuffer(comet.Buffer):
     def __init__(self, count, parent=None):
         """Buffer for samples."""
         super().__init__(parent)
+        self.count = count
         self.addChannel('time')
         for i in range(count):
             self.addChannel(i)
@@ -24,7 +25,7 @@ class IVBuffer(comet.Buffer):
     def append(self, singles, total):
         data = {}
         data['time'] = time.time()
-        for i in range(count):
+        for i in range(self.count):
             data[i] = singles[i]
         data['total'] = total
         super().append(data)
