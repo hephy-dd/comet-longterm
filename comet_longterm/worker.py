@@ -1,14 +1,13 @@
 import time
 import random
 import logging
+import os
 
 from PyQt5 import QtCore
 
 import comet
 from comet.drivers.cts import ITC
 from comet.drivers.keithley import K2410, K2700
-
-N_SAMPLES = 10
 
 __all__ = ['EnvironmentWorker', 'MeasurementWorker']
 
@@ -57,17 +56,44 @@ class MeasurementWorker(comet.Worker):
 
     current_voltage = 0.0
 
+    path = None
+
     def __init__(self, samples, buff, parent=None):
         super().__init__(parent)
         self.__itc = None
         self.samples = samples
         self.buff = buff
-        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger('comet').setLevel(logging.INFO)
 
     def reset(self, smu, multi):
         multi.reset()
         smu.reset()
         time.sleep(.5)
+
+    def filename(self, sample):
+        return os.path.join(self.path, '{}-{}.txt'.format(sample.name, sample.index))
+
+    def initOutput(self):
+        if self.path:
+            for sample in self.samples:
+                with open(self.filename(sample)) as f:
+                    f.write("[info]")
+                    f.write(os.linesep)
+                    f.write(os.linesep)
+                    f.write("[tags]")
+                    f.write(os.linesep)
+                    f.write(os.linesep)
+                    f.write("[iv]")
+                    f.write(os.linesep)
+                    writer = comet.CsvFormatter(f, ['time', 'i', 'v', 'temp', 'humid'])
+                    writer.write_header()
+
+    def appendOutput(self, currents):
+        if self.path:
+            for i, sample in enumerate(self.samples):
+                with open(self.filename(sample)) as f:
+                    writer = comet.CsvFormatter(f, ['time', 'i', 'v', 'temp', 'humid'], formats=dict(time='E', i='E', v='E'))
+                    writer.write(sample.data)
 
     def scan(self, smu, multi):
         # check SMU compliance
@@ -80,20 +106,25 @@ class MeasurementWorker(comet.Worker):
         time.sleep(.500)
         # read buffer
         results = multi.fetch()
-        logging.info("measurements: %s", results)
         currents = []
-
         for sample in self.samples:
             R = 470000.0 # ohm, from calibration measurement array
             u = results[sample.index].get('VDC')
             logging.info("U(V): %s", u)
-            currents.append(u / R)
+            current = u / R
+            if current > self.single_compliance:
+                sample.status = sample.State.COMPL_ERR
+                # TODO switch relay off
+            currents.append(current)
 
         self.buff.append(currents, totalCurrent)
+        return currents, totalCurrent
 
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
         self.buff.clear()
+
+        self.initOutput()
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
@@ -113,15 +144,16 @@ class MeasurementWorker(comet.Worker):
         multi.resource().write(':TRIG:SOUR IMM')
 
         # set channels to scan
-        if len(self.samples) > 10:
-            offset = len(self.samples) + 120
+        count = len(self.samples)
+        if count > 10:
+            offset = count + 120
             multi.resource().write(':ROUTE:SCAN (@111:120,131:{})'.format(offset))
         else:
-            offset = len(self.samples) + 100
+            offset = count + 100
             multi.resource().write('ROUTE:SCAN (@101:{})'.format(offset))
 
         multi.resource().write(':TRIG:COUN 1')
-        multi.resource().write(':SAMP:COUN {}'.format(len(self.samples)))
+        multi.resource().write(':SAMP:COUN {}'.format(count))
         # start scan when triggered
         multi.resource().write(':ROUT:SCAN:TSO IMM')
         # enable scan
@@ -204,17 +236,14 @@ class MeasurementWorker(comet.Worker):
             self.showProgress(0, timeEnd - timeBegin)
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
-        with open('total.csv', 'w') as f:
-            formatter = comet.CsvFormatter(f, ('time', 'total'), formats=dict(time='E', total='E'))
-            formatter.write_header()
-            while self.isGood():
-                currentTime = time.time()
-                if self.duration:
-                    self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
-                    if currentTime >= timeEnd:
-                        break
-                self.scan(smu, multi)
-                self.wait(self.measurement_delay)
+        while self.isGood():
+            currentTime = time.time()
+            if self.duration:
+                self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
+                if currentTime >= timeEnd:
+                    break
+            self.scan(smu, multi)
+            self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
 
@@ -232,11 +261,7 @@ class MeasurementWorker(comet.Worker):
             smu.setVoltage(value)
             delta_voltage = start_voltage - self.current_voltage
             self.showProgress(delta_voltage, start_voltage)
-            time.sleep(.20) # value from labview
-            try:
-                self.scan(smu, multi)
-            except ValueError:
-                pass # continue at any cost!
+            time.sleep(.25) # value from labview
 
         smu.reset()
         multi.reset()
