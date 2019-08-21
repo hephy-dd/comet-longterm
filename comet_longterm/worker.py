@@ -82,9 +82,9 @@ class MeasurementWorker(comet.Worker):
         # read buffer
         results = multi.fetch()
         currents = []
-        for sample in self.samples:
+        for i, sample in enumerate(self.samples):
             R = 470000.0 # ohm, from calibration measurement array
-            u = results[sample.index].get('VDC')
+            u = results[i].get('VDC')
             logging.info("U(V): %s", u)
             current = u / R
             if current > self.single_compliance:
