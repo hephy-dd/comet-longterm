@@ -1,39 +1,24 @@
-import os
-import importlib
-from PyQt5 import uic
-
 from setuptools import setup, find_packages
-from setuptools.command.build_py import build_py
-
-package = 'comet_longterm'
-package_dir = os.path.join(os.path.dirname(__file__), package)
-
-version = importlib.import_module(package, os.path.join(package_dir, '__init__.py')).__version__
-
-class BuildPyCommand(build_py):
-    def run(self):
-        uic.compileUiDir(os.path.join(package_dir, 'ui'))
-        build_py.run(self)
 
 setup(
     name='comet-longterm',
-    version=version,
+    version='0.1.0',
     author="Bernhard Arnold",
     author_email="bernhard.arnold@oeaw.ac.at",
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     install_requires=[
-        'comet>=0.1',
+        'comet @ https://github.com/hephy-dd/comet/archive/master.zip#egg=comet-0.1.0',
     ],
-    dependency_links=[
-        'git+https://github.com/hephy-dd/comet.git@master',
-    ],
+    package_data={
+        '': [
+            '*.ui',
+        ],
+    },
     entry_points={
         'gui_scripts': [
             'comet-longterm = comet_longterm.main:main',
         ],
     },
-    cmdclass={
-        'build_py': BuildPyCommand,
-    },
+    test_suite='tests',
     license="GPLv3",
 )
