@@ -70,31 +70,6 @@ class MeasurementWorker(comet.Worker):
         smu.reset()
         time.sleep(.5)
 
-    def filename(self, sample):
-        return os.path.join(self.path, '{}-{}.txt'.format(sample.name, sample.index))
-
-    def initOutput(self):
-        if self.path:
-            for sample in self.samples:
-                with open(self.filename(sample)) as f:
-                    f.write("[info]")
-                    f.write(os.linesep)
-                    f.write(os.linesep)
-                    f.write("[tags]")
-                    f.write(os.linesep)
-                    f.write(os.linesep)
-                    f.write("[iv]")
-                    f.write(os.linesep)
-                    writer = comet.CsvFormatter(f, ['time', 'i', 'v', 'temp', 'humid'])
-                    writer.write_header()
-
-    def appendOutput(self, currents):
-        if self.path:
-            for i, sample in enumerate(self.samples):
-                with open(self.filename(sample)) as f:
-                    writer = comet.CsvFormatter(f, ['time', 'i', 'v', 'temp', 'humid'], formats=dict(time='E', i='E', v='E'))
-                    writer.write(sample.data)
-
     def scan(self, smu, multi):
         # check SMU compliance
         totalCurrent = smu.read()[1]
@@ -123,8 +98,6 @@ class MeasurementWorker(comet.Worker):
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
         self.buff.clear()
-
-        self.initOutput()
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
