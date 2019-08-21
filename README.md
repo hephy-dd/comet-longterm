@@ -4,6 +4,14 @@ Longterm current measurements in climate chamber
 
 ## Quick start
 
-    $ pip install git+https://github.com/hephy-dd/comet
-    $ python setup.py build
-    $ python -m comet_longterm.main
+```bash
+$ python setup.py bdist_wheel
+$ pip install dist/*.whl
+$ comet-longterm
+```
+
+## Run tests
+
+```bash
+$ python setup.py test
+```
