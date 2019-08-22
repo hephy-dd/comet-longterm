@@ -140,8 +140,8 @@ class MeasurementWorker(comet.Worker):
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
         self.reset()
-        logging.info("Multimeter: %s", multi.identification())
-        logging.info("Source Unit: %s", smu.identification())
+        logging.info("Multimeter: %s", self.multi.identification())
+        logging.info("Source Unit: %s", self.smu.identification())
         time.sleep(1.0)
 
         self.showMessage("Setup multimeter")
