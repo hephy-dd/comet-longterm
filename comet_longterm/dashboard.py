@@ -1,10 +1,11 @@
 import time
 import sys, os
 
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, QtChart, uic
 
 import comet
 from comet import ureg
+from comet.utilities import replace_ext
 
 from .samples import SampleManager, SampleModel
 from .worker import *
@@ -30,7 +31,7 @@ class IVBuffer(comet.Buffer):
         data['total'] = total
         super().append(data)
 
-Ui_Dashboard, DashboardBase = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'dashboard.ui'))
+Ui_Dashboard, DashboardBase = uic.loadUiType(replace_ext(__file__, '.ui'))
 
 class DashboardWidget(QtWidgets.QWidget):
 
@@ -74,25 +75,50 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.samplesTableView.setColumnWidth(1, 120)
         self.ui.samplesTableView.resizeRowsToContents()
 
-        self.ui.environPlotWidget.setYRange(-40, +180)
-        self.ui.environPlotWidget.plotItem.addLegend(offset=(-10,10))
-        self.tempCurve = self.ui.environPlotWidget.plot(pen='r', name='temp')
-        self.humidCurve = self.ui.environPlotWidget.plot(pen='b', name='humid')
+        self.environChart = QtChart.QChart()
+        self.temperatureSeries = QtChart.QLineSeries()
+        self.temperatureSeries.setName(self.tr("Temperature [°C]"))
+        self.temperatureSeries.setColor(QtCore.Qt.red)
+        self.environChart.addSeries(self.temperatureSeries)
+        self.humiditySeries = QtChart.QLineSeries()
+        self.humiditySeries.setName(self.tr("Humidity [%rH]"))
+        self.humiditySeries.setColor(QtCore.Qt.blue)
+        self.environChart.addSeries(self.humiditySeries)
+        self.environChart.createDefaultAxes()
+        self.environChart.axisX().setTitleText("Time [s]")
+        self.environChart.axisY().setRange(0, 180)
+        self.environChart.axisY().setTitleText("Temp.[°C]/Humid.[%rH]")
+        self.environChart.legend().setAlignment(QtCore.Qt.AlignBottom)
+        self.environChart.legend().hide()
+        self.environChart.setMargins(QtCore.QMargins(2, 2, 2, 2))
+        self.ui.environChartView.setChart(self.environChart)
 
-        self.ui.currentPlotWidget.setYRange(0, 500)
-        self.ui.currentPlotWidget.plotItem.addLegend(offset=(-0,0))
-        self.singleCurves = []
+        self.samplesChart = QtChart.QChart()
+        self.samplesSeries = []
         for sample in self.samples:
-            curve = self.ui.currentPlotWidget.plot(pen=sample.color, name=format(sample.index))
-            self.singleCurves.append(curve)
-        self.totalCurve = self.ui.currentPlotWidget.plot(pen='w', name='total')
+            series = QtChart.QLineSeries()
+            series.setName(format(sample.name))
+            series.setColor(QtGui.QColor(*sample.color))
+            self.samplesChart.addSeries(series)
+            self.samplesSeries.append(series)
+        self.totalSeries = QtChart.QLineSeries()
+        self.totalSeries.setName(self.tr("Total bias [uA]"))
+        self.totalSeries.setColor(QtGui.QColor(30, 30, 30))
+        self.samplesChart.addSeries(self.totalSeries)
+        self.samplesChart.createDefaultAxes()
+        self.samplesChart.axisX().setTitleText("Time [s]")
+        self.samplesChart.axisY().setRange(0, 80)
+        self.samplesChart.axisY().setTitleText("Current [uA]")
+        self.samplesChart.legend().setAlignment(QtCore.Qt.AlignRight)
+        self.samplesChart.setMargins(QtCore.QMargins(2, 2, 2, 2))
+        self.ui.samplesChartView.setChart(self.samplesChart)
 
         # Create environmental buffer
         self.environBuffer = comet.Buffer()
         self.environBuffer.addChannel('time')
         self.environBuffer.addChannel('temp')
         self.environBuffer.addChannel('humid')
-        self.environBuffer.dataChanged.connect(self.updateEnvironPlot)
+        self.environBuffer.dataChanged.connect(self.updateEnvironChart)
 
         # Create environmental and worker
         self.environWorker = EnvironmentWorker(self, interval=2.5)
@@ -102,7 +128,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.parent().startWorker(self.environWorker)
 
         self.ivBuffer = IVBuffer(len(self.samples))
-        self.ivBuffer.dataChanged.connect(self.updateIVPlot)
+        self.ivBuffer.dataChanged.connect(self.updateSamplesChart)
 
         # Create measurement worker
         self.worker = MeasurementWorker(self.samples, self.ivBuffer, self)
@@ -111,16 +137,14 @@ class DashboardWidget(QtWidgets.QWidget):
         totalBias = 0. * ureg.uA
         self.ui.totalBiasValueLabel.setText("{:.3f~}".format(totalBias))
 
-    def updateEnvironPlot(self):
+    def updateEnvironChart(self):
         data = self.environBuffer.data()
-        self.tempCurve.setData(
-            x=data.get('time'),
-            y=data.get('temp')
-        )
-        self.humidCurve.setData(
-            x=data.get('time'),
-            y=data.get('humid')
-        )
+        if data.get('time'):
+            self.temperatureSeries.append(QtCore.QPointF(data.get('time')[-1], data.get('temp')[-1]))
+            self.humiditySeries.append(QtCore.QPointF(data.get('time')[-1], data.get('humid')[-1]))
+            # Adjust range if not zoomed
+            if not self.environChart.isZoomed():
+                self.environChart.axisX().setRange(data.get('time')[0], data.get('time')[-1])
 
     def setOperator(self, index):
         settings = comet.Settings()
@@ -131,23 +155,19 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.tempValueLabel.setText('{:.1f} °C'.format(data.get('temp')))
         self.ui.humidValueLabel.setText('{:.1f} %rH'.format(data.get('humid')))
 
-    def updateIVPlot(self):
+    def updateSamplesChart(self):
         data = self.ivBuffer.data()
-        self.totalCurve.setData(
-            x=data.get('time'),
-            y=data.get('total')
-        )
-        if data.get('total'):
-            self.ui.totalBiasValueLabel.setText('{:.1f} uA'.format(data.get('total')[-1]))
-        for i in range(10):
-            self.singleCurves[i].setData(
-                x=data.get('time'),
-                y=data.get(i)
-            )
-            if data.get(i):
-                self.model.setData(self.model.index(i, 3), '{:.1f} uA'.format(data.get(i)[-1]))
+        if data.get('time'):
+            self.totalSeries.append(QtCore.QPointF(data.get('time')[-1], data.get('total')[-1]))
+            for i, sample in self.samples:
+                self.samplesSeries.setVisible(sample.enabled)
+                self.samplesSeries[i].append(QtCore.QPointF(data.get('time')[-1], data.get(i)[-1]))
+            # Adjust range if not zoomed
+            if not self.environChart.isZoomed():
+                self.environChart.axisX().setRange(data.get('time')[0], data.get('time')[-1])
 
     def selectOutputDir(self):
+        """Select output directory using a file dialog."""
         path = self.ui.outputComboBox.currentText() or os.path.expanduser("~")
         path = QtWidgets.QFileDialog.getExistingDirectory(self, self.tr("Select Output Directory"), path)
         if path:

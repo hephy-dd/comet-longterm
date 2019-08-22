@@ -28,16 +28,16 @@ class EnvironmentWorker(comet.Worker):
     def run(self):
         resource = comet.Settings().devices().get('cts')
         visaLibrary = comet.Settings().visaLibrary()
-        with ITC(resource, visaLibrary) as device:
-            while self.isGood():
-                t = time.time()
-                temp = device.analogChannel(1)[0]
-                humid = device.analogChannel(2)[0]
-                self.reading.emit(dict(time=t, temp=temp, humid=humid))
-                if not self.isReady:
-                    self.isReady = True
-                    self.ready.emit()
-                self.wait(self.interval)
+        #with ITC(resource, visaLibrary) as device:
+        while self.isGood():
+            t = time.time()
+            temp = random.uniform(24,26)#device.analogChannel(1)[0]
+            humid = random.uniform(40,60)#device.analogChannel(2)[0]
+            self.reading.emit(dict(time=t, temp=temp, humid=humid))
+            if not self.isReady:
+                self.isReady = True
+                self.ready.emit()
+            self.wait(self.interval)
 
 class MeasurementWorker(comet.Worker):
 
