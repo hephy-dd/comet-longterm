@@ -6,6 +6,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets, QtChart, uic
 import comet
 from comet import ureg
 from comet.utilities import replace_ext
+from comet.drivers.cts import ITC
+from comet.drivers.keithley import K2410, K2700
 
 from .samples import SampleManager, SampleModel
 from .worker import *
@@ -23,12 +25,12 @@ class IVBuffer(comet.Buffer):
             self.addChannel(i)
         self.addChannel('total')
 
-    def append(self, singles, total):
+    def append(self, d):
         data = {}
-        data['time'] = time.time()
+        data['time'] = d.get('time')
         for i in range(self.count):
-            data[i] = singles[i]
-        data['total'] = total
+            data[i] = d.get('singles')[i]
+        data['total'] = d.get('total')
         super().append(data)
 
 Ui_Dashboard, DashboardBase = uic.loadUiType(replace_ext(__file__, '.ui'))
@@ -86,6 +88,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environChart.addSeries(self.humiditySeries)
         self.environChart.createDefaultAxes()
         self.environChart.axisX().setTitleText("Time [s]")
+        self.environChart.axisX().setTickCount(2)
         self.environChart.axisY().setRange(0, 180)
         self.environChart.axisY().setTitleText("Temp.[°C]/Humid.[%rH]")
         self.environChart.legend().setAlignment(QtCore.Qt.AlignBottom)
@@ -94,6 +97,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ui.environChartView.setChart(self.environChart)
 
         self.samplesChart = QtChart.QChart()
+        self.samplesChart.setTitle(self.tr("Longterm"))
         self.samplesSeries = []
         for sample in self.samples:
             series = QtChart.QLineSeries()
@@ -111,6 +115,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.samplesChart.axisY().setTitleText("Current [uA]")
         self.samplesChart.legend().setAlignment(QtCore.Qt.AlignRight)
         self.samplesChart.setMargins(QtCore.QMargins(2, 2, 2, 2))
+        self.ui.samplesChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.samplesChartView.setChart(self.samplesChart)
 
         # Create environmental buffer
@@ -129,9 +134,20 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ivBuffer = IVBuffer(len(self.samples))
         self.ivBuffer.dataChanged.connect(self.updateSamplesChart)
+        self.ivBuffer.cleared.connect(self.clearSamplesChart)
 
         # Create measurement worker
-        self.worker = MeasurementWorker(self.samples, self.ivBuffer, self)
+        devices = comet.Settings().devices()
+        visaLibrary = comet.Settings().visaLibrary()
+
+        self.smu = K2410(devices.get('smu'), visaLibrary)
+        self.smu.open()
+        self.multi = K2700(devices.get('multi'), visaLibrary)
+        self.multi.open()
+
+        self.worker = MeasurementWorker(self.samples, self.smu, self.multi, self)
+        self.worker.reading.connect(self.ivBuffer.append)
+        self.worker.clear.connect(self.ivBuffer.clear)
 
         # Setup total bias display
         totalBias = 0. * ureg.uA
@@ -154,17 +170,22 @@ class DashboardWidget(QtWidgets.QWidget):
         # Update display
         self.ui.tempValueLabel.setText('{:.1f} °C'.format(data.get('temp')))
         self.ui.humidValueLabel.setText('{:.1f} %rH'.format(data.get('humid')))
+        self.worker.setEnvironment(data.get('temp'), data.get('humid'))
 
     def updateSamplesChart(self):
         data = self.ivBuffer.data()
         if data.get('time'):
-            self.totalSeries.append(QtCore.QPointF(data.get('time')[-1], data.get('total')[-1]))
-            for i, sample in self.samples:
-                self.samplesSeries.setVisible(sample.enabled)
-                self.samplesSeries[i].append(QtCore.QPointF(data.get('time')[-1], data.get(i)[-1]))
-            # Adjust range if not zoomed
-            if not self.environChart.isZoomed():
-                self.environChart.axisX().setRange(data.get('time')[0], data.get('time')[-1])
+            self.totalSeries.append(QtCore.QPointF(data.get('time')[-1], comet.ureg.Quantity(data.get('total')[-1], comet.ureg.A).to(comet.ureg.uA).m))
+            for i, sample in enumerate(self.samples):
+                self.samplesSeries[i].setVisible(sample.enabled)
+                self.samplesSeries[i].append(QtCore.QPointF(data.get('time')[-1], comet.ureg.Quantity(data.get(i)[-1], comet.ureg.A).to(comet.ureg.uA).m))
+            self.samplesChart.axisX().setRange(data.get('time')[0], data.get('time')[-1])
+            self.samplesChart.axisY().setRange(0, self.ui.totalComplianceSpinBox.value().m * 1.2) # top up 20%
+
+    def clearSamplesChart(self):
+        self.totalSeries.clear()
+        for i, sample in enumerate(self.samples):
+            self.samplesSeries[i].clear()
 
     def selectOutputDir(self):
         """Select output directory using a file dialog."""
@@ -178,7 +199,11 @@ class DashboardWidget(QtWidgets.QWidget):
 
     def onStart(self):
         if not self.environWorker.isGood():
-            self.parent().showException("EnvironWorker died!")
+            self.parent().showException("Environment worker not running!")
+            return
+
+        if self.worker.isGood():
+            self.parent().showException("Measurement worker still active!")
             return
 
         self.ui.startButton.setEnabled(False)
