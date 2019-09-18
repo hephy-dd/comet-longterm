@@ -62,16 +62,6 @@ class DashboardWidget(QtWidgets.QWidget):
         self.samples = SampleManager(self.MaxSamples)
         self.model = SampleModel(self.samples, self)
 
-        # TODO insert dummy data
-
-        sample = self.model.samples[0]
-        sample.enabled = True
-        sample.name = "DUMMY1"
-
-        sample = self.model.samples[1]
-        sample.enabled = True
-        sample.name = "DUMMY2"
-
         self.ui.samplesTableView.setModel(self.model)
         self.ui.samplesTableView.resizeColumnsToContents()
         self.ui.samplesTableView.setColumnWidth(1, 120)
@@ -102,7 +92,7 @@ class DashboardWidget(QtWidgets.QWidget):
         for sample in self.samples:
             series = QtChart.QLineSeries()
             series.setName(format(sample.name))
-            series.setColor(QtGui.QColor(*sample.color))
+            series.setColor(QtGui.QColor(sample.color))
             self.samplesChart.addSeries(series)
             self.samplesSeries.append(series)
         self.totalSeries = QtChart.QLineSeries()

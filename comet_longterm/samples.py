@@ -1,29 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-DistinctColors = [
-    (230, 25, 75),
-    (60, 180, 75),
-    (255, 225, 25),
-    (0, 130, 200),
-    (245, 130, 48),
-    (145, 30, 180),
-    (70, 240, 240),
-    (240, 50, 230),
-    (210, 245, 60),
-    (250, 190, 190),
-    (0, 128, 128),
-    (230, 190, 255),
-    (170, 110, 40),
-    (255, 250, 200),
-    (128, 0, 0),
-    (170, 255, 195),
-    (128, 128, 0),
-    (255, 215, 180),
-    (0, 0, 128),
-    (128, 128, 128),
-    (255, 255, 255),
-    (0, 0, 0),
-]
+DistinctColors = ('#2a7fff', '#5fd3bc', '#ffd42a', '#ff7f2a', '#ff1f2a', '#ff40d9', '#aa00d4', '#5f00ff', '#5fe556', '#00aa44', '#217321')
 """List of distinct colors used for plots."""
 
 class Sample(object):
@@ -36,7 +13,7 @@ class Sample(object):
     def __init__(self, index):
         self.index = index
         self.enabled = False
-        self.color = (255, 255, 255)
+        self.color = "#000000"
         self.name = "Unnamed{}".format(index)
         self.status = self.State.OK
         self.current = None
@@ -62,7 +39,7 @@ class SampleManager(object):
 
 class SampleModel(QtCore.QAbstractTableModel):
 
-    columns = ["", "Name", "Status", "Current (uA)", "PT100 Temp. (°C)"]
+    columns = ["", "Name", "Status", "Current (uA)", "Temp. (°C)"]
 
     class Column:
         Enabled = 0
@@ -105,7 +82,7 @@ class SampleModel(QtCore.QAbstractTableModel):
 
             elif role == QtCore.Qt.DecorationRole:
                 if index.column() == self.Column.Enabled:
-                    return QtGui.QColor(*sample.color)
+                    return QtGui.QColor(sample.color)
 
             elif role == QtCore.Qt.ForegroundRole:
                 if index.column() == self.Column.State:

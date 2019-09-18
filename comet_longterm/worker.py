@@ -207,7 +207,19 @@ class MeasurementWorker(comet.Worker):
             files = []
             for sample in self.samples:
                 filename = os.path.join(self.path, 'IV-{}-{}.txt'.format(sample.name, datetime.datetime.utcfromtimestamp(self.startTime).strftime('%Y-%m-%dT%H-%M')))
-                files.append(stack.enter_context(open(filename, 'w')))
+                f = open(filename, 'w', newline='')
+                files.append(stack.enter_context(f))
+                f.write("HEPHY Vienna longtime It measurement")
+                f.write(os.linesep)
+                f.write("sensor name: {}".format(sample.name))
+                f.write(os.linesep)
+                f.write("operator: {}".format("n/a"))
+                f.write(os.linesep)
+                f.write("datetime: {}".format(datetime.datetime.utcfromtimestamp(self.startTime).isoformat()))
+                f.write(os.linesep)
+                f.write("Voltage [V]: {}".format(self.end_voltage))
+                f.write(os.linesep)
+                f.write(os.linesep)
             for value in comet.Range(self.current_voltage, self.end_voltage, self.step_size):
                 self.current_voltage = value
                 if self.isGood():
@@ -221,6 +233,7 @@ class MeasurementWorker(comet.Worker):
                     for i, current in enumerate(currents):
                         writer = csv.writer(files[i])
                         writer.writerow([value, current])
+                        files[i].flush()
                 else:
                     raise StopRequest()
         self.showProgress(self.current_voltage, self.end_voltage)
@@ -259,7 +272,19 @@ class MeasurementWorker(comet.Worker):
             files = []
             for sample in self.samples:
                 filename = os.path.join(self.path, 'it-{}-{}.txt'.format(sample.name, datetime.datetime.utcfromtimestamp(self.startTime).strftime('%Y-%m-%dT%H-%M')))
-                files.append(stack.enter_context(open(filename, 'w')))
+                f = open(filename, 'w', newline='')
+                files.append(stack.enter_context(f))
+                f.write("HEPHY Vienna longtime It measurement")
+                f.write(os.linesep)
+                f.write("sensor name: {}".format(sample.name))
+                f.write(os.linesep)
+                f.write("operator: {}".format("n/a"))
+                f.write(os.linesep)
+                f.write("datetime: {}".format(datetime.datetime.utcfromtimestamp(self.startTime).isoformat()))
+                f.write(os.linesep)
+                f.write("Voltage [V]: {}".format(self.bias_voltage))
+                f.write(os.linesep)
+                f.write(os.linesep)
             for f in files:
                 writer = csv.writer(f)
                 writer.writerow(['time', 'current [A]', 'temperature [°C]', 'humidity [%rH]'])
@@ -274,6 +299,7 @@ class MeasurementWorker(comet.Worker):
                 for i, current in enumerate(currents):
                     writer = csv.writer(files[i])
                     writer.writerow([t, current, self.temperature, self.humidity])
+                    files[i].flush()
                 self.wait(self.measurement_delay)
         self.showProgress(1, 1)
         self.showMessage("Done")
