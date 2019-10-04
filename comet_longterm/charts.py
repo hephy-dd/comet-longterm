@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5 import QtCore, QtGui, QtChart
 
 class LineSeries(QtChart.QLineSeries):
@@ -35,13 +37,13 @@ class IVChart(Chart):
         # X axis
         self.axisX = QtChart.QValueAxis()
         self.axisX.setTitleText("Voltage V")
-        self.axisX.setRange(0, 800)
+        #self.axisX.setRange(0, 800)
         self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         # Y axis
         self.axisY = QtChart.QValueAxis()
         self.axisY.setTitleText("Current uA")
-        self.axisY.setRange(0, 100)
+        #self.axisY.setRange(0, 100)
         self.addAxis(self.axisY, QtCore.Qt.AlignLeft)
 
         self.ivSeries = []
@@ -59,8 +61,15 @@ class IVChart(Chart):
             series.load(sensor)
 
     def append(self, readings):
-        for i, reading in enumerate(readings):
-            self.ivSeries[i].append(reading.get('v'), reading.get('i'))
+        for i, reading in enumerate(readings.get('singles')):
+            logging.info("IVChart %s %s", i, reading)
+            self.ivSeries[i].append(reading.get('u'), reading.get('i') * 1000000)
+        # minimum = self.ivSeries[0].at(0).x()
+        # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).x()
+        # self.axisX.setRange(minimum, maximum)
+        # minimum = self.ivSeries[0].at(0).y()
+        # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).y()
+        # self.axisY.setRange(minimum, maximum)
 
 class ItChart(Chart):
 
@@ -69,6 +78,7 @@ class ItChart(Chart):
 
         self.axisX = QtChart.QDateTimeAxis()
         self.axisX.setTitleText("Time")
+        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
         self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         self.axisY = QtChart.QValueAxis()
@@ -91,9 +101,9 @@ class ItChart(Chart):
             series.load(sensor)
 
     def append(self, readings):
-        for i, reading in enumerate(readings):
-            ts = reading.get('time') * 1000
-            self.itSeries[i].append(ts, reading.get('i'))
+        for i, reading in enumerate(readings.get('singles')):
+            time = readings.get('time') * 1000
+            self.itSeries[i].append(time, reading.get('i') * 1000000)
 
 class CtsChart(Chart):
 
@@ -103,6 +113,7 @@ class CtsChart(Chart):
         # X axis
         self.axisX = QtChart.QDateTimeAxis()
         self.axisX.setTitleText("Time")
+        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
         self.axisX.setTickCount(3)
         self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
@@ -133,20 +144,20 @@ class CtsChart(Chart):
         self.axisY3 = QtChart.QCategoryAxis()
         self.axisY3.setRange(0, 1)
         self.axisY3.append("Off", 0)
-        self.axisY3.append("On", 0)
+        self.axisY3.append("On", 1)
         self.addAxis(self.axisY3, QtCore.Qt.AlignRight)
 
         self.ctsProgramSeries = LineSeries()
         self.ctsProgramSeries.setName("Program")
         self.addSeries(self.ctsProgramSeries)
-        self.ctsHumidSeries.attachAxis(self.axisX)
-        self.ctsHumidSeries.attachAxis(self.axisY3)
+        self.ctsProgramSeries.attachAxis(self.axisX)
+        self.ctsProgramSeries.attachAxis(self.axisY3)
 
     def append(self, reading):
         ts = reading.get('time') * 1000
         self.ctsTempSeries.append(ts, reading.get('temp'))
         self.ctsHumidSeries.append(ts, reading.get('humid'))
-        self.ctsProgramSeries.append(ts, reading.get('program'))
+        self.ctsProgramSeries.append(ts, reading.get('program') != 0)
         minimum = QtCore.QDateTime.fromMSecsSinceEpoch(self.ctsTempSeries.at(0).x())
         maximum = QtCore.QDateTime.fromMSecsSinceEpoch(self.ctsTempSeries.at(self.ctsTempSeries.count()-1).x())
         self.axisX.setRange(minimum, maximum)
@@ -159,6 +170,7 @@ class Pt100Chart(Chart):
         # X axis
         self.axisX = QtChart.QDateTimeAxis()
         self.axisX.setTitleText("Time")
+        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
         self.axisX.setTickCount(3)
         self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 

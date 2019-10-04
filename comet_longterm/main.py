@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from PyQt5 import QtWidgets
@@ -11,7 +12,7 @@ def main():
 
     w = MainWindow()
     w.resize(1280, 700)
-    w.setCentralWidget(CentralWidget())
+    w.setCentralWidget(CentralWidget(w))
     w.show()
 
     return app.run()

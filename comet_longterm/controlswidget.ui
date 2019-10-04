@@ -211,7 +211,7 @@
        </spacer>
       </item>
       <item row="1" column="0">
-       <widget class="QDoubleSpinBox" name="biasSpinBox">
+       <widget class="QDoubleSpinBox" name="biasVoltageSpinBox">
         <property name="suffix">
          <string> V</string>
         </property>
@@ -224,28 +224,28 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QLabel" name="biasLabel">
+       <widget class="QLabel" name="biasComplianceLabel">
         <property name="text">
          <string>Bias Voltage</string>
         </property>
        </widget>
       </item>
       <item row="3" column="0">
-       <widget class="QDoubleSpinBox" name="totalSpinBox">
+       <widget class="QDoubleSpinBox" name="totalComplianceSpinBox">
         <property name="suffix">
          <string> uA</string>
         </property>
        </widget>
       </item>
       <item row="5" column="0">
-       <widget class="QDoubleSpinBox" name="singleSpinBox">
+       <widget class="QDoubleSpinBox" name="singleComplianceSpinBox">
         <property name="suffix">
          <string> uA</string>
         </property>
        </widget>
       </item>
       <item row="6" column="0">
-       <widget class="QCheckBox" name="continueCheckBox">
+       <widget class="QCheckBox" name="continueInComplianceCheckBox">
         <property name="toolTip">
          <string>Continue measurement in compliance.</string>
         </property>
@@ -255,14 +255,14 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QLabel" name="totalLabel">
+       <widget class="QLabel" name="totalComplianceLabel">
         <property name="text">
          <string>Total Compliance</string>
         </property>
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QLabel" name="singleLabel">
+       <widget class="QLabel" name="singleComplianceLabel">
         <property name="text">
          <string>Single Compliance</string>
         </property>
@@ -303,7 +303,7 @@
        </spacer>
       </item>
       <item row="1" column="0">
-       <widget class="QDoubleSpinBox" name="ivEndSpinBox">
+       <widget class="QDoubleSpinBox" name="ivEndVoltageSpinBox">
         <property name="suffix">
          <string> V</string>
         </property>
@@ -342,7 +342,7 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QLabel" name="ivEndLabel">
+       <widget class="QLabel" name="ivEndVoltageLabel">
         <property name="text">
          <string>End Voltage</string>
         </property>
@@ -451,13 +451,13 @@
   <tabstop>startPushButton</tabstop>
   <tabstop>stopPushButton</tabstop>
   <tabstop>calibPushButton</tabstop>
-  <tabstop>ivEndSpinBox</tabstop>
+  <tabstop>ivEndVoltageSpinBox</tabstop>
   <tabstop>ivStepSpinBox</tabstop>
   <tabstop>ivIntervalSpinBox</tabstop>
-  <tabstop>biasSpinBox</tabstop>
-  <tabstop>totalSpinBox</tabstop>
-  <tabstop>singleSpinBox</tabstop>
-  <tabstop>continueCheckBox</tabstop>
+  <tabstop>biasVoltageSpinBox</tabstop>
+  <tabstop>totalComplianceSpinBox</tabstop>
+  <tabstop>singleComplianceSpinBox</tabstop>
+  <tabstop>continueInComplianceCheckBox</tabstop>
   <tabstop>itDurationSpinBox</tabstop>
   <tabstop>itIntervalSpinBox</tabstop>
   <tabstop>operatorComboBox</tabstop>
