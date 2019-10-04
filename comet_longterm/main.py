@@ -1,34 +1,18 @@
-"""Longterm current measurement."""
-
 import sys
 
-import comet
-from .dashboard import DashboardWidget
+from PyQt5 import QtWidgets
 
-class MainWindow(comet.MainWindow):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        dashboard = DashboardWidget(self)
-        self.setCentralWidget(dashboard)
-        self.setWindowTitle(dashboard.windowTitle())
+from .centralwidget import CentralWidget
+from comet import Application, MainWindow
 
 def main():
-    app = comet.Application()
-    app.setName('LongtermIt')
+    app = Application()
+    app.setApplicationName('comet-longterm')
 
-    # Setup default devices
-    settings = comet.Settings()
-    devices = settings.devices()
-    if 'cts' not in devices:
-        settings.setDevice('cts', 'TCPIP::192.168.100.205::1080::SOCKET')
-    if 'smu' not in devices:
-        settings.setDevice('smu', 'TCPIP::10.0.0.3::10002::SOCKET')
-    if 'multi' not in devices:
-        settings.setDevice('multi', 'TCPIP::10.0.0.3::10001::SOCKET')
-
-    window = MainWindow()
-    window.show()
+    w = MainWindow()
+    w.resize(1280, 700)
+    w.setCentralWidget(CentralWidget())
+    w.show()
 
     return app.run()
 
