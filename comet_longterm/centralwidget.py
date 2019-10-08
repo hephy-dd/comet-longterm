@@ -24,12 +24,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.controlsWidget.started.connect(self.onStart)
 
     def loadDevices(self):
-        settings = QtCore.QSettings()
-        visaLibrary = settings.value('visaLibrary', '@py')
-        resources = settings.value('resources', {})
-        self.devices().add('smu', K2410(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET'), visaLibrary))
-        self.devices().add('multi', K2700(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET'), visaLibrary))
-        self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET'), visaLibrary))
+        resources = QtCore.QSettings().value('resources', {})
+        self.devices().add('smu', K2410(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET')))
+        self.devices().add('multi', K2700(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET')))
+        self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
 
     def createCharts(self):
         sensors = self.ui.sensorsWidget.sensors
