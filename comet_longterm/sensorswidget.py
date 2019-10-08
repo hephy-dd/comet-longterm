@@ -28,6 +28,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "Status",
         "Current (uA)",
         "Temp. (°C)",
+        "Resistivity (Ohm)",
     )
 
     class Column:
@@ -35,6 +36,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         State = 1
         Current = 2
         Temp = 3
+        Resistivity = 4
 
     def __init__(self, sensors, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,7 +56,6 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.DisplayRole:
                 return section + 1
 
-
     def data(self, index, role):
         if not index.isValid():
             retrun
@@ -70,6 +71,12 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
                     return sensor.current
+            elif index.column() == self.Column.Temp:
+                if sensor.enabled:
+                    return sensor.temp
+            elif index.column() == self.Column.Resistivity:
+                if sensor.enabled:
+                    return sensor.resistivity
 
         elif role == QtCore.Qt.DecorationRole:
             if index.column() == self.Column.Name:
@@ -131,6 +138,7 @@ class Sensor(object):
         self.status = self.State.OK
         self.current = None
         self.temp = None
+        self.resistivity = 1000000.0
 
 class SensorManager(object):
 

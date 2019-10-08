@@ -63,6 +63,8 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Show calibration dialog."""
         dialog = CalibrationDialog(self)
         dialog.exec_()
+        for i in range(len(self.parent().ui.sensorsWidget.sensors)):
+            self.parent().ui.sensorsWidget.sensors[i].resistivity = dialog.resistivities[i]
 
     @QtCore.pyqtSlot()
     def onSelectPath(self):

@@ -82,9 +82,6 @@ class MeasProcess(Process, DeviceMixin):
     itStarted = QtCore.pyqtSignal()
     """Emitted just before It measurement starts."""
 
-    calibration = [470000.0 for _ in range(SensorCount)]
-    """Calibrated resistor values for sensors."""
-
     ivEndVoltage = 800.0
     ivStep = 5.0
     ivInterval = 10.0
@@ -160,7 +157,7 @@ class MeasProcess(Process, DeviceMixin):
         results = multi.fetch()
         currents = []
         for i, sensor in enumerate(self.sensors):
-            R = self.calibration[i] # ohm, from calibration measurement array
+            R = sensor.resistivity # ohm, from calibration measurement array
             u = results[i].get('VDC')
             #logging.info("U(V): %s", u)
             current = u / R
@@ -188,7 +185,7 @@ class MeasProcess(Process, DeviceMixin):
         results = multi.fetch()
         currents = []
         for i, sensor in enumerate(self.sensors):
-            R = self.calibration[i] # ohm, from calibration measurement array
+            R = sensor.resistivity # ohm, from calibration measurement array
             u = results[i].get('VDC')
             logging.info("U(V): %s", u)
             current = u / R
