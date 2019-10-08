@@ -215,6 +215,9 @@
         <property name="suffix">
          <string> V</string>
         </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
         <property name="maximum">
          <double>1000.000000000000000</double>
         </property>
@@ -235,12 +238,18 @@
         <property name="suffix">
          <string> uA</string>
         </property>
+        <property name="decimals">
+         <number>3</number>
+        </property>
        </widget>
       </item>
       <item row="5" column="0">
        <widget class="QDoubleSpinBox" name="singleComplianceSpinBox">
         <property name="suffix">
          <string> uA</string>
+        </property>
+        <property name="decimals">
+         <number>3</number>
         </property>
        </widget>
       </item>
@@ -307,6 +316,9 @@
         <property name="suffix">
          <string> V</string>
         </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
         <property name="maximum">
          <double>1000.000000000000000</double>
         </property>
@@ -319,6 +331,9 @@
        <widget class="QDoubleSpinBox" name="ivStepSpinBox">
         <property name="suffix">
          <string> V</string>
+        </property>
+        <property name="decimals">
+         <number>1</number>
         </property>
        </widget>
       </item>
