@@ -27,7 +27,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "Sensor",
         "Status",
         "Current (uA)",
-        "Temp. (°C)",
+        "Temperature (°C)",
         "Resistivity (Ohm)",
     )
 
@@ -35,7 +35,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         Name = 0
         State = 1
         Current = 2
-        Temp = 3
+        Temperature = 3
         Resistivity = 4
 
     def __init__(self, sensors, *args, **kwargs):
@@ -71,7 +71,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
                     return sensor.current
-            elif index.column() == self.Column.Temp:
+            elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
                     return sensor.temp
             elif index.column() == self.Column.Resistivity:
@@ -104,7 +104,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.CheckStateRole:
             if index.column() == self.Column.Name:
                 sensor.enabled = (value == QtCore.Qt.Checked)
-                self.dataChanged.emit(index, self.createIndex(index.row(), self.Column.Temp))
+                self.dataChanged.emit(index, self.createIndex(index.row(), self.Column.Temperature))
                 self.sensors.storeSettings()
                 return True
 
