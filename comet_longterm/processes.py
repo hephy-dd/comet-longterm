@@ -342,7 +342,7 @@ class MeasProcess(Process, DeviceMixin):
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
-                t, currents, total = self.itScan()
+                t, currents, total = self.itScan(smu, multi)
                 for i, writer in enumerate(writers):
                     writer.writeRow([t, currents[i], self.temperature, self.humidity])
                 self.sleep(self.itInterval)
