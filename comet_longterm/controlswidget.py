@@ -3,12 +3,12 @@ import os
 from PyQt5 import QtCore, QtWidgets
 
 from comet import UiLoaderMixin
-from .calibrationdialog import CalibrationDialog
 
 class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
+    calibrate = QtCore.pyqtSignal()
 
     ivEndVoltageChanged = QtCore.pyqtSignal(float)
     ivStepChanged = QtCore.pyqtSignal(float)
@@ -16,7 +16,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     biasVoltageChanged = QtCore.pyqtSignal(float)
     totalComplianceChanged = QtCore.pyqtSignal(float)
     singleComplianceChanged = QtCore.pyqtSignal(float)
-    continueInComplianceChanged = QtCore.pyqtSignal(float)
+    continueInComplianceChanged = QtCore.pyqtSignal(bool)
     itDurationChanged = QtCore.pyqtSignal(float)
     itIntervalChanged = QtCore.pyqtSignal(float)
 
@@ -24,7 +24,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         super().__init__(*args, **kwargs)
         self.loadUi()
         settings = QtCore.QSettings()
-        home = os.path.join(QtCore.QDir().homePath(), 'longterm')
+        home = os.path.join(os.path.expanduser("~"), 'longterm')
         names = settings.value('operators', [])
         index = settings.value('currentOperator', 0, type=int)
         path = settings.value('path', home)
@@ -83,6 +83,14 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Returns It measurement interval in seconds."""
         return self.ui.itIntervalSpinBox.value()
 
+    def operator(self):
+        """Returns current operator."""
+        return self.ui.operatorComboBox.currentText()
+
+    def path(self):
+        """Returns current absolute path."""
+        return os.path.normpath(self.ui.pathComboBox.currentText())
+
     @QtCore.pyqtSlot()
     def onStart(self):
         self.ui.startPushButton.setChecked(True)
@@ -118,11 +126,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     @QtCore.pyqtSlot()
     def onCalibrate(self):
-        """Show calibration dialog."""
-        dialog = CalibrationDialog(self)
-        dialog.exec_()
-        for i in range(len(self.parent().ui.sensorsWidget.sensors)):
-            self.parent().ui.sensorsWidget.sensors[i].resistivity = dialog.resistivities[i]
+        self.calibrate.emit()
 
     @QtCore.pyqtSlot()
     def onSelectPath(self):

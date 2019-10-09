@@ -8,20 +8,20 @@ class CalibrationDialog(QtWidgets.QDialog, UiLoaderMixin, DeviceMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loadUi()
-        self.resistivities = []
+        self.resistivity = []
 
     @QtCore.pyqtSlot()
     def onCalibrate(self):
-        self.resistivities = []
+        self.resistivity = []
         for i in range(10):
-            self.resistivities.append(random.uniform(450000.,500000.))
+            # TODO
+            self.resistivity.append(random.uniform(450000.,500000.))
         try:
             with self.devices().get('multi') as multi:
-                print(multi.resource())
-                idn = multi.transport().query('*IDN?')
+                idn = multi.resource().query('*IDN?')
                 print(idn)
         except Exception as e:
-            print(e)
+            QtWidgets.QMessageBox.critical(self, self.tr("Error"), format(e))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])

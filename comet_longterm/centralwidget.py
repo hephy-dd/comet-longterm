@@ -12,6 +12,7 @@ from comet.devices.keithley import K2410, K2700
 
 from .processes import EnvironProcess, MeasProcess
 from .charts import IVChart, ItChart, CtsChart, Pt100Chart
+from .calibrationdialog import CalibrationDialog
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -23,6 +24,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.createProcesses()
 
         self.ui.controlsWidget.started.connect(self.onStart)
+        self.ui.controlsWidget.calibrate.connect(self.onCalibrate)
 
     def loadDevices(self):
         resources = QtCore.QSettings().value('resources', {})
@@ -68,6 +70,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.controlsWidget.biasVoltageChanged.connect(meas.setBiasVoltage)
         self.ui.controlsWidget.totalComplianceChanged.connect(meas.setTotalCompliance)
         self.ui.controlsWidget.singleComplianceChanged.connect(meas.setSingleCompliance)
+        self.ui.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
         self.ui.controlsWidget.itDurationChanged.connect(meas.setItDuration)
         self.ui.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
         self.parent().connectProcess(meas)
@@ -88,6 +91,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
         meas.setProgram(reading.get('program'))
+        for i, sensor in enumerate(self.sensors()):
+            sensor.temperature = reading.get('temp')
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):
@@ -102,21 +107,27 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     def onMeasIvReading(self, reading):
         self.ui.statusWidget.setVoltage(reading.get('voltage'))
         self.ui.statusWidget.setCurrent(reading.get('total'))
+        for i, sensor in enumerate(self.sensors()):
+            sensor.current = reading.get('singles')[i].get('current')
         self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
         self.ui.statusWidget.setVoltage(reading.get('voltage'))
         self.ui.statusWidget.setCurrent(reading.get('total'))
+        for i, sensor in enumerate(self.sensors()):
+            sensor.current = reading.get('singles')[i].get('current')
         self.itChart.append(reading)
 
     @QtCore.pyqtSlot()
     def onStart(self):
+        self.sensors().setEditable(False)
+
         self.ivChart.load(self.sensors())
         self.itChart.load(self.sensors())
 
         # Setup output location
-        path = os.path.normpath(self.ui.controlsWidget.ui.pathComboBox.currentText())
+        path = os.path.normpath(self.ui.controlsWidget.path())
         timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M')
         path = os.path.join(path, timestamp)
         if not os.path.exists(path):
@@ -136,6 +147,14 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.setPath(path)
         meas.setOperator(self.ui.controlsWidget.operator())
         meas.start()
+
+    @QtCore.pyqtSlot()
+    def onCalibrate(self):
+        """Show calibration dialog."""
+        dialog = CalibrationDialog(self)
+        dialog.exec_()
+        for i, sensor in enumerate(self.sensors()):
+            sensor.resistivity = dialog.resistivity[i]
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])

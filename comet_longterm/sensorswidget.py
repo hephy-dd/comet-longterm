@@ -73,7 +73,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
                     return sensor.current
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
-                    return sensor.temp
+                    return sensor.temperature
             elif index.column() == self.Column.Resistivity:
                 if sensor.enabled:
                     return sensor.resistivity
@@ -119,8 +119,9 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
     def flags(self, index):
         flags = super().flags(index)
-        if index.column() == self.Column.Name:
-            return flags | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable
+        if self.sensors.isEditable():
+            if index.column() == self.Column.Name:
+                return flags | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable
         return flags
 
 class Sensor(object):
@@ -128,17 +129,17 @@ class Sensor(object):
 
     class State:
         OK = "OK"
-        COMPL_ERR = "COMPL_ERR"
+        COMPL_ERR = "COMPLIANCE"
 
     def __init__(self, index):
         self.index = index
         self.enabled = False
         self.color = "#000000"
         self.name = "Unnamed{}".format(index)
-        self.status = self.State.OK
+        self.status = None
         self.current = None
-        self.temp = None
-        self.resistivity = 1000000.0
+        self.temperature = None
+        self.resistivity = None
 
 class SensorManager(object):
 
@@ -149,6 +150,7 @@ class SensorManager(object):
             sensor.color = Colors[i]
             self.sensors.append(sensor)
         self.loadSettings()
+        self.setEditable(True)
 
     def loadSettings(self):
         settings = QtCore.QSettings()
@@ -166,6 +168,12 @@ class SensorManager(object):
             data[sensor.index]['name'] = sensor.name
         settings = QtCore.QSettings()
         settings.setValue('sensors', data)
+
+    def isEditable(self):
+        return self.__editable
+
+    def setEditable(self, value):
+        self.__editable = bool(value)
 
     def __len__(self):
         return len(self.sensors)

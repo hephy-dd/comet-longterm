@@ -162,7 +162,7 @@ class MeasProcess(Process, DeviceMixin):
         return self.__humidity
 
     def setHumidity(self, value):
-        self.__humiditye = value
+        self.__humidity = value
 
     def program(self):
         return self.__program
@@ -193,7 +193,7 @@ class MeasProcess(Process, DeviceMixin):
         logging.info('SMU current (A): %s', totalCurrent)
         if totalCurrent > self.totalCompliance():
             if not self.continueInCompliance():
-                raise ValueError("SMU in compliance")
+                raise ValueError("SMU in compliance ({} A)".format(totalCurrent))
 
         # start measurement scan
         multi.init()
@@ -217,6 +217,9 @@ class MeasProcess(Process, DeviceMixin):
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
         self.setStartTime(self.time())
+
+        for sensor in self.sensors():
+            sensor.status = sensor.State.OK
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
@@ -292,7 +295,7 @@ class MeasProcess(Process, DeviceMixin):
                 if sensor.enabled:
                     name = sensor.name
                     timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
-                    filename = os.path.join(self.path, 'IV-{}-{}.txt'.format(name, timestamp))
+                    filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = IVWriter(stack.enter_context(f))
                     writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
@@ -350,7 +353,7 @@ class MeasProcess(Process, DeviceMixin):
                 if sensor.enabled:
                     name = sensor.name
                     timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
-                    filename = os.path.join(self.path, 'it-{}-{}.txt'.format(name, timestamp))
+                    filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = ItWriter(stack.enter_context(f))
                     writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
