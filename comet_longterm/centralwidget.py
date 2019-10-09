@@ -1,4 +1,5 @@
 import os
+import time, datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
 
@@ -79,9 +80,9 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     def onEnvironReading(self, reading):
         print(reading)
         self.ctsChart.append(reading)
-        self.ui.statusWidget.ui.lineEdit_2.setText("{:.1f} °C".format(reading.get('temp')))
-        self.ui.statusWidget.ui.lineEdit_3.setText("{:.1f} %rH".format(reading.get('humid')))
-        self.ui.statusWidget.ui.lineEdit_4.setText("{}".format(reading.get('program')))
+        self.ui.statusWidget.setTemperature(reading.get('temp'))
+        self.ui.statusWidget.setHumidity(reading.get('humid'))
+        self.ui.statusWidget.setProgram(reading.get('program'))
         meas = self.processes().get('meas')
         meas.setEnviron(reading)
 
@@ -95,14 +96,16 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.bottomTabWidget.setCurrentIndex(1)
 
     @QtCore.pyqtSlot(object)
-    def onMeasIvReading(self, readings):
-        print('IV', readings)
-        self.ivChart.append(readings)
+    def onMeasIvReading(self, reading):
+        self.ui.statusWidget.setVoltage(reading.get('voltage'))
+        self.ui.statusWidget.setCurrent(reading.get('total'))
+        self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
-    def onMeasItReading(self, readings):
-        print('It', readings)
-        self.itChart.append(readings)
+    def onMeasItReading(self, reading):
+        self.ui.statusWidget.setVoltage(reading.get('voltage'))
+        self.ui.statusWidget.setCurrent(reading.get('total'))
+        self.itChart.append(reading)
 
     @QtCore.pyqtSlot()
     def onStart(self):
