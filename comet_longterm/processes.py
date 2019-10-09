@@ -141,7 +141,7 @@ class MeasProcess(Process, DeviceMixin):
         multi.reset()
         self.sleep(.500)
 
-    def ivScan(self, smu, multi):
+    def scan(self, smu, multi):
         # check SMU compliance
         totalCurrent = smu.read()[1]
         logging.info('SMU current (A): %s', totalCurrent)
@@ -166,36 +166,6 @@ class MeasProcess(Process, DeviceMixin):
                 # TODO switch relay off
             currents.append(dict(i=current, u=u))
         time = self.time() - self.startTime
-        self.ivReading.emit(dict(time=time, singles=currents, total=totalCurrent))
-        return time, currents, totalCurrent
-
-    def itScan(self, smu, multi):
-        # check SMU compliance
-        totalCurrent = smu.read()[1]
-        logging.info('SMU current (A): %s', totalCurrent)
-        if totalCurrent > self.totalCompliance:
-            if not self.continueInComplienace:
-                raise ValueError("SMU in compliance")
-
-        # start measurement scan
-        multi.init()
-        self.sleep(.500)
-
-        # read buffer
-        results = multi.fetch()
-        currents = []
-        for i, sensor in enumerate(self.sensors):
-            R = sensor.resistivity # ohm, from calibration measurement array
-            u = results[i].get('VDC')
-            logging.info("U(V): %s", u)
-            current = u / R
-            if current > self.singleCompliance:
-                sensor.status = sensor.State.COMPL_ERR
-                # TODO switch relay off
-            currents.append(dict(i=current, u=u))
-
-        time = self.time() - self.startTime
-        self.itReading.emit(dict(time=time, singles=currents, total=totalCurrent))
         return time, currents, totalCurrent
 
     def setup(self, smu, multi):
@@ -288,7 +258,8 @@ class MeasProcess(Process, DeviceMixin):
                     smu.setVoltage(value)
                     self.showProgress(self.currentVoltage, self.ivEndVoltage)
                     self.sleep(self.ivStep)
-                    t, currents, total = self.ivScan(smu, multi)
+                    t, currents, total = self.scan(smu, multi)
+                    self.ivReading.emit(dict(time=time, singles=currents, total=total, voltage=self.currentVoltage))
                     for i, writer in enumerate(writers):
                         # writers[i].writeRow([t, value, current]) # timestamp?
                         writer.writeRow([self.currentVoltage, currents[i]])
@@ -342,7 +313,8 @@ class MeasProcess(Process, DeviceMixin):
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
-                t, currents, total = self.itScan(smu, multi)
+                t, currents, total = self.scan(smu, multi)
+                self.itReading.emit(dict(time=time, singles=currents, total=totalCurrent))
                 for i, writer in enumerate(writers):
                     writer.writeRow([t, currents[i], self.temperature, self.humidity])
                 self.sleep(self.itInterval)

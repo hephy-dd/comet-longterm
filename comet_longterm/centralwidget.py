@@ -112,6 +112,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         # Setup output location
         path = os.path.normpath(self.ui.controlsWidget.ui.pathComboBox.currentText())
+        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M')
+        path = os.path.join(path, timestamp)
         if not os.path.exists(path):
             os.makedirs(path)
 

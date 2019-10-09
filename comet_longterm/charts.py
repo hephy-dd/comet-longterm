@@ -37,13 +37,13 @@ class IVChart(Chart):
         # X axis
         self.axisX = QtChart.QValueAxis()
         self.axisX.setTitleText("Voltage V")
-        #self.axisX.setRange(0, 800)
+        self.axisX.setRange(0, 800)
         self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         # Y axis
         self.axisY = QtChart.QValueAxis()
         self.axisY.setTitleText("Current uA")
-        #self.axisY.setRange(0, 100)
+        self.axisY.setRange(0, 100)
         self.addAxis(self.axisY, QtCore.Qt.AlignLeft)
 
         self.ivSeries = []
@@ -61,9 +61,10 @@ class IVChart(Chart):
             series.load(sensor)
 
     def append(self, readings):
+        voltage = readings.get('voltage')
         for i, reading in enumerate(readings.get('singles')):
             logging.info("IVChart %s %s", i, reading)
-            self.ivSeries[i].append(reading.get('u'), reading.get('i') * 1000000)
+            self.ivSeries[i].append(voltage, reading.get('i') * 1000000)
         # minimum = self.ivSeries[0].at(0).x()
         # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).x()
         # self.axisX.setRange(minimum, maximum)
@@ -101,8 +102,8 @@ class ItChart(Chart):
             series.load(sensor)
 
     def append(self, readings):
+        time = readings.get('time') * 1000
         for i, reading in enumerate(readings.get('singles')):
-            time = readings.get('time') * 1000
             self.itSeries[i].append(time, reading.get('i') * 1000000)
 
 class CtsChart(Chart):
