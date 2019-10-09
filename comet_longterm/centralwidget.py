@@ -1,5 +1,7 @@
 import os
-import time, datetime
+import re
+import time
+import datetime # TODO unify timestamp formatting!
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
 
@@ -23,8 +25,15 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.createCharts()
         self.createProcesses()
 
+        self.parent().closeRequest.connect(self.onClose)
         self.ui.controlsWidget.started.connect(self.onStart)
         self.ui.controlsWidget.calibrate.connect(self.onCalibrate)
+
+        self.ui.controlsWidget.ui.calibPushButton.setEnabled(False)
+        self.importCalibAction = QtWidgets.QAction(self.tr("Import &Calibrations..."))
+        self.importCalibAction.triggered.connect(self.onImportCalib)
+        self.parent().ui.fileMenu.insertAction(self.parent().ui.quitAction, self.importCalibAction)
+        self.parent().ui.fileMenu.insertSeparator(self.parent().ui.quitAction)
 
     def loadDevices(self):
         resources = QtCore.QSettings().value('resources', {})
@@ -38,7 +47,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.ivChartView.setChart(self.ivChart)
 
         self.itChart = ItChart(self.sensors())
-        self.ui.ivChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
+        self.ui.itChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.itChartView.setChart(self.itChart)
 
         self.ctsChart = CtsChart()
@@ -58,11 +67,13 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         # Measurement process
         meas = MeasProcess(self)
+
         meas.ivStarted.connect(self.onIvStarted)
         meas.itStarted.connect(self.onItStarted)
         meas.ivReading.connect(self.onMeasIvReading)
         meas.itReading.connect(self.onMeasItReading)
         meas.finished.connect(self.ui.controlsWidget.onHalted)
+
         self.ui.controlsWidget.stopRequest.connect(meas.stop)
         self.ui.controlsWidget.ivEndVoltageChanged.connect(meas.setIvEndVoltage)
         self.ui.controlsWidget.ivStepChanged.connect(meas.setIvStep)
@@ -73,6 +84,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
         self.ui.controlsWidget.itDurationChanged.connect(meas.setItDuration)
         self.ui.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
+
         self.parent().connectProcess(meas)
         self.processes().add('meas', meas)
 
@@ -93,6 +105,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.setProgram(reading.get('program'))
         for i, sensor in enumerate(self.sensors()):
             sensor.temperature = reading.get('temp')
+        self.ui.sensorsWidget.dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):
@@ -108,7 +121,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.statusWidget.setVoltage(reading.get('voltage'))
         self.ui.statusWidget.setCurrent(reading.get('total'))
         for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('singles')[i].get('current')
+            sensor.current = reading.get('singles')[i].get('i')
+        self.ui.sensorsWidget.dataChanged() # HACK keep updated
         self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
@@ -116,7 +130,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.statusWidget.setVoltage(reading.get('voltage'))
         self.ui.statusWidget.setCurrent(reading.get('total'))
         for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('singles')[i].get('current')
+            sensor.current = reading.get('singles')[i].get('i')
+        self.ui.sensorsWidget.dataChanged() # HACK keep updated
         self.itChart.append(reading)
 
     @QtCore.pyqtSlot()
@@ -124,11 +139,14 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensors().setEditable(False)
 
         self.ivChart.load(self.sensors())
+        self.ivChart.axisX.setRange(0, self.ui.controlsWidget.ivEndVoltage()) # V
+        self.ivChart.axisY.setRange(0, self.ui.controlsWidget.singleCompliance() * 1000 * 1000) # uA
         self.itChart.load(self.sensors())
+        self.itChart.axisY.setRange(0, self.ui.controlsWidget.singleCompliance() * 1000 * 1000) # uA
 
         # Setup output location
         path = os.path.normpath(self.ui.controlsWidget.path())
-        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M')
+        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M-%S')
         path = os.path.join(path, timestamp)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -146,18 +164,43 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.setItInterval(self.ui.controlsWidget.itInterval())
         meas.setPath(path)
         meas.setOperator(self.ui.controlsWidget.operator())
+
         meas.start()
+
+    @QtCore.pyqtSlot()
+    def onImportCalib(self):
+        filename, filter_ = QtWidgets.QFileDialog.getOpenFileName(self,
+            self.tr("Open calibration resistors file..."),
+            os.path.expanduser("~")
+        )
+        if filename:
+            # Yuck, quick'n dirty file parsing...
+            try:
+                resistors = []
+                count = len(self.sensors())
+                with open(filename) as f:
+                    for token in re.findall(r'\d+\s+', f.read()):
+                        print(token)
+                        resistors.append(int(token))
+                if len(resistors) < count:
+                    raise RuntimeError("Missing calibration values, expected at least {}".format(count))
+                for i in range(count):
+                    self.sensors()[i].resistivity = resistors[i]
+                QtWidgets.QMessageBox.information(self, self.tr("Success"), self.tr("Sucessfully imported {} calibration resistor values.".format(count)))
+            except Exception as e:
+                self.parent().showException(e)
+
 
     @QtCore.pyqtSlot()
     def onCalibrate(self):
         """Show calibration dialog."""
         dialog = CalibrationDialog(self)
         dialog.exec_()
-        for i, sensor in enumerate(self.sensors()):
-            sensor.resistivity = dialog.resistivity[i]
+        if dialog.resistivity:
+            for i, sensor in enumerate(self.sensors()):
+                sensor.resistivity = dialog.resistivity[i]
 
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    w = CentralWidget()
-    w.show()
-    app.exec_()
+    @QtCore.pyqtSlot()
+    def onClose(self):
+        self.sensors().storeSettings()
+        self.ui.controlsWidget.storeSettings()

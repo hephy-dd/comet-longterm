@@ -8,6 +8,11 @@ Colors = (
 )
 """List of distinct colors used for plots."""
 
+CalibratedResistors = (
+    470160, 471085, 469315, 471981, 470772, 469546, 470727, 470488, 469947, 469314
+)
+"""List of default calibrated resistors in Ohm."""
+
 SensorCount = 10
 
 class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
@@ -20,6 +25,13 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.setModel(self.model)
         self.ui.tableView.resizeColumnsToContents()
         self.ui.tableView.resizeRowsToContents()
+        self.ui.tableView.setColumnWidth(0, 200)
+
+    def dataChanged(self):
+        self.model.dataChanged.emit(
+            self.model.createIndex(0, 0),
+            self.model.createIndex(10, 5),
+        )
 
 class SensorsModel(QtCore.QAbstractTableModel):
 
@@ -27,8 +39,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "Sensor",
         "Status",
         "Current (uA)",
-        "Temperature (°C)",
-        "Resistivity (Ohm)",
+        "Temp. (°C)",
+        "Calib. (Ohm)",
     )
 
     class Column:
@@ -75,8 +87,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 if sensor.enabled:
                     return sensor.temperature
             elif index.column() == self.Column.Resistivity:
-                if sensor.enabled:
-                    return sensor.resistivity
+                return sensor.resistivity
 
         elif role == QtCore.Qt.DecorationRole:
             if index.column() == self.Column.Name:
@@ -95,6 +106,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
         elif role == QtCore.Qt.EditRole:
             if index.column() == self.Column.Name:
                 return sensor.name
+            if index.column() == self.Column.Resistivity:
+                return sensor.resistivity
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         if not index.isValid():
@@ -114,6 +127,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index)
                 self.sensors.storeSettings()
                 return True
+            if index.column() == self.Column.Resistivity:
+                sensor.resistivity = format(value)
+                self.dataChanged.emit(index, index)
+                self.sensors.storeSettings()
+                return True
 
         return False
 
@@ -122,6 +140,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
         if self.sensors.isEditable():
             if index.column() == self.Column.Name:
                 return flags | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable
+            if index.column() == self.Column.Resistivity:
+                return flags | QtCore.Qt.ItemIsEditable
         return flags
 
 class Sensor(object):
@@ -148,6 +168,7 @@ class SensorManager(object):
         for i in range(count):
             sensor = Sensor(i+1)
             sensor.color = Colors[i]
+            sensor.resistivity = CalibratedResistors[i]
             self.sensors.append(sensor)
         self.loadSettings()
         self.setEditable(True)
@@ -155,17 +176,19 @@ class SensorManager(object):
     def loadSettings(self):
         settings = QtCore.QSettings()
         data = settings.value('sensors', {})
-        for sensor in self.sensors:
+        for i, sensor in enumerate(self.sensors):
             if sensor.index in data:
                 sensor.enabled = data.get(sensor.index).get('enabled', False)
                 sensor.name = data.get(sensor.index).get('name', "Unnamed{}".format(sensor.index))
+                sensor.resistivity = int(data.get(sensor.index).get('resistivity', CalibratedResistors[i]))
 
     def storeSettings(self):
         data = {}
         for sensor in self.sensors:
             data[sensor.index] = {}
-            data[sensor.index]['enabled'] = sensor.enabled
-            data[sensor.index]['name'] = sensor.name
+            data[sensor.index]['enabled'] = bool(sensor.enabled)
+            data[sensor.index]['name'] = str(sensor.name)
+            data[sensor.index]['resistivity'] = int(sensor.resistivity)
         settings = QtCore.QSettings()
         settings.setValue('sensors', data)
 

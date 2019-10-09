@@ -21,11 +21,12 @@ class Writer(object):
         self.writer.writerow(values)
         self.context.flush()
 
-    def writeHeader(self, name, operator, timestamp, voltage):
+    def writeHeader(self, name, operator, timestamp, calibration, voltage):
         self.writeRow("HEPHY Vienna longtime It measurement")
         self.writeRow("sensor name: {}".format(name))
         self.writeRow("operator: {}".format(operator))
         self.writeRow("datetime: {}".format(timestamp))
+        self.writeRow("calibration [Ohm]: {}".format(calibration))
         self.writeRow("Voltage [V]: {}".format(voltage))
         self.writeRow("")
 
@@ -35,8 +36,8 @@ class IVWriter(Writer):
 
 class ItWriter(Writer):
 
-    def writeHeader(self, sensor, operator, timestamp, voltage):
-        super().writeHeader(sensor, operator, timestamp, voltage)
+    def writeHeader(self, sensor, operator, timestamp, calibration, voltage):
+        super().writeHeader(sensor, operator, timestamp, calibration, voltage)
         self.writeRow("timestamp [s]", "current corr [A]", "current meas [A]", "temperature [°C]", "humidity [%rH]", "program [No]")
 
 class EnvironProcess(Process, DeviceMixin):
@@ -54,17 +55,22 @@ class EnvironProcess(Process, DeviceMixin):
         return dict(time=self.time(), temp=temp, humid=humid, program=program)
 
     def run(self):
-        with self.devices().get('cts') as cts:
-            while not self.stopRequested():
-                try:
-                    reading = self.read(cts)
-                    logging.info("CTS reading: %s", reading)
-                except pyvisa.errors.Error as e:
-                    logging.error(e)
-                    self.failed.emit(e)
-                else:
-                    self.reading.emit(reading)
-                self.sleep(self.interval)
+        while not self.stopRequested():
+            try:
+                with self.devices().get('cts') as cts:
+                    while not self.stopRequested():
+                        try:
+                            reading = self.read(cts)
+                            logging.info("CTS reading: %s", reading)
+                        except pyvisa.errors.Error as e:
+                            logging.error(e)
+                            self.failed.emit(e)
+                        else:
+                            self.reading.emit(reading)
+                        self.sleep(self.interval)
+            except pyvisa.errors.Error as e:
+                logging.error(e)
+                self.failed.emit(e)
 
 class MeasProcess(Process, DeviceMixin):
 
@@ -201,18 +207,17 @@ class MeasProcess(Process, DeviceMixin):
 
         # read buffer
         results = multi.fetch()
-        currents = []
+        channels = []
         for i, sensor in enumerate(self.sensors()):
             R = sensor.resistivity # ohm, from calibration measurement array
             u = results[i].get('VDC')
-            #logging.info("U(V): %s", u)
+            # Calculate sensor current
             current = u / R
             if current > self.singleCompliance():
                 sensor.status = sensor.State.COMPL_ERR
                 # TODO switch relay off
-            currents.append(dict(i=current, u=u))
-        time = self.time() - self.startTime()
-        return time, currents, totalCurrent
+            channels.append(dict(i=current, u=u, r=R))
+        return channels, totalCurrent
 
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
@@ -294,11 +299,11 @@ class MeasProcess(Process, DeviceMixin):
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
+                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
                     filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = IVWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
+                    writer.writeHeader(name, self.startTime(), self.operator(), sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
@@ -308,11 +313,12 @@ class MeasProcess(Process, DeviceMixin):
                     smu.setVoltage(value)
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                     self.sleep(self.ivInterval())
-                    t, currents, total = self.scan(smu, multi)
-                    self.ivReading.emit(dict(time=t, singles=currents, total=total, voltage=self.currentVoltage()))
+                    t = self.time()
+                    channels, total = self.scan(smu, multi)
+                    self.ivReading.emit(dict(time=t, singles=channels, total=total, voltage=self.currentVoltage()))
                     for i, writer in enumerate(writers):
-                        # writers[i].writeRow([t, value, current]) # timestamp?
-                        writer.writeRow([self.currentVoltage(), currents[i]])
+                        # writers[i].writeRow(t, value, current) # timestamp?
+                        writer.writeRow(self.currentVoltage(), channels[i].get('i'))
                 else:
                     raise StopRequest()
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
@@ -352,23 +358,32 @@ class MeasProcess(Process, DeviceMixin):
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
+                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
                     filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = ItWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
+                    writer.writeHeader(name, self.startTime(), self.operator(), sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             while not self.stopRequested():
+                self.showMessage("Measuring...")
                 currentTime = self.time()
                 if self.itDuration():
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
-                t, currents, total = self.scan(smu, multi)
-                self.itReading.emit(dict(time=t, singles=currents, total=total, voltage=self.currentVoltage()))
+                t = self.time()
+                channels, total = self.scan(smu, multi)
+                self.itReading.emit(dict(time=t, singles=channels, total=total, voltage=self.currentVoltage()))
                 for i, writer in enumerate(writers):
-                    writer.writeRow([t, currents[i], self.temperature(), self.humidity(), self.program()])
-                self.sleep(self.itInterval())
+                    writer.writeRow(t, channels[i].get('i'), self.temperature(), self.humidity(), self.program())
+                # Wait...
+                interval = self.itInterval()
+                while interval > 0:
+                    if self.stopRequested():
+                        raise StopRequest()
+                    self.sleep(.25)
+                    self.showMessage("Next measurement in {:.0f} s".format(interval))
+                    interval -= .25
         self.showProgress(1, 1)
         self.showMessage("Done")
 

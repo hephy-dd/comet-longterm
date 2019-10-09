@@ -30,15 +30,11 @@ class K2700Handler(socketserver.BaseRequestHandler):
             if re.match(r'\*IDN\?', data):
                 self.send("Keithley 2700 Emulator, Spanish Inquisition Inc.")
 
-            elif re.match(r'\*[A-Z]+', data):
-                pass
-
             elif re.match(r'\:?READ\?', data):
-                self.send(",".join(["24.000"]*10))
+                self.send(",".join(["0.000024"]*10))
 
             elif re.match(r'\:?FETC[h]?\?', data):
                 self.send(",".join(["-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#"]*10))
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -46,7 +42,7 @@ def main():
     parser.add_argument('--port', default=10001, type=int)
     args = parser.parse_args()
 
-    print("Keithley 2410 simulation...")
+    print("Keithley 2700 simulation...")
     print("serving on port", args.port)
 
     server = socketserver.ThreadingTCPServer((args.host, args.port), K2700Handler)

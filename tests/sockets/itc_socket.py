@@ -14,6 +14,9 @@ def fake_analog_channel(channel, minimum, maximum):
 
 class ClimateHandler(socketserver.BaseRequestHandler):
 
+    temp = 24.0
+    humid = 55.0
+
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
@@ -40,13 +43,19 @@ class ClimateHandler(socketserver.BaseRequestHandler):
                 dt = t.strftime('T%d%m%y%H%M%S')
                 self.send(dt)
 
-            elif re.match(r'A[034]', data):
+            elif re.match(r'A0', data):
+                self.temp += random.uniform(-.25, +.25)
+                self.temp = min(60., max(20., self.temp))
+                self.send("{} {:05.1f} {:05.1f}".format(data, self.temp, 24.0))
+
+            elif re.match(r'A[34]', data):
                 result = fake_analog_channel(data, -45., +185.)
                 self.send(result)
 
             elif re.match(r'A1', data):
-                result = fake_analog_channel(data, +0., +98.)
-                self.send(result)
+                self.humid += random.uniform(-.25, +.25)
+                self.humid = min(95., max(15., self.humid))
+                self.send("{} {:05.1f} {:05.1f}".format(data, self.humid, 55.0))
 
             elif re.match(r'A2', data):
                 result = fake_analog_channel(data, +0., +15.)

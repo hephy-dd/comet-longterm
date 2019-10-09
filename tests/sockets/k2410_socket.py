@@ -38,7 +38,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 self.send(self.state.get('OUTP'))
 
             elif re.match(r'\:?READ\?', data):
-                self.send(",".join(["24.000"]*10))
+                self.send(",".join(["0.000024"]*10))
 
             elif re.match(r'\:?FETC[h]?\?', data):
                 self.send(",".join(["-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#"]*10))
