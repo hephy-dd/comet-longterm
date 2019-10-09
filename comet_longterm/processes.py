@@ -303,7 +303,7 @@ class MeasProcess(Process, DeviceMixin):
                     filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = IVWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime(), self.operator(), sensor.resistivity, self.ivEndVoltage())
+                    writer.writeHeader(name, self.operator(), self.startTime(), sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
@@ -362,7 +362,7 @@ class MeasProcess(Process, DeviceMixin):
                     filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = ItWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime(), self.operator(), sensor.resistivity, self.ivEndVoltage())
+                    writer.writeHeader(name, self.operator(), self.startTime(), sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             while not self.stopRequested():
                 self.showMessage("Measuring...")
