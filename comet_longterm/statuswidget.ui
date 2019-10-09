@@ -34,9 +34,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:white;background:green;</string>
-        </property>
         <property name="text">
          <string>0.000 uA</string>
         </property>
@@ -86,6 +83,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLineEdit" name="voltageLineEdit">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -98,11 +98,11 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:white;background:green;</string>
-        </property>
         <property name="text">
          <string>0.000 V</string>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -148,9 +148,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:white;background:green;</string>
-        </property>
         <property name="text">
          <string>63.6 %rH</string>
         </property>
@@ -185,9 +182,6 @@
           <width>86</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:white;background:green;</string>
         </property>
         <property name="text">
          <string>24.5 °C</string>
@@ -243,9 +237,6 @@
           <width>86</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:white;background:red;</string>
         </property>
         <property name="text">
          <string>Halted</string>

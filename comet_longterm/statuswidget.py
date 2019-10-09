@@ -22,10 +22,9 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def setProgram(self, program):
         if program == 0:
-            value = self.tr("Halted")
+            self.ui.programLineEdit.setText(self.tr("halted"))
         else:
-            value = "P{}".format(program)
-        self.ui.programLineEdit.setText(value)
+            self.ui.programLineEdit.setText(self.tr("P{}").format(program))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
