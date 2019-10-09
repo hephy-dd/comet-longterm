@@ -1,5 +1,4 @@
 import os
-import datetime
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -10,6 +9,16 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
+
+    ivEndVoltageChanged = QtCore.pyqtSignal(float)
+    ivStepChanged = QtCore.pyqtSignal(float)
+    ivIntervalChanged = QtCore.pyqtSignal(float)
+    biasVoltageChanged = QtCore.pyqtSignal(float)
+    totalComplianceChanged = QtCore.pyqtSignal(float)
+    singleComplianceChanged = QtCore.pyqtSignal(float)
+    continueInComplianceChanged = QtCore.pyqtSignal(float)
+    itDurationChanged = QtCore.pyqtSignal(float)
+    itIntervalChanged = QtCore.pyqtSignal(float)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,6 +35,53 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.pathComboBox.setCurrentText(path)
         if home != path:
             self.ui.pathComboBox.addItem(home)
+
+        # Setup signals
+        self.ui.ivEndVoltageSpinBox.valueChanged.connect(lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage()))
+        self.ui.ivStepSpinBox.valueChanged.connect(lambda: self.ivStepChanged.emit(self.ivStep()))
+        self.ui.ivIntervalSpinBox.valueChanged.connect(lambda: self.ivIntervalChanged.emit(self.ivInterval()))
+        self.ui.biasVoltageSpinBox.valueChanged.connect(lambda: self.biasVoltageChanged.emit(self.biasVoltage()))
+        self.ui.totalComplianceSpinBox.valueChanged.connect(lambda: self.totalComplianceChanged.emit(self.totalCompliance()))
+        self.ui.singleComplianceSpinBox.valueChanged.connect(lambda: self.singleComplianceChanged.emit(self.singleCompliance()))
+        self.ui.continueInComplianceCheckBox.toggled.connect(lambda: self.continueInComplianceChanged.emit(self.continueInCompliance()))
+        self.ui.itDurationSpinBox.valueChanged.connect(lambda: self.itDurationChanged.emit(self.itDuration()))
+        self.ui.itIntervalSpinBox.valueChanged.connect(lambda: self.itIntervalChanged.emit(self.itInterval()))
+
+    def ivEndVoltage(self):
+        """Returns IV ramp up end voltage in volts."""
+        return self.ui.ivEndVoltageSpinBox.value()
+
+    def ivStep(self):
+        """Returns IV ramp up step size in volts."""
+        return self.ui.ivStepSpinBox.value()
+
+    def ivInterval(self):
+        """Returns IV measurement interval in seconds."""
+        return self.ui.ivIntervalSpinBox.value()
+
+    def biasVoltage(self):
+        """Returns It bias voltage in volts."""
+        return self.ui.biasVoltageSpinBox.value()
+
+    def totalCompliance(self):
+        """Returns total compliance in Ampere."""
+        return self.ui.totalComplianceSpinBox.value() / 1000 / 1000
+
+    def singleCompliance(self):
+        """Returns single compliance in Ampere."""
+        return self.ui.singleComplianceSpinBox.value() / 1000 / 1000
+
+    def continueInCompliance(self):
+        """Retruns True if continue in compliance is enabled."""
+        return self.ui.continueInComplianceCheckBox.isChecked()
+
+    def itDuration(self):
+        """Returns It duration in seconds or zero for unlimited duration."""
+        return self.ui.itDurationSpinBox.value() / 60 / 60
+
+    def itInterval(self):
+        """Returns It measurement interval in seconds."""
+        return self.ui.itIntervalSpinBox.value()
 
     @QtCore.pyqtSlot()
     def onStart(self):

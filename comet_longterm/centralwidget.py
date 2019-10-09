@@ -31,13 +31,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
 
     def createCharts(self):
-        sensors = self.ui.sensorsWidget.sensors
-
-        self.ivChart = IVChart(sensors)
+        self.ivChart = IVChart(self.sensors())
         self.ui.ivChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.ivChartView.setChart(self.ivChart)
 
-        self.itChart = ItChart(sensors)
+        self.itChart = ItChart(self.sensors())
         self.ui.ivChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.itChartView.setChart(self.itChart)
 
@@ -45,7 +43,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.ctsChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.ctsChartView.setChart(self.ctsChart)
 
-        self.pt100Chart = Pt100Chart(sensors)
+        self.pt100Chart = Pt100Chart(self.sensors())
         self.ui.pt100ChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
         self.ui.pt100ChartView.setChart(self.pt100Chart)
 
@@ -58,23 +56,26 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         # Measurement process
         meas = MeasProcess(self)
-        meas.sensors = self.ui.sensorsWidget.sensors
         meas.ivStarted.connect(self.onIvStarted)
         meas.itStarted.connect(self.onItStarted)
         meas.ivReading.connect(self.onMeasIvReading)
         meas.itReading.connect(self.onMeasItReading)
         meas.finished.connect(self.ui.controlsWidget.onHalted)
         self.ui.controlsWidget.stopRequest.connect(meas.stop)
-        self.ui.controlsWidget.ui.ivEndVoltageSpinBox.valueChanged.connect(meas.setIvEndVoltage)
-        self.ui.controlsWidget.ui.ivStepSpinBox.valueChanged.connect(meas.setIvStep)
-        self.ui.controlsWidget.ui.ivIntervalSpinBox.valueChanged.connect(meas.setIvInterval)
-        self.ui.controlsWidget.ui.biasVoltageSpinBox.valueChanged.connect(meas.setBiasVoltage)
-        self.ui.controlsWidget.ui.totalComplianceSpinBox.valueChanged.connect(meas.setTotalCompliance)
-        self.ui.controlsWidget.ui.singleComplianceSpinBox.valueChanged.connect(meas.setSingleCompliance)
-        self.ui.controlsWidget.ui.itDurationSpinBox.valueChanged.connect(meas.setItDuration)
-        self.ui.controlsWidget.ui.itIntervalSpinBox.valueChanged.connect(meas.setItInterval)
+        self.ui.controlsWidget.ivEndVoltageChanged.connect(meas.setIvEndVoltage)
+        self.ui.controlsWidget.ivStepChanged.connect(meas.setIvStep)
+        self.ui.controlsWidget.ivIntervalChanged.connect(meas.setIvInterval)
+        self.ui.controlsWidget.biasVoltageChanged.connect(meas.setBiasVoltage)
+        self.ui.controlsWidget.totalComplianceChanged.connect(meas.setTotalCompliance)
+        self.ui.controlsWidget.singleComplianceChanged.connect(meas.setSingleCompliance)
+        self.ui.controlsWidget.itDurationChanged.connect(meas.setItDuration)
+        self.ui.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
         self.parent().connectProcess(meas)
         self.processes().add('meas', meas)
+
+    def sensors(self):
+        """Returns sensors manager."""
+        return self.ui.sensorsWidget.sensors
 
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
@@ -84,7 +85,9 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.statusWidget.setHumidity(reading.get('humid'))
         self.ui.statusWidget.setProgram(reading.get('program'))
         meas = self.processes().get('meas')
-        meas.setEnviron(reading)
+        meas.setTemperature(reading.get('temp'))
+        meas.setHumidity(reading.get('humid'))
+        meas.setProgram(reading.get('program'))
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):
@@ -109,9 +112,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot()
     def onStart(self):
-        sensors = self.ui.sensorsWidget.sensors
-        self.ivChart.load(sensors)
-        self.itChart.load(sensors)
+        self.ivChart.load(self.sensors())
+        self.itChart.load(self.sensors())
 
         # Setup output location
         path = os.path.normpath(self.ui.controlsWidget.ui.pathComboBox.currentText())
@@ -121,8 +123,18 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
             os.makedirs(path)
 
         meas = self.processes().get('meas')
+        meas.setSensors(self.sensors())
+        meas.setIvEndVoltage(self.ui.controlsWidget.ivEndVoltage())
+        meas.setIvStep(self.ui.controlsWidget.ivStep())
+        meas.setIvInterval(self.ui.controlsWidget.ivInterval())
+        meas.setBiasVoltage(self.ui.controlsWidget.biasVoltage())
+        meas.setTotalCompliance(self.ui.controlsWidget.totalCompliance())
+        meas.setSingleCompliance(self.ui.controlsWidget.singleCompliance())
+        meas.setContinueInCompliance(self.ui.controlsWidget.continueInCompliance())
+        meas.setItDuration(self.ui.controlsWidget.itDuration())
+        meas.setItInterval(self.ui.controlsWidget.itInterval())
         meas.setPath(path)
-        meas.setOperator(self.ui.controlsWidget.ui.operatorComboBox.currentText())
+        meas.setOperator(self.ui.controlsWidget.operator())
         meas.start()
 
 if __name__ == '__main__':

@@ -122,10 +122,12 @@ class CtsChart(Chart):
         self.axisY1 = QtChart.QValueAxis()
         self.axisY1.setTitleText("Temp")
         self.axisY1.setRange(0, 180)
+        self.axisY1.setLinePenColor(QtCore.Qt.red)
         self.addAxis(self.axisY1, QtCore.Qt.AlignLeft)
 
         self.ctsTempSeries = LineSeries()
         self.ctsTempSeries.setName("Temp")
+        self.ctsTempSeries.setColor(self.axisY1.linePenColor())
         self.addSeries(self.ctsTempSeries)
         self.ctsTempSeries.attachAxis(self.axisX)
         self.ctsTempSeries.attachAxis(self.axisY1)
@@ -133,10 +135,12 @@ class CtsChart(Chart):
         # Y axis right
         self.axisY2 = QtChart.QValueAxis()
         self.axisY2.setRange(0, 100)
+        self.axisY2.setLinePenColor(QtCore.Qt.blue)
         self.addAxis(self.axisY2, QtCore.Qt.AlignRight)
 
         self.ctsHumidSeries = LineSeries()
         self.ctsHumidSeries.setName("Humid")
+        self.ctsHumidSeries.setColor(self.axisY2.linePenColor())
         self.addSeries(self.ctsHumidSeries)
         self.ctsHumidSeries.attachAxis(self.axisX)
         self.ctsHumidSeries.attachAxis(self.axisY2)
@@ -146,10 +150,12 @@ class CtsChart(Chart):
         self.axisY3.setRange(0, 1)
         self.axisY3.append("Off", 0)
         self.axisY3.append("On", 1)
+        self.axisY3.setLinePenColor(QtCore.Qt.magenta)
         self.addAxis(self.axisY3, QtCore.Qt.AlignRight)
 
         self.ctsProgramSeries = LineSeries()
         self.ctsProgramSeries.setName("Program")
+        self.ctsProgramSeries.setColor(self.axisY3.linePenColor())
         self.addSeries(self.ctsProgramSeries)
         self.ctsProgramSeries.attachAxis(self.axisX)
         self.ctsProgramSeries.attachAxis(self.axisY3)

@@ -11,8 +11,6 @@ import pyvisa
 from comet import Process, StopRequest, Range
 from comet import DeviceMixin
 
-from .sensorswidget import SensorCount
-
 class Writer(object):
 
     def __init__(self, context):
@@ -39,7 +37,7 @@ class ItWriter(Writer):
 
     def writeHeader(self, sensor, operator, timestamp, voltage):
         super().writeHeader(sensor, operator, timestamp, voltage)
-        self.writeRow("time", "current corr [A]", "current meas [A]", "temperature [°C]", "humidity [%rH]")
+        self.writeRow("timestamp [s]", "current corr [A]", "current meas [A]", "temperature [°C]", "humidity [%rH]", "program [No]")
 
 class EnvironProcess(Process, DeviceMixin):
 
@@ -82,59 +80,107 @@ class MeasProcess(Process, DeviceMixin):
     itStarted = QtCore.pyqtSignal()
     """Emitted just before It measurement starts."""
 
-    ivEndVoltage = 800.0
-    ivStep = 5.0
-    ivInterval = 10.0
+    def sensors(self):
+        return self.__sensors
 
-    biasVoltage = 600.0
-    totalCompliance = 80.0
-    singleCompliance = 25.0
-    continueInComplienace = False
+    def setSensors(self, sensors):
+        self.__sensors = sensors
 
-    itDuration = 0.00
-    itInterval = 60.00
+    def startTime(self):
+        return self.__startTime
 
-    path = None
-    operator = None
-    sensors = None
+    def setStartTime(self, value):
+        self.__startTime = value
 
-    currentVoltage = 0.0
+    def currentVoltage(self):
+        return self.__currentVoltage
+
+    def setCurrentVoltage(self, value):
+        self.__currentVoltage = value
+
+    def ivEndVoltage(self):
+        return self.__ivEndVoltage
 
     def setIvEndVoltage(self, value):
-        self.ivEndVoltage = value
+        self.__ivEndVoltage = value
+
+    def ivStep(self):
+        return self.__ivStep
 
     def setIvStep(self, value):
-        self.ivStep = value
+        self.__ivStep = value
+
+    def ivInterval(self):
+        return self.__ivInterval
 
     def setIvInterval(self, value):
-        self.ivInterval = value
+        self.__ivInterval = value
+
+    def biasVoltage(self,):
+        return self.__biasVoltage
 
     def setBiasVoltage(self, value):
-        self.biasVoltage = value
+        self.__biasVoltage = value
+
+    def totalCompliance(self):
+        return self.__totalCompliance
 
     def setTotalCompliance(self, value):
-        self.totalCompliance = value
+        self.__totalCompliance = value
+
+    def singleCompliance(self):
+        return self.__singleCompliance
 
     def setSingleCompliance(self, value):
-        self.singleCompliance = value
+        self.__singleCompliance = value
+
+    def continueInCompliance(self):
+        return self.__continue
+
+    def setContinueInCompliance(self, value):
+        self.__continue = value
+
+    def itDuration(self):
+        return self.__itDuration
 
     def setItDuration(self, value):
-        self.itDuration = value
+        self.__itDuration = value
+
+    def itInterval(self):
+        return self.__itInterval
 
     def setItInterval(self, value):
-        self.itInterval = value
+        self.__itInterval = value
 
-    def setEnviron(self, environ):
-        self.environ = environ
+    def temperature(self):
+        return self.__temperature
 
-    def setTemperatur(self, temperature):
-        self.humidity
+    def setTemperature(self, value):
+        self.__temperature = value
+
+    def humidity(self):
+        return self.__humidity
+
+    def setHumidity(self, value):
+        self.__humiditye = value
+
+    def program(self):
+        return self.__program
+
+    def setProgram(self, value):
+        self.__program = value
+
+    def path(self):
+        return self.__path
 
     def setPath(self, value):
-        self.path = value
+        self.__path = value
+
+    def operator(self):
+        return self.__operator
 
     def setOperator(self, value):
-        self.operator = value
+        self.__operator = value
 
     def reset(self, smu, multi):
         smu.reset()
@@ -145,8 +191,8 @@ class MeasProcess(Process, DeviceMixin):
         # check SMU compliance
         totalCurrent = smu.read()[1]
         logging.info('SMU current (A): %s', totalCurrent)
-        if totalCurrent > self.totalCompliance:
-            if not self.continueInComplienace:
+        if totalCurrent > self.totalCompliance():
+            if not self.continueInCompliance():
                 raise ValueError("SMU in compliance")
 
         # start measurement scan
@@ -156,21 +202,21 @@ class MeasProcess(Process, DeviceMixin):
         # read buffer
         results = multi.fetch()
         currents = []
-        for i, sensor in enumerate(self.sensors):
+        for i, sensor in enumerate(self.sensors()):
             R = sensor.resistivity # ohm, from calibration measurement array
             u = results[i].get('VDC')
             #logging.info("U(V): %s", u)
             current = u / R
-            if current > self.singleCompliance:
+            if current > self.singleCompliance():
                 sensor.status = sensor.State.COMPL_ERR
                 # TODO switch relay off
             currents.append(dict(i=current, u=u))
-        time = self.time() - self.startTime
+        time = self.time() - self.startTime()
         return time, currents, totalCurrent
 
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
-        self.startTime = self.time()
+        self.setStartTime(self.time())
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
@@ -191,7 +237,7 @@ class MeasProcess(Process, DeviceMixin):
         multi.resource().write(':TRIG:SOUR IMM')
 
         # set channels to scan
-        count = len(self.sensors)
+        count = len(self.sensors())
         if count > 10:
             offset = count + 120
             multi.resource().write(':ROUTE:SCAN (@111:120,131:{})'.format(offset))
@@ -225,11 +271,11 @@ class MeasProcess(Process, DeviceMixin):
 
         self.sleep(.100) # value from labview
 
-        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance))
+        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance()))
 
         # clear voltage
-        self.currentVoltage = 0.0
-        smu.setVoltage(self.currentVoltage)
+        self.setCurrentVoltage(0.0)
+        smu.setVoltage(self.currentVoltage())
         # switch output ON
         smu.enableOutput(True)
 
@@ -238,50 +284,51 @@ class MeasProcess(Process, DeviceMixin):
 
     def rampUp(self, smu, multi):
         self.showMessage("Ramping up")
-        self.showProgress(self.currentVoltage, self.ivEndVoltage)
+        self.showProgress(self.currentVoltage(), self.ivEndVoltage())
+        self.ivStarted.emit()
         with contextlib.ExitStack() as stack:
             writers = []
-            for sensor in self.sensors:
+            for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime).strftime('%Y-%m-%dT%H-%M')
+                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
                     filename = os.path.join(self.path, 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = IVWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime, self.operator, self.ivEndVoltage)
+                    writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
                     writers.append(writer)
-            for value in Range(self.currentVoltage, self.ivEndVoltage, self.ivStep):
-                self.currentVoltage = value
+            for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
+                self.setCurrentVoltage(value)
                 if not self.stopRequested():
-                    self.showMessage("Ramping up ({:.2f} V)".format(self.currentVoltage))
+                    self.showMessage("Ramping up ({:.2f} V)".format(self.currentVoltage()))
                     # Set voltage
                     smu.setVoltage(value)
-                    self.showProgress(self.currentVoltage, self.ivEndVoltage)
-                    self.sleep(self.ivStep)
+                    self.showProgress(self.currentVoltage(), self.ivEndVoltage())
+                    self.sleep(self.ivInterval())
                     t, currents, total = self.scan(smu, multi)
-                    self.ivReading.emit(dict(time=time, singles=currents, total=total, voltage=self.currentVoltage))
+                    self.ivReading.emit(dict(time=t, singles=currents, total=total, voltage=self.currentVoltage()))
                     for i, writer in enumerate(writers):
                         # writers[i].writeRow([t, value, current]) # timestamp?
-                        writer.writeRow([self.currentVoltage, currents[i]])
+                        writer.writeRow([self.currentVoltage(), currents[i]])
                 else:
                     raise StopRequest()
-        self.showProgress(self.currentVoltage, self.ivEndVoltage)
+        self.showProgress(self.currentVoltage(), self.ivEndVoltage())
         self.showMessage("Done")
         return True
 
     def rampBias(self, smu, multi):
         step = 5.00
-        startVoltage = self.currentVoltage - self.biasVoltage
-        deltaVoltage = self.currentVoltage - self.currentVoltage
+        startVoltage = self.currentVoltage() - self.biasVoltage()
+        deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping to bias")
         self.showProgress(deltaVoltage, startVoltage)
-        for value in Range(self.currentVoltage, self.biasVoltage, -self.ivStep):
-            self.currentVoltage = value
+        for value in Range(self.currentVoltage(), self.biasVoltage(), -self.ivStep()):
+            self.setCurrentVoltage(value)
             if not self.stopRequested():
-                self.showMessage("Ramping to bias ({:.2f} V)".format(self.currentVoltage))
+                self.showMessage("Ramping to bias ({:.2f} V)".format(self.currentVoltage()))
                 # Set voltage
                 smu.setVoltage(value)
-                deltaVoltage = self.currentVoltage - self.currentVoltage
+                deltaVoltage = startVoltage - self.currentVoltage()
                 self.showProgress(deltaVoltage, startVoltage)
                 self.sleep(2.0) # value from labview
             else:
@@ -290,50 +337,51 @@ class MeasProcess(Process, DeviceMixin):
 
     def longterm(self, smu, multi):
         self.showMessage("Measuring...")
+        self.itStarted.emit()
         timeBegin = self.time()
-        timeEnd = timeBegin + self.itDuration * 3600 # sec
-        if self.itDuration:
+        timeEnd = timeBegin + self.itDuration()
+        if self.itDuration():
             self.showProgress(0, timeEnd - timeBegin)
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
         with contextlib.ExitStack() as stack:
             writers = []
-            for sensor in self.sensors:
+            for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime).strftime('%Y-%m-%dT%H-%M')
+                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M')
                     filename = os.path.join(self.path, 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = ItWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.startTime, self.operator, self.ivEndVoltage)
+                    writer.writeHeader(name, self.startTime(), self.operator(), self.ivEndVoltage())
                     writers.append(writer)
             while not self.stopRequested():
                 currentTime = self.time()
-                if self.itDuration:
+                if self.itDuration():
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
                 t, currents, total = self.scan(smu, multi)
-                self.itReading.emit(dict(time=time, singles=currents, total=totalCurrent))
+                self.itReading.emit(dict(time=t, singles=currents, total=total, voltage=self.currentVoltage()))
                 for i, writer in enumerate(writers):
-                    writer.writeRow([t, currents[i], self.temperature, self.humidity])
-                self.sleep(self.itInterval)
+                    writer.writeRow([t, currents[i], self.temperature(), self.humidity(), self.program()])
+                self.sleep(self.itInterval())
         self.showProgress(1, 1)
         self.showMessage("Done")
 
     def rampDown(self, smu, multi):
         zeroVoltage = 0.0
         step = 10.0
-        startVoltage = self.currentVoltage
-        deltaVoltage = startVoltage - self.currentVoltage
+        startVoltage = self.currentVoltage()
+        deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping down")
         self.showProgress(deltaVoltage, startVoltage)
-        for value in Range(self.currentVoltage, zeroVoltage, -self.ivStep):
+        for value in Range(self.currentVoltage(), zeroVoltage, -self.ivStep()):
             # Ramp down at any cost to save lives!
-            self.currentVoltage = value
+            self.setCurrentVoltage(value)
             # Set voltage
             smu.setVoltage(value)
-            deltaVoltage = startVoltage - self.currentVoltage
+            deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             self.sleep(.25) # value from labview
         self.showMessage("Done")
