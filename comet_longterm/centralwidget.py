@@ -167,6 +167,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensors().setEditable(False)
         self.statusWidget().setCurrent(None)
 
+        # TODO
         self.ivChart.load(self.sensors())
         self.ivChart.axisX.setRange(0, self.controlsWidget().ivEndVoltage()) # V
         self.ivChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA

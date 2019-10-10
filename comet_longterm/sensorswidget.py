@@ -82,7 +82,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
                     return sensor.status
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
-                    return sensor.current
+                    if not sensor.current is None:
+                        return sensor.current * 1000 * 1000 # in uA
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
                     return sensor.temperature
