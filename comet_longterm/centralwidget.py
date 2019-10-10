@@ -203,6 +203,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.statusWidget().setVoltage(None)
         self.statusWidget().setCurrent(None)
         self.sensors().setEditable(True)
+        # TODO implement calibration
+        self.controlsWidget().ui.calibPushButton.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def onImportCalib(self):
