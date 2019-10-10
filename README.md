@@ -4,9 +4,10 @@ Longterm sensor It measurements in climate chamber
 
 ## Quick start
 
+Install using pip in a virtual environment.
+
 ```bash
-python setup.py bdist_wheel
-pip install dist/*.whl
+pip install git+https://github.com/hephy-dd/comet-longterm.git@0.1.0
 comet-longterm
 ```
 
