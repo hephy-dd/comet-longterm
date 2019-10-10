@@ -1,6 +1,6 @@
 # comet-longterm
 
-Longterm current measurements in climate chamber
+Longterm sensor It measurements in climate chamber
 
 ## Quick start
 
