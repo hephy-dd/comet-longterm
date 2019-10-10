@@ -7,7 +7,7 @@ Longterm sensor It measurements in climate chamber
 Install using pip in a virtual environment.
 
 ```bash
-pip install git+https://github.com/hephy-dd/comet-longterm.git@0.1.0
+pip install git+https://github.com/hephy-dd/comet-longterm.git@0.1.1
 comet-longterm
 ```
 
