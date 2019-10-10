@@ -47,6 +47,10 @@ class EnvironProcess(Process, DeviceMixin):
 
     interval = 5.0
 
+    timeout = 5.0
+
+    failedConnectionAttempts = 0 # HACK
+
     def read(self, device):
         """Read environment data from device."""
         temp = device.analogChannel(1)[0]
@@ -61,16 +65,19 @@ class EnvironProcess(Process, DeviceMixin):
                     while not self.stopRequested():
                         try:
                             reading = self.read(cts)
-                            logging.info("CTS reading: %s", reading)
                         except pyvisa.errors.Error as e:
                             logging.error(e)
                             self.failed.emit(e)
                         else:
+                            logging.info("CTS reading: %s", reading)
                             self.reading.emit(reading)
                         self.sleep(self.interval)
-            except pyvisa.errors.Error as e:
+                        self.failedConnectionAttempts = 0
+            except ConnectionError as e:
                 logging.error(e)
+                self.failedConnectionAttempts += 1
                 self.failed.emit(e)
+                self.sleep(self.timeout)
 
 class MeasProcess(Process, DeviceMixin):
 
@@ -85,6 +92,14 @@ class MeasProcess(Process, DeviceMixin):
 
     itStarted = QtCore.pyqtSignal()
     """Emitted just before It measurement starts."""
+
+    smuReading = QtCore.pyqtSignal(object)
+    """Emitted when SMU reading available."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setCurrentVoltage(0.0)
+        self.setTotalCurrent(0.0)
 
     def sensors(self):
         return self.__sensors
@@ -103,6 +118,12 @@ class MeasProcess(Process, DeviceMixin):
 
     def setCurrentVoltage(self, value):
         self.__currentVoltage = value
+
+    def totalCurrent(self):
+        return self.__totalCurrent
+
+    def setTotalCurrent(self, value):
+        self.__totalCurrent = value
 
     def ivEndVoltage(self):
         return self.__ivEndVoltage
@@ -194,6 +215,17 @@ class MeasProcess(Process, DeviceMixin):
         self.sleep(.500)
 
     def scan(self, smu, multi):
+        """Scan selected channels and return dictionary of readings.
+
+        t:  timestamp
+        I:  total SMU current
+        U:  current SMU voltage
+        channels:  list of channel readings
+            index:  index of channel
+            I:  current
+            U:  voltage
+            R:  calibrated resistor value
+        """
         # check SMU compliance
         totalCurrent = smu.read()[1]
         logging.info('SMU current (A): %s', totalCurrent)
@@ -208,16 +240,16 @@ class MeasProcess(Process, DeviceMixin):
         # read buffer
         results = multi.fetch()
         channels = []
-        for i, sensor in enumerate(self.sensors()):
+        for index, sensor in enumerate(self.sensors()):
             R = sensor.resistivity # ohm, from calibration measurement array
-            u = results[i].get('VDC')
+            U = results[index].get('VDC')
             # Calculate sensor current
-            current = u / R
-            if current > self.singleCompliance():
+            I = U / R
+            if I > self.singleCompliance():
                 sensor.status = sensor.State.COMPL_ERR
                 # TODO switch relay off
-            channels.append(dict(i=current, u=u, r=R))
-        return channels, totalCurrent
+            channels.append(dict(index=index, I=I, U=U, R=R))
+        return dict(time=self.time(), channels=channels, I=totalCurrent, U=self.currentVoltage())
 
     def setup(self, smu, multi):
         self.showMessage("Clear buffers")
@@ -303,7 +335,7 @@ class MeasProcess(Process, DeviceMixin):
                     filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = IVWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.operator(), self.startTime(), sensor.resistivity, self.ivEndVoltage())
+                    writer.writeHeader(name, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
@@ -313,12 +345,12 @@ class MeasProcess(Process, DeviceMixin):
                     smu.setVoltage(value)
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                     self.sleep(self.ivInterval())
-                    t = self.time()
-                    channels, total = self.scan(smu, multi)
-                    self.ivReading.emit(dict(time=t, singles=channels, total=total, voltage=self.currentVoltage()))
+                    reading = self.scan(smu, multi)
+                    logging.info("scan reading: %s", reading)
+                    self.ivReading.emit(reading)
+                    self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                     for i, writer in enumerate(writers):
-                        # writers[i].writeRow(t, value, current) # timestamp?
-                        writer.writeRow(self.currentVoltage(), channels[i].get('i'))
+                        writer.writeRow(reading.get('U'), reading.get('channels')[i].get('I'))
                 else:
                     raise StopRequest()
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
@@ -340,6 +372,8 @@ class MeasProcess(Process, DeviceMixin):
                 deltaVoltage = startVoltage - self.currentVoltage()
                 self.showProgress(deltaVoltage, startVoltage)
                 self.sleep(2.0) # value from labview
+                totalCurrent = smu.read()[1]
+                self.smuReading.emit(dict(U=self.currentVoltage(), I=totalCurrent))
             else:
                 raise StopRequest()
         self.showMessage("Done")
@@ -362,7 +396,7 @@ class MeasProcess(Process, DeviceMixin):
                     filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
                     writer = ItWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.operator(), self.startTime(), sensor.resistivity, self.ivEndVoltage())
+                    writer.writeHeader(name, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
                     writers.append(writer)
             while not self.stopRequested():
                 self.showMessage("Measuring...")
@@ -371,11 +405,12 @@ class MeasProcess(Process, DeviceMixin):
                     self.showProgress(currentTime - timeBegin, timeEnd - timeBegin)
                     if currentTime >= timeEnd:
                         break
-                t = self.time()
-                channels, total = self.scan(smu, multi)
-                self.itReading.emit(dict(time=t, singles=channels, total=total, voltage=self.currentVoltage()))
+                reading = self.scan(smu, multi)
+                logging.info("scan reading: %s", reading)
+                self.itReading.emit(reading)
+                self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                 for i, writer in enumerate(writers):
-                    writer.writeRow(t, channels[i].get('i'), self.temperature(), self.humidity(), self.program())
+                    writer.writeRow(reading.get('time'), reading.get('channels')[i].get('I'), self.temperature(), self.humidity(), self.program())
                 # Wait...
                 interval = self.itInterval()
                 while interval > 0:
@@ -402,6 +437,7 @@ class MeasProcess(Process, DeviceMixin):
             deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             self.sleep(.25) # value from labview
+            self.smuReading.emit(dict(U=self.currentVoltage(), I=None))
         self.showMessage("Done")
 
     def run(self):

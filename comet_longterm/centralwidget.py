@@ -26,10 +26,16 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.createProcesses()
 
         self.parent().closeRequest.connect(self.onClose)
-        self.ui.controlsWidget.started.connect(self.onStart)
-        self.ui.controlsWidget.calibrate.connect(self.onCalibrate)
+        self.controlsWidget().started.connect(self.onStart)
+        self.controlsWidget().calibrate.connect(self.onCalibrate)
+        self.statusWidget().setVoltage(None)
+        self.statusWidget().setCurrent(None)
+        # TODO implement calibration
+        self.controlsWidget().ui.calibPushButton.setEnabled(False)
+        # TODO implement measurement timer
+        self.controlsWidget().ui.itDurationSpinBox.setEnabled(False)
 
-        self.ui.controlsWidget.ui.calibPushButton.setEnabled(False)
+        # Add new menu entries
         self.importCalibAction = QtWidgets.QAction(self.tr("Import &Calibrations..."))
         self.importCalibAction.triggered.connect(self.onImportCalib)
         self.parent().ui.fileMenu.insertAction(self.parent().ui.quitAction, self.importCalibAction)
@@ -62,6 +68,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         # Environ process
         environ = EnvironProcess(self)
         environ.reading.connect(self.onEnvironReading)
+        environ.failed.connect(self.onEnvironError)
         environ.start()
         self.processes().add('environ', environ)
 
@@ -72,40 +79,60 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.itStarted.connect(self.onItStarted)
         meas.ivReading.connect(self.onMeasIvReading)
         meas.itReading.connect(self.onMeasItReading)
-        meas.finished.connect(self.ui.controlsWidget.onHalted)
+        meas.smuReading.connect(self.onSmuReading)
+        meas.finished.connect(self.onHalted)
 
-        self.ui.controlsWidget.stopRequest.connect(meas.stop)
-        self.ui.controlsWidget.ivEndVoltageChanged.connect(meas.setIvEndVoltage)
-        self.ui.controlsWidget.ivStepChanged.connect(meas.setIvStep)
-        self.ui.controlsWidget.ivIntervalChanged.connect(meas.setIvInterval)
-        self.ui.controlsWidget.biasVoltageChanged.connect(meas.setBiasVoltage)
-        self.ui.controlsWidget.totalComplianceChanged.connect(meas.setTotalCompliance)
-        self.ui.controlsWidget.singleComplianceChanged.connect(meas.setSingleCompliance)
-        self.ui.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
-        self.ui.controlsWidget.itDurationChanged.connect(meas.setItDuration)
-        self.ui.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
+        self.controlsWidget().stopRequest.connect(meas.stop)
+        self.controlsWidget().ivEndVoltageChanged.connect(meas.setIvEndVoltage)
+        self.controlsWidget().ivStepChanged.connect(meas.setIvStep)
+        self.controlsWidget().ivIntervalChanged.connect(meas.setIvInterval)
+        self.controlsWidget().biasVoltageChanged.connect(meas.setBiasVoltage)
+        self.controlsWidget().totalComplianceChanged.connect(meas.setTotalCompliance)
+        self.controlsWidget().singleComplianceChanged.connect(meas.setSingleCompliance)
+        self.controlsWidget().continueInComplianceChanged.connect(meas.setContinueInCompliance)
+        self.controlsWidget().itDurationChanged.connect(meas.setItDuration)
+        self.controlsWidget().itIntervalChanged.connect(meas.setItInterval)
 
         self.parent().connectProcess(meas)
         self.processes().add('meas', meas)
 
     def sensors(self):
         """Returns sensors manager."""
-        return self.ui.sensorsWidget.sensors
+        return self.sensorsWidget().sensors
+
+    def sensorsWidget(self):
+        """Returns sensors widget."""
+        return self.ui.sensorsWidget
+
+    def controlsWidget(self):
+        """Returns controls widget."""
+        return self.ui.controlsWidget
+
+    def statusWidget(self):
+        """Returns status widget."""
+        return self.ui.statusWidget
 
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
         print(reading)
         self.ctsChart.append(reading)
-        self.ui.statusWidget.setTemperature(reading.get('temp'))
-        self.ui.statusWidget.setHumidity(reading.get('humid'))
-        self.ui.statusWidget.setProgram(reading.get('program'))
+        self.statusWidget().setTemperature(reading.get('temp'))
+        self.statusWidget().setHumidity(reading.get('humid'))
+        self.statusWidget().setProgram(reading.get('program'))
         meas = self.processes().get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
         meas.setProgram(reading.get('program'))
         for i, sensor in enumerate(self.sensors()):
             sensor.temperature = reading.get('temp')
-        self.ui.sensorsWidget.dataChanged() # HACK keep updated
+        self.sensorsWidget().dataChanged() # HACK keep updated
+
+    @QtCore.pyqtSlot(object)
+    def onEnvironError(self, error):
+        environ = self.processes().get('environ')
+        # Show error only once!
+        if environ.failedConnectionAttempts <= 1:
+            self.parent().showException(error)
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):
@@ -118,34 +145,36 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
-        self.ui.statusWidget.setVoltage(reading.get('voltage'))
-        self.ui.statusWidget.setCurrent(reading.get('total'))
         for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('singles')[i].get('i')
-        self.ui.sensorsWidget.dataChanged() # HACK keep updated
+            sensor.current = reading.get('channels')[i].get('I')
+        self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
-        self.ui.statusWidget.setVoltage(reading.get('voltage'))
-        self.ui.statusWidget.setCurrent(reading.get('total'))
         for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('singles')[i].get('i')
-        self.ui.sensorsWidget.dataChanged() # HACK keep updated
+            sensor.current = reading.get('channels')[i].get('I')
+        self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
+
+    @QtCore.pyqtSlot(object)
+    def onSmuReading(self, reading):
+        self.statusWidget().setVoltage(reading.get('U'))
+        self.statusWidget().setCurrent(reading.get('I'))
 
     @QtCore.pyqtSlot()
     def onStart(self):
         self.sensors().setEditable(False)
+        self.statusWidget().setCurrent(None)
 
         self.ivChart.load(self.sensors())
-        self.ivChart.axisX.setRange(0, self.ui.controlsWidget.ivEndVoltage()) # V
-        self.ivChart.axisY.setRange(0, self.ui.controlsWidget.singleCompliance() * 1000 * 1000) # uA
+        self.ivChart.axisX.setRange(0, self.controlsWidget().ivEndVoltage()) # V
+        self.ivChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
         self.itChart.load(self.sensors())
-        self.itChart.axisY.setRange(0, self.ui.controlsWidget.singleCompliance() * 1000 * 1000) # uA
+        self.itChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
 
         # Setup output location
-        path = os.path.normpath(self.ui.controlsWidget.path())
+        path = os.path.normpath(self.controlsWidget().path())
         timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M-%S')
         path = os.path.join(path, timestamp)
         if not os.path.exists(path):
@@ -153,19 +182,27 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         meas = self.processes().get('meas')
         meas.setSensors(self.sensors())
-        meas.setIvEndVoltage(self.ui.controlsWidget.ivEndVoltage())
-        meas.setIvStep(self.ui.controlsWidget.ivStep())
-        meas.setIvInterval(self.ui.controlsWidget.ivInterval())
-        meas.setBiasVoltage(self.ui.controlsWidget.biasVoltage())
-        meas.setTotalCompliance(self.ui.controlsWidget.totalCompliance())
-        meas.setSingleCompliance(self.ui.controlsWidget.singleCompliance())
-        meas.setContinueInCompliance(self.ui.controlsWidget.continueInCompliance())
-        meas.setItDuration(self.ui.controlsWidget.itDuration())
-        meas.setItInterval(self.ui.controlsWidget.itInterval())
+        meas.setIvEndVoltage(self.controlsWidget().ivEndVoltage())
+        meas.setIvStep(self.controlsWidget().ivStep())
+        meas.setIvInterval(self.controlsWidget().ivInterval())
+        meas.setBiasVoltage(self.controlsWidget().biasVoltage())
+        meas.setTotalCompliance(self.controlsWidget().totalCompliance())
+        meas.setSingleCompliance(self.controlsWidget().singleCompliance())
+        meas.setContinueInCompliance(self.controlsWidget().continueInCompliance())
+        meas.setItDuration(self.controlsWidget().itDuration())
+        meas.setItInterval(self.controlsWidget().itInterval())
         meas.setPath(path)
-        meas.setOperator(self.ui.controlsWidget.operator())
+        meas.setOperator(self.controlsWidget().operator())
 
         meas.start()
+
+    @QtCore.pyqtSlot()
+    def onHalted(self):
+        self.controlsWidget().onHalted()
+        self.statusWidget().setCurrent(None)
+        self.statusWidget().setVoltage(None)
+        self.statusWidget().setCurrent(None)
+        self.sensors().setEditable(True)
 
     @QtCore.pyqtSlot()
     def onImportCalib(self):
@@ -180,11 +217,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 count = len(self.sensors())
                 with open(filename) as f:
                     for token in re.findall(r'\d+\s+', f.read()):
-                        print(token)
                         resistors.append(int(token))
                 if len(resistors) < count:
                     raise RuntimeError("Missing calibration values, expected at least {}".format(count))
                 for i in range(count):
+                    logging.info("sensor[%s].resistivity = %s", i, resistors[i])
                     self.sensors()[i].resistivity = resistors[i]
                 QtWidgets.QMessageBox.information(self, self.tr("Success"), self.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as e:
@@ -203,4 +240,4 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     @QtCore.pyqtSlot()
     def onClose(self):
         self.sensors().storeSettings()
-        self.ui.controlsWidget.storeSettings()
+        self.controlsWidget().storeSettings()

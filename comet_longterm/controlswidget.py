@@ -94,11 +94,11 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def itDuration(self):
         """Returns It duration in seconds or zero for unlimited duration."""
-        return self.ui.itDurationSpinBox.value() / 60 / 60
+        return self.ui.itDurationSpinBox.value() * 60 * 60
 
     def setItDuration(self, value):
         """Set It duration in seconds or zero for unlimited duration."""
-        self.ui.itDurationSpinBox.setValue(value * 60 * 60)
+        self.ui.itDurationSpinBox.setValue(value / 60 / 60)
 
     def itInterval(self):
         """Returns It measurement interval in seconds."""

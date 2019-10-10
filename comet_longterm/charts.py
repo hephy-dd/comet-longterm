@@ -61,10 +61,9 @@ class IVChart(Chart):
             series.load(sensor)
 
     def append(self, readings):
-        voltage = readings.get('voltage')
-        for i, reading in enumerate(readings.get('singles')):
-            logging.info("IVChart %s %s", i, reading)
-            self.ivSeries[i].append(voltage, reading.get('i') * 1000 * 1000)
+        voltage = readings.get('U')
+        for reading in readings.get('channels'):
+            self.ivSeries[reading.get('index')].append(voltage, reading.get('I') * 1000 * 1000)
         # minimum = self.ivSeries[0].at(0).x()
         # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).x()
         # self.axisX.setRange(minimum, maximum)
@@ -103,10 +102,11 @@ class ItChart(Chart):
 
     def append(self, readings):
         time = readings.get('time') * 1000
-        for i, reading in enumerate(readings.get('singles')):
-            self.itSeries[i].append(time, reading.get('i') * 1000 * 1000)
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(self.itSeries[i].at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(self.itSeries[i].at(self.itSeries[i].count()-1).x())
+        for reading in readings.get('channels'):
+            self.itSeries[reading.get('index')].append(time, reading.get('I') * 1000 * 1000)
+        series = self.itSeries[0]
+        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
+        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
         self.axisX.setRange(minimum, maximum)
 
 class CtsChart(Chart):

@@ -26,11 +26,12 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.resizeColumnsToContents()
         self.ui.tableView.resizeRowsToContents()
         self.ui.tableView.setColumnWidth(0, 200)
+        self.ui.tableView.setMinimumHeight(SensorCount *self.ui.tableView.rowHeight(0))
 
     def dataChanged(self):
         self.model.dataChanged.emit(
-            self.model.createIndex(0, 0),
-            self.model.createIndex(10, 5),
+            self.model.createIndex(0, 1),
+            self.model.createIndex(10, 3),
         )
 
 class SensorsModel(QtCore.QAbstractTableModel):

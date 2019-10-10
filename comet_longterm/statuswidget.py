@@ -9,15 +9,25 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.loadUi()
 
     def setVoltage(self, voltage):
-        self.ui.voltageLineEdit.setText("{:.3f} V".format(voltage))
+        """Set current in Volts."""
+        if voltage is None:
+            self.ui.voltageLineEdit.setText("n/a")
+        else:
+            self.ui.voltageLineEdit.setText("{:.3f} V".format(voltage))
 
     def setCurrent(self, current):
-        self.ui.currentLineEdit.setText("{:.3f} V".format(current))
+        """Set current in Ampere."""
+        if current is None:
+            self.ui.currentLineEdit.setText("n/a")
+        else:
+            self.ui.currentLineEdit.setText("{:.3f} uA".format(current * 1000 * 1000))
 
     def setTemperature(self, temperature):
+        """Set temperature in Celsius."""
         self.ui.tempLineEdit.setText("{:.1f} °C".format(temperature))
 
     def setHumidity(self, humidity):
+        """Set humidity in percent relative humidity."""
         self.ui.humidLineEdit.setText("{:.1f} %rH".format(humidity))
 
     def setProgram(self, program):

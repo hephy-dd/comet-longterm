@@ -105,7 +105,7 @@ class ClimateHandler(socketserver.BaseRequestHandler):
                 self.send(result)
 
             elif re.match(r'P', data):
-                result = 'P042'
+                result = 'P000'
                 self.send(result)
 
             elif re.match(r'P\d{3}', data):
