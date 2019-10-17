@@ -28,7 +28,7 @@ class Writer(object):
         self.writeRow("datetime: {}".format(timestamp))
         self.writeRow("calibration [Ohm]: {}".format(calibration))
         self.writeRow("Voltage [V]: {}".format(voltage))
-        self.writeRow("")
+        self.writeRow()
 
 class IVWriter(Writer):
 
@@ -38,7 +38,7 @@ class ItWriter(Writer):
 
     def writeHeader(self, sensor, operator, timestamp, calibration, voltage):
         super().writeHeader(sensor, operator, timestamp, calibration, voltage)
-        self.writeRow("timestamp [s]", "current corr [A]", "current meas [A]", "temperature [°C]", "humidity [%rH]", "program [No]")
+        self.writeRow("timestamp [s]", "current [A]", "temperature [°C]", "humidity [%rH]", "program [Nr]")
 
 class EnvironProcess(Process, DeviceMixin):
 
