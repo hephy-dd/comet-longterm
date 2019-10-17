@@ -2,6 +2,7 @@ import os
 import re
 import time
 import datetime # TODO unify timestamp formatting!
+import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
 
