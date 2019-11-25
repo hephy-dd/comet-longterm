@@ -8,7 +8,6 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
-    calibrate = QtCore.pyqtSignal()
 
     ivEndVoltageChanged = QtCore.pyqtSignal(float)
     ivStepChanged = QtCore.pyqtSignal(float)
@@ -183,10 +182,6 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.biasVoltageSpinBox.setEnabled(True)
         self.ui.operatorGroupBox.setEnabled(True)
         self.ui.pathGroupBox.setEnabled(True)
-
-    @QtCore.pyqtSlot()
-    def onCalibrate(self):
-        self.calibrate.emit()
 
     @QtCore.pyqtSlot()
     def onSelectPath(self):

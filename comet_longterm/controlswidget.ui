@@ -70,13 +70,6 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="calibPushButton">
-        <property name="text">
-         <string>&amp;Calibrate</string>
-        </property>
-       </widget>
-      </item>
       <item row="3" column="0">
        <spacer name="controlVerticalSpacer">
         <property name="orientation">
@@ -89,6 +82,16 @@
          </size>
         </property>
        </spacer>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="useCtsCheckBox">
+        <property name="text">
+         <string>Use CTS</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -474,7 +477,6 @@
  <tabstops>
   <tabstop>startPushButton</tabstop>
   <tabstop>stopPushButton</tabstop>
-  <tabstop>calibPushButton</tabstop>
   <tabstop>totalComplianceSpinBox</tabstop>
   <tabstop>singleComplianceSpinBox</tabstop>
   <tabstop>continueInComplianceCheckBox</tabstop>
@@ -538,27 +540,10 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>calibPushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>controlsWidget</receiver>
-   <slot>onCalibrate()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>88</x>
-     <y>164</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>319</x>
-     <y>159</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
  <slots>
   <slot>onStart()</slot>
   <slot>onStop()</slot>
-  <slot>onCalibrate()</slot>
   <slot>onEditOperators()</slot>
   <slot>onSelectPath()</slot>
   <slot>onHalted()</slot>

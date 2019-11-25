@@ -28,7 +28,6 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         self.parent().closeRequest.connect(self.onClose)
         self.controlsWidget().started.connect(self.onStart)
-        self.controlsWidget().calibrate.connect(self.onCalibrate)
         self.statusWidget().setVoltage(None)
         self.statusWidget().setCurrent(None)
         # TODO implement calibration
@@ -230,16 +229,6 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 QtWidgets.QMessageBox.information(self, self.tr("Success"), self.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as e:
                 self.parent().showException(e)
-
-
-    @QtCore.pyqtSlot()
-    def onCalibrate(self):
-        """Show calibration dialog."""
-        dialog = CalibrationDialog(self)
-        dialog.exec_()
-        if dialog.resistivity:
-            for i, sensor in enumerate(self.sensors()):
-                sensor.resistivity = dialog.resistivity[i]
 
     @QtCore.pyqtSlot()
     def onClose(self):
