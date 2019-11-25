@@ -7,7 +7,7 @@ import comet
 name = 'comet-longterm'
 
 # Application version
-version = '0.3.0'
+version = '0.2.0'
 
 # Path to comet package
 comet_path = os.path.join(os.path.dirname(comet.__file__))
@@ -51,7 +51,7 @@ VSVersionInfo(
 with open(name+'.pyw', 'w') as f:
     f.write('from comet import main\n')
     f.write('import sys\n')
-    f.write('if __name__ == '__main__':\n')
+    f.write('''if __name__ == '__main__':\n''')
     f.write('    sys.exit(main.main())\n')
 
 # Windows version info file
