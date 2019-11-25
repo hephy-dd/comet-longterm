@@ -7,7 +7,7 @@ import comet
 name = 'comet-longterm'
 
 # Application version
-version = '0.2.1'
+version = '0.3.0'
 
 # Path to comet package
 comet_path = os.path.join(os.path.dirname(comet.__file__))
@@ -79,7 +79,7 @@ a = Analysis([name+'.pyw'],
         'comet_longterm.controlswidget',
         'comet_longterm.sensorswidget',
         'comet_longterm.statuswidget',
-        'comet_longterm.calibrationdialog',  
+        'comet_longterm.calibrationdialog',
     ],
     hookspath=[],
     runtime_hooks=[],

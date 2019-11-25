@@ -100,6 +100,9 @@ class MeasProcess(Process, DeviceMixin):
         super().__init__(*args, **kwargs)
         self.setCurrentVoltage(0.0)
         self.setTotalCurrent(0.0)
+        self.setTemperature(0.0)
+        self.setHumidity(0.0)
+        self.setProgram(0)
 
     def sensors(self):
         return self.__sensors

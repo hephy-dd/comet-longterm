@@ -15,7 +15,6 @@ from comet.devices.keithley import K2410, K2700
 
 from .processes import EnvironProcess, MeasProcess
 from .charts import IVChart, ItChart, CtsChart, Pt100Chart
-from .calibrationdialog import CalibrationDialog
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -28,10 +27,9 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         self.parent().closeRequest.connect(self.onClose)
         self.controlsWidget().started.connect(self.onStart)
+        self.controlsWidget().ui.useCtsCheckBox.toggled.connect(self.onEnableEnviron)
         self.statusWidget().setVoltage(None)
         self.statusWidget().setCurrent(None)
-        # TODO implement calibration
-        self.controlsWidget().ui.calibPushButton.setEnabled(False)
         # TODO implement measurement timer
         self.controlsWidget().ui.itDurationSpinBox.setEnabled(False)
 
@@ -69,8 +67,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         environ = EnvironProcess(self)
         environ.reading.connect(self.onEnvironReading)
         environ.failed.connect(self.onEnvironError)
-        environ.start()
         self.processes().add('environ', environ)
+        self.onEnableEnviron(self.controlsWidget().ui.useCtsCheckBox.isChecked())
 
         # Measurement process
         meas = MeasProcess(self)
@@ -112,9 +110,21 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         """Returns status widget."""
         return self.ui.statusWidget
 
+    @QtCore.pyqtSlot(bool)
+    def onEnableEnviron(self, enabled):
+        """Enable environment process."""
+        # Toggle environ tab
+        index = self.ui.bottomTabWidget.indexOf(self.ui.ctsTab)
+        self.ui.bottomTabWidget.setTabEnabled(index, enabled);
+        # Toggle environ process
+        environ = self.processes().get('environ')
+        environ.stop()
+        environ.join()
+        if enabled:
+            environ.start()
+
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
-        print(reading)
         self.ctsChart.append(reading)
         self.statusWidget().setTemperature(reading.get('temp'))
         self.statusWidget().setHumidity(reading.get('humid'))
@@ -204,8 +214,6 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.statusWidget().setVoltage(None)
         self.statusWidget().setCurrent(None)
         self.sensors().setEditable(True)
-        # TODO implement calibration
-        self.controlsWidget().ui.calibPushButton.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def onImportCalib(self):
