@@ -49,9 +49,9 @@ VSVersionInfo(
 
 # Pyinstaller wrapper script
 with open(name+'.pyw', 'w') as f:
-    f.write('from comet import main\n')
+    f.write('from comet_longterm import main\n')
     f.write('import sys\n')
-    f.write('''if __name__ == '__main__':\n''')
+    f.write('if __name__ == "__main__":\n')
     f.write('    sys.exit(main.main())\n')
 
 # Windows version info file
