@@ -138,11 +138,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensorsWidget().dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
-    def onEnvironError(self, error):
+    def onEnvironError(self, exception):
         environ = self.processes().get('environ')
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
-            self.parent().showException(error)
+            self.parent().showException(exception)
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):

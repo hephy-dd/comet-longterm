@@ -3,6 +3,7 @@ import csv
 import contextlib
 import datetime
 import os
+import traceback
 
 from PyQt5 import QtCore
 
@@ -66,17 +67,15 @@ class EnvironProcess(Process, DeviceMixin):
                         try:
                             reading = self.read(cts)
                         except pyvisa.errors.Error as e:
-                            logging.error(e)
-                            self.failed.emit(e)
+                            self.handleException(e)
                         else:
                             logging.info("CTS reading: %s", reading)
                             self.reading.emit(reading)
                         self.sleep(self.interval)
                         self.failedConnectionAttempts = 0
-            except ConnectionError as e:
-                logging.error(e)
+            except Exception as e:
+                self.handleException(e)
                 self.failedConnectionAttempts += 1
-                self.failed.emit(e)
                 self.sleep(self.timeout)
 
 class MeasProcess(Process, DeviceMixin):
