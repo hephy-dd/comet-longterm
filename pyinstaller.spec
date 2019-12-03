@@ -1,5 +1,6 @@
 import os
 import comet
+import comet_longterm
 
 # Application name
 name = 'comet-longterm'
@@ -8,7 +9,7 @@ name = 'comet-longterm'
 organization = 'HEPHY'
 
 # Application version
-version = '0.2.0'
+version = comet_longterm.__version__
 
 # Application license
 license = 'GPLv3'
