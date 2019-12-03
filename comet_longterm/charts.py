@@ -104,7 +104,7 @@ class ItChart(Chart):
         time = reading.get('time') * 1000
         for channel in reading.get('channels').values():
             self.itSeries[channel.get('index') - 1].append(time, channel.get('I') * 1000 * 1000) # A to uA
-        series = self.itSeries[0]
+        series = self.itSeries[channel.get('index') - 1]
         minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
         maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
         self.axisX.setRange(minimum, maximum)
