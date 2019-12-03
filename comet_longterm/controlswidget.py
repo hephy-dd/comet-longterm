@@ -35,6 +35,14 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.itDurationSpinBox.valueChanged.connect(lambda: self.itDurationChanged.emit(self.itDuration()))
         self.ui.itIntervalSpinBox.valueChanged.connect(lambda: self.itIntervalChanged.emit(self.itInterval()))
 
+    def isEnvironEnabled(self):
+        """Returns True if use CTS is checked."""
+        return self.ui.useCtsCheckBox.isChecked()
+
+    def setEnvironEnabled(self, value):
+        """Set IV ramp up end voltage in volts."""
+        self.ui.useCtsCheckBox.setChecked(value)
+
     def ivEndVoltage(self):
         """Returns IV ramp up end voltage in volts."""
         return self.ui.ivEndVoltageSpinBox.value()
@@ -128,6 +136,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.pathComboBox.setCurrentText(path)
         if home != path:
             self.ui.pathComboBox.addItem(home)
+        self.setEnvironEnabled(settings.value('useEnviron', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
         self.setIvInterval(settings.value('ivInterval', 10.0, type=float))
@@ -140,6 +149,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def storeSettings(self):
         settings = QtCore.QSettings()
+        settings.setValue('useEnviron', self.isEnvironEnabled())
         settings.setValue('ivEndVoltage', self.ivEndVoltage())
         settings.setValue('ivStep', self.ivStep())
         settings.setValue('ivInterval', self.ivInterval())

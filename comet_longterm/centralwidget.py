@@ -13,7 +13,7 @@ from comet import ProcessMixin
 from comet.devices.cts import ITC
 from comet.devices.keithley import K2410, K2700
 
-from .processes import EnvironProcess, MeasProcess
+from .processes import EnvironProcess, MeasureProcess
 from .charts import IVChart, ItChart, CtsChart, Pt100Chart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
@@ -68,10 +68,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         environ.reading.connect(self.onEnvironReading)
         environ.failed.connect(self.onEnvironError)
         self.processes().add('environ', environ)
-        self.onEnableEnviron(self.controlsWidget().ui.useCtsCheckBox.isChecked())
+        self.onEnableEnviron(self.controlsWidget().isEnvironEnabled())
 
         # Measurement process
-        meas = MeasProcess(self)
+        meas = MeasureProcess(self)
 
         meas.ivStarted.connect(self.onIvStarted)
         meas.itStarted.connect(self.onItStarted)
@@ -155,15 +155,17 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
-        for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('channels')[i].get('I')
+        for sensor in self.sensors():
+            if sensor.enabled:
+                sensor.current = reading.get('channels')[sensor.index].get('I')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
-        for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('channels')[i].get('I')
+        for sensor in self.sensors():
+            if sensor.enabled:
+                sensor.current = reading.get('channels')[sensor.index].get('I')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
 

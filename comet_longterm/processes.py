@@ -13,35 +13,41 @@ from comet import Process, StopRequest, Range
 from comet import DeviceMixin
 
 class Writer(object):
+    """CSV file writer for IV and It measurements."""
 
     def __init__(self, context):
         self.context = context
         self.writer = csv.writer(context)
 
-    def writeRow(self, *values):
-        self.writer.writerow(values)
+    def writeHeader(self, sensor, operator, timestamp, calibration, voltage):
+        self.writer.writerows([
+            ["HEPHY Vienna longtime It measurement"],
+            ["sensor name: {}".format(sensor.name)],
+            ["sensor channel: {}".format(sensor.index)],
+            ["operator: {}".format(operator)],
+            ["datetime: {}".format(timestamp)],
+            ["calibration [Ohm]: {}".format(calibration)],
+            ["Voltage [V]: {}".format(voltage)],
+            [],
+            ["timestamp [s]", "voltage [V]", "current [A]", "temperature [°C]", "humidity [%rH]", "program [Nr]"]
+        ])
         self.context.flush()
 
-    def writeHeader(self, name, operator, timestamp, calibration, voltage):
-        self.writeRow("HEPHY Vienna longtime It measurement")
-        self.writeRow("sensor name: {}".format(name))
-        self.writeRow("operator: {}".format(operator))
-        self.writeRow("datetime: {}".format(timestamp))
-        self.writeRow("calibration [Ohm]: {}".format(calibration))
-        self.writeRow("Voltage [V]: {}".format(voltage))
-        self.writeRow()
-
-class IVWriter(Writer):
-
-    pass
-
-class ItWriter(Writer):
-
-    def writeHeader(self, sensor, operator, timestamp, calibration, voltage):
-        super().writeHeader(sensor, operator, timestamp, calibration, voltage)
-        self.writeRow("timestamp [s]", "current [A]", "temperature [°C]", "humidity [%rH]", "program [Nr]")
+    def writeRow(self, timestamp, voltage, current, temperature, humidity, program):
+        self.writer.writerow([
+            format(timestamp, '.3f'),
+            format(voltage, 'E'),
+            format(current, 'E'),
+            format(temperature, 'E'),
+            format(humidity, 'E'),
+            format(program, 'd')
+        ])
+        self.context.flush()
 
 class EnvironProcess(Process, DeviceMixin):
+    """Environment monitoring process. Polls for temperature, humidity and
+    climate chamber program in intervals.
+    """
 
     reading = QtCore.pyqtSignal(object)
     """Emitted when reading available, contains reading data."""
@@ -62,6 +68,7 @@ class EnvironProcess(Process, DeviceMixin):
     def run(self):
         while not self.stopRequested():
             try:
+                # Open connection to instrument
                 with self.devices().get('cts') as cts:
                     while not self.stopRequested():
                         try:
@@ -78,7 +85,17 @@ class EnvironProcess(Process, DeviceMixin):
                 self.failedConnectionAttempts += 1
                 self.sleep(self.timeout)
 
-class MeasProcess(Process, DeviceMixin):
+class MeasureProcess(Process, DeviceMixin):
+    """Long term measurement process, consisting of five stages:
+
+    - reset and setup instruments
+    - ramp up to end voltage
+    - ramp down to bias voltage
+    - long term It measurement
+    - ramp down to zero voltage
+
+    If any of the first four stages fails, a ramp down will be executed.
+    """
 
     ivReading = QtCore.pyqtSignal(object)
     """Emitted when IV reading available, contains reading data."""
@@ -99,8 +116,8 @@ class MeasProcess(Process, DeviceMixin):
         super().__init__(*args, **kwargs)
         self.setCurrentVoltage(0.0)
         self.setTotalCurrent(0.0)
-        self.setTemperature(0.0)
-        self.setHumidity(0.0)
+        self.setTemperature(float('nan'))
+        self.setHumidity(float('nan'))
         self.setProgram(0)
 
     def sensors(self):
@@ -239,21 +256,25 @@ class MeasProcess(Process, DeviceMixin):
         multi.init()
         self.sleep(.500)
 
-        # read buffer
-        results = multi.fetch()
-        channels = []
-        for index, sensor in enumerate(self.sensors()):
-            R = sensor.resistivity # ohm, from calibration measurement array
-            U = results[index].get('VDC')
-            # Calculate sensor current
-            I = U / R
-            if I > self.singleCompliance():
-                sensor.status = sensor.State.COMPL_ERR
-                # TODO switch relay off
-            channels.append(dict(index=index, I=I, U=U, R=R))
+        # read buffer to iterator
+        results = iter(multi.fetch())
+
+        channels = {}
+        for sensor in self.sensors():
+            if sensor.enabled:
+                R = sensor.resistivity # ohm, from calibration measurement array
+                U = next(results).get('VDC') # pull result
+                # Calculate sensor current
+                I = U / R
+                if I > self.singleCompliance():
+                    sensor.status = sensor.State.COMPL_ERR
+                    # TODO switch relay off
+                channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R)
         return dict(time=self.time(), channels=channels, I=totalCurrent, U=self.currentVoltage())
 
     def setup(self, smu, multi):
+        """Setup SMU and Multimeter instruments."""
+
         self.showMessage("Clear buffers")
         self.setStartTime(self.time())
 
@@ -278,14 +299,15 @@ class MeasProcess(Process, DeviceMixin):
         # set trigger source immediately
         multi.resource().write(':TRIG:SOUR IMM')
 
-        # set channels to scan
+        # set channels to scan (up to max 10)
         count = len(self.sensors())
-        if count > 10:
-            offset = count + 120
-            multi.resource().write(':ROUTE:SCAN (@111:120,131:{})'.format(offset))
-        else:
-            offset = count + 100
-            multi.resource().write('ROUTE:SCAN (@101:{})'.format(offset))
+        channels = []
+        offset = 100
+        for sensor in self.sensors():
+            if sensor.enabled:
+                channels.append(format(offset + sensor.index))
+        # ROUTE:SCAN (@101,102,103...)
+        multi.resource().write('ROUTE:SCAN (@{})'.format(','.join(channels)))
 
         multi.resource().write(':TRIG:COUN 1')
         multi.resource().write(':SAMP:COUN {}'.format(count))
@@ -325,20 +347,21 @@ class MeasProcess(Process, DeviceMixin):
         self.showMessage("Done")
 
     def rampUp(self, smu, multi):
+        """Ramp up SMU voltage to end voltage."""
         self.showMessage("Ramping up")
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
         self.ivStarted.emit()
         with contextlib.ExitStack() as stack:
-            writers = []
+            writers = {}
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
                     timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
                     filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
-                    writer = IVWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
-                    writers.append(writer)
+                    writer = Writer(stack.enter_context(f))
+                    writer.writeHeader(sensor, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
+                    writers[sensor.index] = writer
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
                 if not self.stopRequested():
@@ -351,8 +374,16 @@ class MeasProcess(Process, DeviceMixin):
                     logging.info("scan reading: %s", reading)
                     self.ivReading.emit(reading)
                     self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
-                    for i, writer in enumerate(writers):
-                        writer.writeRow(reading.get('U'), reading.get('channels')[i].get('I'))
+                    for sensor in self.sensors():
+                        if sensor.enabled:
+                            writers[sensor.index].writeRow(
+                                timestamp=reading.get('time'),
+                                voltage=reading.get('U'),
+                                current=reading.get('channels')[sensor.index].get('I'),
+                                temperature=self.temperature(),
+                                humidity=self.humidity(),
+                                program=self.program()
+                            )
                 else:
                     raise StopRequest()
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
@@ -360,7 +391,7 @@ class MeasProcess(Process, DeviceMixin):
         return True
 
     def rampBias(self, smu, multi):
-        step = 5.00
+        """Ramp down SMU voltage to bias voltage."""
         startVoltage = self.currentVoltage() - self.biasVoltage()
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping to bias")
@@ -381,6 +412,7 @@ class MeasProcess(Process, DeviceMixin):
         self.showMessage("Done")
 
     def longterm(self, smu, multi):
+        """Run long term measurement."""
         self.showMessage("Measuring...")
         self.itStarted.emit()
         timeBegin = self.time()
@@ -390,16 +422,16 @@ class MeasProcess(Process, DeviceMixin):
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
         with contextlib.ExitStack() as stack:
-            writers = []
+            writers = {}
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
                     timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
                     filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
                     f = open(filename, 'w', newline='')
-                    writer = ItWriter(stack.enter_context(f))
-                    writer.writeHeader(name, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
-                    writers.append(writer)
+                    writer = Writer(stack.enter_context(f))
+                    writer.writeHeader(sensor, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
+                    writers[sensor.index] = writer
             while not self.stopRequested():
                 self.showMessage("Measuring...")
                 currentTime = self.time()
@@ -411,8 +443,16 @@ class MeasProcess(Process, DeviceMixin):
                 logging.info("scan reading: %s", reading)
                 self.itReading.emit(reading)
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
-                for i, writer in enumerate(writers):
-                    writer.writeRow(reading.get('time'), reading.get('channels')[i].get('I'), self.temperature(), self.humidity(), self.program())
+                for sensor in self.sensors():
+                    if sensor.enabled:
+                        writers[sensor.index].writeRow(
+                            timestamp=reading.get('time'),
+                            voltage=reading.get('U'),
+                            current=reading.get('channels')[sensor.index].get('I'),
+                            temperature=self.temperature(),
+                            humidity=self.humidity(),
+                            program=self.program()
+                        )
                 # Wait...
                 interval = self.itInterval()
                 while interval > 0:
@@ -425,8 +465,8 @@ class MeasProcess(Process, DeviceMixin):
         self.showMessage("Done")
 
     def rampDown(self, smu, multi):
+        """Ramp down SMU voltage to zero."""
         zeroVoltage = 0.0
-        step = 10.0
         startVoltage = self.currentVoltage()
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping down")
@@ -443,6 +483,7 @@ class MeasProcess(Process, DeviceMixin):
         self.showMessage("Done")
 
     def run(self):
+        # Open connection to instruments
         with self.devices().get('smu') as smu, \
              self.devices().get('multi') as multi:
             try:
