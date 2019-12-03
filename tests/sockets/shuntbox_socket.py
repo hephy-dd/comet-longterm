@@ -1,4 +1,4 @@
-"""Keithley 2700 simulation on TCP socket."""
+"""HEPHY ShuntBox simulation on TCP socket."""
 
 import socketserver
 import random, time
@@ -6,9 +6,9 @@ import datetime
 import argparse
 import re
 
-class K2700Handler(socketserver.BaseRequestHandler):
+class ShuntBoxHandler(socketserver.BaseRequestHandler):
 
-    write_termination = '\r'
+    write_termination = '\n'
 
     channels = 10
 
@@ -30,29 +30,28 @@ class K2700Handler(socketserver.BaseRequestHandler):
             data = self.recv(1024).strip()
 
             if re.match(r'\*IDN\?', data):
-                self.send("Keithley 2700 Emulator, Spanish Inquisition Inc.")
+                self.send("HEPHY ShuntBox Emulator, Spanish Inquisition Inc.")
 
-            elif re.match(r'\:?READ\?', data):
-                self.send(",".join(["0.000024"]*10))
-
-            elif re.match(r'\:?FETC[h]?\?', data):
+            elif re.match(r'GET:TEMP ALL', data):
                 values = []
                 for i in range(self.channels):
-                    vdc = random.uniform(.00025,.001)
-                    values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
-                time.sleep(random.uniform(.5, 1.0)) # rev B10 ;)
+                    temp = random.uniform(22.0, 26.0)
+                    values.append("{:.1f}".format(temp))
                 self.send(",".join(values))
+
+            elif re.match(r'GET:TEMP \d+', data):
+                self.send(format(random.uniform(22.0, 26.0), '.1f'))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
-    parser.add_argument('--port', default=10001, type=int)
+    parser.add_argument('--port', default=10003, type=int)
     args = parser.parse_args()
 
-    print("Keithley 2700 simulation...")
+    print("ShuntBox simulation...")
     print("serving on port", args.port)
 
-    server = socketserver.ThreadingTCPServer((args.host, args.port), K2700Handler)
+    server = socketserver.ThreadingTCPServer((args.host, args.port), ShuntBoxHandler)
 
     try:
         server.serve_forever()
@@ -60,7 +59,7 @@ def main():
         pass
     server.server_close()
 
-    print("K2410 simulation stopped.")
+    print("ShuntBox simulation stopped.")
 
 if __name__ == "__main__":
     main()
