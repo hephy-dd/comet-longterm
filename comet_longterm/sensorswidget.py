@@ -26,6 +26,20 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.resizeColumnsToContents()
         self.ui.tableView.resizeRowsToContents()
         self.ui.tableView.setColumnWidth(0, 200)
+        self.verticalResizeTableView()
+
+    def verticalResizeTableView(self):
+        """Resize table view to vertical content height."""
+        rowTotalHeight = 0
+        count = self.ui.tableView.verticalHeader().count()
+        for i in range(count):
+            if not self.ui.tableView.verticalHeader().isSectionHidden(i):
+                rowTotalHeight += self.ui.tableView.verticalHeader().sectionSize(i)
+        if not self.ui.tableView.horizontalScrollBar().isHidden():
+            rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
+        if not self.ui.tableView.horizontalHeader().isHidden():
+            rowTotalHeight += self.ui.tableView.horizontalHeader().height()
+        self.ui.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self):
         self.model.dataChanged.emit(
