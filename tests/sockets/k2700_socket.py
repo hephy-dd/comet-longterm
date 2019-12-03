@@ -10,6 +10,8 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
     write_termination = '\r'
 
+    channels = 3
+
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
@@ -34,7 +36,11 @@ class K2700Handler(socketserver.BaseRequestHandler):
                 self.send(",".join(["0.000024"]*10))
 
             elif re.match(r'\:?FETC[h]?\?', data):
-                self.send(",".join(["{}VDC,+0.000SECS,+0.0000RDNG#".format(random.uniform(.003,.008)) for i in range(10)]))
+                values = []
+                for i in range(self.channels):
+                    vdc = random.uniform(.00025,.001)
+                    values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
+                self.send(",".join(values))
 
 def main():
     parser = argparse.ArgumentParser()
