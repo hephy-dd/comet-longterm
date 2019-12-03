@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>320</height>
+    <height>334</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -70,7 +70,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
        <spacer name="controlVerticalSpacer">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -84,9 +84,31 @@
        </spacer>
       </item>
       <item row="2" column="0">
-       <widget class="QCheckBox" name="useCtsCheckBox">
+       <widget class="QCheckBox" name="ctsCheckBox">
+        <property name="toolTip">
+         <string>Use CTS climate chamber for measurements.</string>
+        </property>
         <property name="text">
-         <string>Use CTS</string>
+         <string>&amp;CTS</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="shuntBoxCheckBox">
+        <property name="toolTip">
+         <string>Use HEPHY shunt box in measurements.</string>
+        </property>
+        <property name="text">
+         <string>Shunt &amp;Box</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -448,10 +470,10 @@
       <item row="6" column="0">
        <widget class="QCheckBox" name="continueInComplianceCheckBox">
         <property name="toolTip">
-         <string>Continue measurement in compliance.</string>
+         <string>Continue measurement when in compliance.</string>
         </property>
         <property name="text">
-         <string>&amp;Continue</string>
+         <string>&amp;Continue i. C.</string>
         </property>
        </widget>
       </item>

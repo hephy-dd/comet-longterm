@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='comet-longterm',
-    version='0.2.1',
+    version='0.3.0',
     author="Bernhard Arnold",
     author_email="bernhard.arnold@oeaw.ac.at",
     packages=find_packages(exclude=['tests']),
@@ -10,7 +10,7 @@ setup(
         'comet @ https://github.com/hephy-dd/comet/archive/0.2.0.zip#egg=comet-0.2.0',
     ],
     package_data={
-        '': [
+        'comet_longterm': [
             '*.ui',
         ],
     },

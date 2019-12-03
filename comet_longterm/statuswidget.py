@@ -32,9 +32,9 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def setProgram(self, program):
         if program == 0:
-            self.ui.programLineEdit.setText(self.tr("halted"))
+            self.ui.statusLineEdit.setText(self.tr("Halted (0)"))
         else:
-            self.ui.programLineEdit.setText(self.tr("P{}").format(program))
+            self.ui.statusLineEdit.setText(self.tr("Running ({})").format(program))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])

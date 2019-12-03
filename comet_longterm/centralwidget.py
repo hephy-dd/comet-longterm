@@ -12,8 +12,9 @@ from comet import ProcessMixin
 
 from comet.devices.cts import ITC
 from comet.devices.keithley import K2410, K2700
+from comet.devices.hephy import ShuntBox
 
-from .processes import EnvironProcess, MeasProcess
+from .processes import EnvironProcess, MeasureProcess
 from .charts import IVChart, ItChart, CtsChart, Pt100Chart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
@@ -27,7 +28,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         self.parent().closeRequest.connect(self.onClose)
         self.controlsWidget().started.connect(self.onStart)
-        self.controlsWidget().ui.useCtsCheckBox.toggled.connect(self.onEnableEnviron)
+        self.controlsWidget().ui.ctsCheckBox.toggled.connect(self.onEnableEnviron)
+        self.controlsWidget().ui.shuntBoxCheckBox.toggled.connect(self.onEnableShuntBox)
         self.statusWidget().setVoltage(None)
         self.statusWidget().setCurrent(None)
         # TODO implement measurement timer
@@ -41,9 +43,13 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     def loadDevices(self):
         resources = QtCore.QSettings().value('resources', {})
+        self.devices().add('shunt', ShuntBox(resources.get('shunt', 'TCPIP::10.0.0.2::10001::SOCKET')))
         self.devices().add('smu', K2410(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET')))
         self.devices().add('multi', K2700(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET')))
         self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
+        # Fix read termination
+        self.devices().get('shunt').options['read_termination'] = '\n'
+
 
     def createCharts(self):
         self.ivChart = IVChart(self.sensors())
@@ -68,10 +74,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         environ.reading.connect(self.onEnvironReading)
         environ.failed.connect(self.onEnvironError)
         self.processes().add('environ', environ)
-        self.onEnableEnviron(self.controlsWidget().ui.useCtsCheckBox.isChecked())
+        self.onEnableEnviron(self.controlsWidget().isEnvironEnabled())
+        self.onEnableShuntBox(self.controlsWidget().isShuntBoxEnabled())
 
         # Measurement process
-        meas = MeasProcess(self)
+        meas = MeasureProcess(self)
 
         meas.ivStarted.connect(self.onIvStarted)
         meas.itStarted.connect(self.onItStarted)
@@ -81,6 +88,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         meas.finished.connect(self.onHalted)
 
         self.controlsWidget().stopRequest.connect(meas.stop)
+        self.controlsWidget().useShuntBoxChanged.connect(meas.setUseShuntBox)
         self.controlsWidget().ivEndVoltageChanged.connect(meas.setIvEndVoltage)
         self.controlsWidget().ivStepChanged.connect(meas.setIvStep)
         self.controlsWidget().ivIntervalChanged.connect(meas.setIvInterval)
@@ -115,13 +123,20 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         """Enable environment process."""
         # Toggle environ tab
         index = self.ui.bottomTabWidget.indexOf(self.ui.ctsTab)
-        self.ui.bottomTabWidget.setTabEnabled(index, enabled);
+        self.ui.bottomTabWidget.setTabEnabled(index, enabled)
+        self.statusWidget().ui.ctsGroupBox.setEnabled(enabled)
         # Toggle environ process
         environ = self.processes().get('environ')
         environ.stop()
         environ.join()
         if enabled:
             environ.start()
+
+    @QtCore.pyqtSlot(bool)
+    def onEnableShuntBox(self, enabled):
+        """Enable shunt box."""
+        # Toggle pt100 tab
+
 
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
@@ -138,11 +153,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensorsWidget().dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
-    def onEnvironError(self, error):
+    def onEnvironError(self, exception):
         environ = self.processes().get('environ')
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
-            self.parent().showException(error)
+            self.parent().showException(exception)
 
     @QtCore.pyqtSlot()
     def onIvStarted(self):
@@ -155,17 +170,20 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
-        for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('channels')[i].get('I')
+        for sensor in self.sensors():
+            if sensor.enabled:
+                sensor.current = reading.get('channels')[sensor.index].get('I')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
-        for i, sensor in enumerate(self.sensors()):
-            sensor.current = reading.get('channels')[i].get('I')
+        for sensor in self.sensors():
+            if sensor.enabled:
+                sensor.current = reading.get('channels')[sensor.index].get('I')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
+        self.pt100Chart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):
@@ -183,6 +201,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ivChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
         self.itChart.load(self.sensors())
         self.itChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
+        self.pt100Chart.load(self.sensors())
+        self.itChart.axisY.setRange(0, 100)
 
         # Setup output location
         path = os.path.normpath(self.controlsWidget().path())
@@ -193,6 +213,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         meas = self.processes().get('meas')
         meas.setSensors(self.sensors())
+        meas.setUseShuntBox(self.controlsWidget().isShuntBoxEnabled())
         meas.setIvEndVoltage(self.controlsWidget().ivEndVoltage())
         meas.setIvStep(self.controlsWidget().ivStep())
         meas.setIvInterval(self.controlsWidget().ivInterval())

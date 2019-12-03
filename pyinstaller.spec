@@ -1,18 +1,22 @@
-# comet-longterm
-
 import os
 import comet
+import comet_longterm
 
 # Application name
 name = 'comet-longterm'
 
+# Application organization
+organization = 'HEPHY'
+
 # Application version
-version = '0.2.0'
+version = comet_longterm.__version__
 
-# Path to comet package
-comet_path = os.path.join(os.path.dirname(comet.__file__))
+# Application license
+license = 'GPLv3'
 
-block_cipher = None
+# Paths
+comet_root = os.path.join(os.path.dirname(comet.__file__))
+comet_icon = os.path.join(comet_root, 'assets', 'icons', 'comet.ico')
 
 # Windows version info template
 version_info = """
@@ -32,7 +36,7 @@ VSVersionInfo(
             [
             StringTable(
                 u'000004b0',
-                [StringStruct(u'CompanyName', u'HEPHY'),
+                [StringStruct(u'CompanyName', u'{organization}'),
                 StringStruct(u'FileDescription', u'{name}'),
                 StringStruct(u'FileVersion', u'{version[0]}.{version[1]}.{version[2]}.0'),
                 StringStruct(u'InternalName', u'{name}'),
@@ -47,30 +51,37 @@ VSVersionInfo(
 )
 """
 
-# Pyinstaller wrapper script
-with open(name+'.pyw', 'w') as f:
-    f.write('from comet_longterm import main\n')
-    f.write('import sys\n')
-    f.write('if __name__ == "__main__":\n')
-    f.write('    sys.exit(main.main())\n')
+# Pyinstaller entry point template
+entry_point = """
+import sys
+from comet_longterm import main
+if __name__ == '__main__':
+    sys.exit(main.main())
+"""
 
-# Windows version info file
+# Create pyinstaller entry point
+with open('entry_point.pyw', 'w') as f:
+    f.write(entry_point)
+
+# Create windows version info
 with open('version_info.txt', 'w') as f:
     f.write(version_info.format(
-         name=name,
-         version=version.split('.'),
-         license='GPLv3',
+        name=name,
+        organization=organization
+        version=version.split('.'),
+        license=license
     ))
 
-a = Analysis([name+'.pyw'],
+a = Analysis(['entry_point.pyw'],
     pathex=[
       os.getcwd()
     ],
     binaries=[],
     datas=[
-        (os.path.join(comet_path, 'widgets', '*.ui'), os.path.join('comet', 'widgets')),
-        (os.path.join(comet_path, 'assets', 'icons', '*.svg'), os.path.join('comet', 'assets', 'icons')),
-        (os.path.join('comet_longterm', '*.ui'), os.path.join('comet_longterm'))
+        (os.path.join(comet_root, 'widgets', '*.ui'), os.path.join('comet', 'widgets')),
+        (os.path.join(comet_root, 'assets', 'icons', '*.svg'), os.path.join('comet', 'assets', 'icons')),
+        (os.path.join(comet_root, 'assets', 'icons', '*.ico'), os.path.join('comet', 'assets', 'icons')),
+        (os.path.join('comet_longterm', '*.ui'), 'comet_longterm')
     ],
     hiddenimports=[
         'pyvisa-sim',
@@ -79,20 +90,20 @@ a = Analysis([name+'.pyw'],
         'comet_longterm.controlswidget',
         'comet_longterm.sensorswidget',
         'comet_longterm.statuswidget',
-        'comet_longterm.calibrationdialog',
+        'comet_longterm.calibrationdialog'
     ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
-    cipher=block_cipher,
+    cipher=None,
     noarchive=False
 )
 pyz = PYZ(
     a.pure,
     a.zipped_data,
-    cipher=block_cipher
+    cipher=None
 )
 exe = EXE(
     pyz,
@@ -110,5 +121,5 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
-    icon=os.path.join(comet_path, 'assets', 'icons', 'comet.ico'),
+    icon=comet_icon,
 )
