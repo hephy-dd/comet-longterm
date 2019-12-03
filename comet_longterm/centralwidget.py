@@ -115,7 +115,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         """Enable environment process."""
         # Toggle environ tab
         index = self.ui.bottomTabWidget.indexOf(self.ui.ctsTab)
-        self.ui.bottomTabWidget.setTabEnabled(index, enabled);
+        self.ui.bottomTabWidget.setTabEnabled(index, enabled)
+        self.statusWidget().ui.ctsGroupBox.setEnabled(enabled)
         # Toggle environ process
         environ = self.processes().get('environ')
         environ.stop()
