@@ -34,7 +34,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
                 self.send(",".join(["0.000024"]*10))
 
             elif re.match(r'\:?FETC[h]?\?', data):
-                self.send(",".join(["-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#"]*10))
+                self.send(",".join(["{}VDC,+0.000SECS,+0.0000RDNG#".format(random.uniform(.003,.008)) for i in range(10)]))
 
 def main():
     parser = argparse.ArgumentParser()
