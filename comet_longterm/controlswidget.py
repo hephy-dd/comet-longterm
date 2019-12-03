@@ -9,6 +9,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
 
+    useShuntBoxChanged = QtCore.pyqtSignal(bool)
     ivEndVoltageChanged = QtCore.pyqtSignal(float)
     ivStepChanged = QtCore.pyqtSignal(float)
     ivIntervalChanged = QtCore.pyqtSignal(float)
@@ -25,6 +26,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.loadSettings()
 
         # Setup signals
+        self.ui.shuntBoxCheckBox.toggled.connect(lambda: self.useShuntBoxChanged.emit(self.isShuntBoxEnabled()))
         self.ui.ivEndVoltageSpinBox.valueChanged.connect(lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage()))
         self.ui.ivStepSpinBox.valueChanged.connect(lambda: self.ivStepChanged.emit(self.ivStep()))
         self.ui.ivIntervalSpinBox.valueChanged.connect(lambda: self.ivIntervalChanged.emit(self.ivInterval()))
@@ -37,11 +39,19 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def isEnvironEnabled(self):
         """Returns True if use CTS is checked."""
-        return self.ui.useCtsCheckBox.isChecked()
+        return self.ui.ctsCheckBox.isChecked()
 
     def setEnvironEnabled(self, value):
-        """Set IV ramp up end voltage in volts."""
-        self.ui.useCtsCheckBox.setChecked(value)
+        """Set use CTS enabled."""
+        self.ui.ctsCheckBox.setChecked(value)
+
+    def isShuntBoxEnabled(self):
+        """Returns True if use shunt box is checked."""
+        return self.ui.shuntBoxCheckBox.isChecked()
+
+    def setShuntBoxEnabled(self, value):
+        """Set shunt box enabled."""
+        self.ui.shuntBoxCheckBox.setChecked(value)
 
     def ivEndVoltage(self):
         """Returns IV ramp up end voltage in volts."""
@@ -137,6 +147,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         if home != path:
             self.ui.pathComboBox.addItem(home)
         self.setEnvironEnabled(settings.value('useEnviron', True, type=bool))
+        self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
         self.setIvInterval(settings.value('ivInterval', 10.0, type=float))
@@ -150,6 +161,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     def storeSettings(self):
         settings = QtCore.QSettings()
         settings.setValue('useEnviron', self.isEnvironEnabled())
+        settings.setValue('useShuntBox', self.isShuntBoxEnabled())
         settings.setValue('ivEndVoltage', self.ivEndVoltage())
         settings.setValue('ivStep', self.ivStep())
         settings.setValue('ivInterval', self.ivInterval())
@@ -166,7 +178,8 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.startPushButton.setEnabled(False)
         self.ui.stopPushButton.setChecked(False)
         self.ui.stopPushButton.setEnabled(True)
-        self.ui.useCtsCheckBox.setEnabled(False)
+        self.ui.ctsCheckBox.setEnabled(False)
+        self.ui.shuntBoxCheckBox.setEnabled(False)
         self.ui.ivEndVoltageSpinBox.setEnabled(False)
         self.ui.ivStepSpinBox.setEnabled(False)
         self.ui.biasVoltageSpinBox.setEnabled(False)
@@ -186,7 +199,8 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.startPushButton.setEnabled(True)
         self.ui.stopPushButton.setChecked(True)
         self.ui.stopPushButton.setEnabled(False)
-        self.ui.useCtsCheckBox.setEnabled(True)
+        self.ui.ctsCheckBox.setEnabled(True)
+        self.ui.shuntBoxCheckBox.setEnabled(True)
         self.ui.ivEndVoltageSpinBox.setEnabled(True)
         self.ui.ivStepSpinBox.setEnabled(True)
         self.ui.biasVoltageSpinBox.setEnabled(True)

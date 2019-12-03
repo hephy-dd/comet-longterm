@@ -197,3 +197,18 @@ class Pt100Chart(Chart):
             series.attachAxis(self.axisX)
             series.attachAxis(self.axisY)
             self.pt100Series.append(series)
+
+    def load(self, sensors):
+        for i, sensor in enumerate(sensors):
+            series = self.pt100Series[i]
+            series.clear()
+            series.load(sensor)
+
+    def append(self, reading):
+        time = reading.get('time') * 1000
+        for channel in reading.get('channels').values():
+            series = self.pt100Series[channel.get('index') - 1]
+            series.append(time, channel.get('temp')) #degC
+        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
+        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
+        self.axisX.setRange(minimum, maximum)

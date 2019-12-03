@@ -1,7 +1,7 @@
 import logging
 import csv
 import contextlib
-import datetime
+import time, datetime
 import os
 import traceback
 
@@ -11,6 +11,21 @@ import pyvisa
 
 from comet import Process, StopRequest, Range
 from comet import DeviceMixin
+
+def retry(callback, count=3, delay=.250):
+    """Retry callback on failure, returns result of callback on success, raises
+    last callback exception after failing `count` times. Delay retries using
+    `delay` in seconds.
+
+    >>> retry(device.read(), count=5, delay=.500)
+    """
+    for i in range(count):
+        time.sleep(delay)
+        try:
+            return callback()
+        except pyvisa.errors.Error:
+            logging.info("communication failed, retrying ({}/{})...".format(i + 1, count))
+    raise
 
 class Writer(object):
     """CSV file writer for IV and It measurements."""
@@ -29,15 +44,16 @@ class Writer(object):
             ["calibration [Ohm]: {}".format(calibration)],
             ["Voltage [V]: {}".format(voltage)],
             [],
-            ["timestamp [s]", "voltage [V]", "current [A]", "temperature [°C]", "humidity [%rH]", "program [Nr]"]
+            ["timestamp [s]", "voltage [V]", "current [A]", "pt100 [°C]", "temperature [°C]", "humidity [%rH]", "program [Nr]"]
         ])
         self.context.flush()
 
-    def writeRow(self, timestamp, voltage, current, temperature, humidity, program):
+    def writeRow(self, timestamp, voltage, current, pt100, temperature, humidity, program):
         self.writer.writerow([
             format(timestamp, '.3f'),
             format(voltage, 'E'),
             format(current, 'E'),
+            format(pt100, 'E'),
             format(temperature, 'E'),
             format(humidity, 'E'),
             format(program, 'd')
@@ -114,6 +130,7 @@ class MeasureProcess(Process, DeviceMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setUseShuntBox(True)
         self.setCurrentVoltage(0.0)
         self.setTotalCurrent(0.0)
         self.setTemperature(float('nan'))
@@ -143,6 +160,12 @@ class MeasureProcess(Process, DeviceMixin):
 
     def setTotalCurrent(self, value):
         self.__totalCurrent = value
+
+    def useShuntBox(self):
+        return self.__useShuntBox
+
+    def setUseShuntBox(self, value):
+        self.__useShuntBox = value
 
     def ivEndVoltage(self):
         return self.__ivEndVoltage
@@ -252,24 +275,34 @@ class MeasureProcess(Process, DeviceMixin):
             if not self.continueInCompliance():
                 raise ValueError("SMU in compliance ({} A)".format(totalCurrent))
 
-        # start measurement scan
-        multi.init()
-        self.sleep(.500)
+        # TODO read PT100
+        temperature = {}
+        if self.useShuntBox():
+            with self.devices().get('shunt') as shunt:
+                # TODO workaround for ShuntBox sending stray comma at end of string
+                # temperature = shunt.temperature()
+                values = [float(value) for value in shunt.resource().query('GET:TEMP ALL').strip().split(',') if value.strip()]
+                for index, value in enumerate(values):
+                    temperature[index + 1] = value
 
-        # read buffer to iterator
-        results = iter(multi.fetch())
+        # start measurement scan
+        multi.init() # INIT
+
+        # read buffer, auto retry on failure (slow instrument reading)
+        results = retry(lambda: multi.fetch(), count=5, delay=.500)
 
         channels = {}
         for sensor in self.sensors():
             if sensor.enabled:
                 R = sensor.resistivity # ohm, from calibration measurement array
-                U = next(results).get('VDC') # pull result
+                U = results.pop(0).get('VDC') # pop result
                 # Calculate sensor current
                 I = U / R
                 if I > self.singleCompliance():
                     sensor.status = sensor.State.COMPL_ERR
                     # TODO switch relay off
-                channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R)
+                temp = temperature.get(sensor.index - 1, float('nan'))
+                channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R, temp=temp)
         return dict(time=self.time(), channels=channels, I=totalCurrent, U=self.currentVoltage())
 
     def setup(self, smu, multi):
@@ -380,6 +413,7 @@ class MeasureProcess(Process, DeviceMixin):
                                 timestamp=reading.get('time'),
                                 voltage=reading.get('U'),
                                 current=reading.get('channels')[sensor.index].get('I'),
+                                pt100=reading.get('channels')[sensor.index].get('temp'),
                                 temperature=self.temperature(),
                                 humidity=self.humidity(),
                                 program=self.program()
@@ -449,6 +483,7 @@ class MeasureProcess(Process, DeviceMixin):
                             timestamp=reading.get('time'),
                             voltage=reading.get('U'),
                             current=reading.get('channels')[sensor.index].get('I'),
+                            pt100=reading.get('channels')[sensor.index].get('temp'),
                             temperature=self.temperature(),
                             humidity=self.humidity(),
                             program=self.program()
