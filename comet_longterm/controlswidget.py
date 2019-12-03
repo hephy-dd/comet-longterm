@@ -141,7 +141,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     def storeSettings(self):
         settings = QtCore.QSettings()
         settings.setValue('ivEndVoltage', self.ivEndVoltage())
-        settings.setValue('inStep', self.ivStep())
+        settings.setValue('ivStep', self.ivStep())
         settings.setValue('ivInterval', self.ivInterval())
         settings.setValue('biasVoltage', self.biasVoltage())
         settings.setValue('totalCompliance', self.totalCompliance())
