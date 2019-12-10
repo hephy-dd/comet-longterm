@@ -173,6 +173,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get('channels')[sensor.index].get('I')
+                sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
 
@@ -181,6 +182,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get('channels')[sensor.index].get('I')
+                sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
         self.pt100Chart.append(reading)

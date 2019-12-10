@@ -1,4 +1,5 @@
 import logging
+import math
 
 from PyQt5 import QtCore, QtGui, QtChart
 
@@ -101,13 +102,18 @@ class ItChart(Chart):
             series.load(sensor)
 
     def append(self, reading):
-        time = reading.get('time') * 1000
+        ts = reading.get('time') * 1000
+        minimum = []
+        maximum = []
         for channel in reading.get('channels').values():
-            self.itSeries[channel.get('index') - 1].append(time, channel.get('I') * 1000 * 1000) # A to uA
-        series = self.itSeries[channel.get('index') - 1]
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
-        self.axisX.setRange(minimum, maximum)
+            series = self.itSeries[channel.get('index') - 1]
+            series.append(ts, channel.get('I') * 1000 * 1000) # A to uA
+            minimum.append(series.at(0).x())
+            maximum.append(series.at(series.count()-1).x())
+        if minimum and maximum:
+            minimum = QtCore.QDateTime.fromMSecsSinceEpoch(min(minimum))
+            maximum = QtCore.QDateTime.fromMSecsSinceEpoch(max(maximum))
+            self.axisX.setRange(minimum, maximum)
 
 class CtsChart(Chart):
 
@@ -205,10 +211,18 @@ class Pt100Chart(Chart):
             series.load(sensor)
 
     def append(self, reading):
-        time = reading.get('time') * 1000
+        ts = reading.get('time') * 1000
+        minimum = []
+        maximum = []
         for channel in reading.get('channels').values():
             series = self.pt100Series[channel.get('index') - 1]
-            series.append(time, channel.get('temp')) #degC
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
-        self.axisX.setRange(minimum, maximum)
+            if channel.get('temp') is not None:
+                # watch out!
+                if not math.isnan(channel.get('temp')):
+                    series.append(ts, channel.get('temp')) #degC
+                    minimum.append(series.at(0).x())
+                    maximum.append(series.at(series.count()-1).x())
+        if minimum and maximum:
+            minimum = QtCore.QDateTime.fromMSecsSinceEpoch(min(minimum))
+            maximum = QtCore.QDateTime.fromMSecsSinceEpoch(max(maximum))
+            self.axisX.setRange(minimum, maximum)

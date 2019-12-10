@@ -164,7 +164,7 @@ class Sensor(object):
 
     class State:
         OK = "OK"
-        COMPL_ERR = "COMPLIANCE"
+        COMPL_ERR = "COMPL"
 
     def __init__(self, index):
         self.index = index
