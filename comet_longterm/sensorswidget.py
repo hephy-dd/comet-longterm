@@ -25,7 +25,8 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.setModel(self.model)
         self.ui.tableView.resizeColumnsToContents()
         self.ui.tableView.resizeRowsToContents()
-        self.ui.tableView.setColumnWidth(0, 200)
+        self.ui.tableView.setColumnWidth(0, 196)
+        self.ui.tableView.setColumnWidth(1, 64)
         self.verticalResizeTableView()
 
     def verticalResizeTableView(self):
@@ -44,7 +45,7 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
     def dataChanged(self):
         self.model.dataChanged.emit(
             self.model.createIndex(0, 1),
-            self.model.createIndex(10, 3),
+            self.model.createIndex(len(self.sensors), 3),
         )
 
 class SensorsModel(QtCore.QAbstractTableModel):
@@ -113,6 +114,9 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 if sensor.status == sensor.State.OK:
                     return QtGui.QBrush(QtCore.Qt.darkGreen)
                 return QtGui.QBrush(QtCore.Qt.darkRed)
+            else:
+                if not sensor.enabled:
+                    return QtGui.QBrush(QtCore.Qt.darkGray)
 
         elif role == QtCore.Qt.CheckStateRole:
             if index.column() == self.Column.Name:
