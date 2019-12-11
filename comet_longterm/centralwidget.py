@@ -162,11 +162,12 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     @QtCore.pyqtSlot()
     def onIvStarted(self):
         self.ui.topTabWidget.setCurrentIndex(0)
+        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to PT100
 
     @QtCore.pyqtSlot()
     def onItStarted(self):
         self.ui.topTabWidget.setCurrentIndex(1)
-        self.ui.bottomTabWidget.setCurrentIndex(1)
+        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to PT100
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
@@ -176,6 +177,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
+        self.pt100Chart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):

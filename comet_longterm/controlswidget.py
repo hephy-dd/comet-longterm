@@ -28,6 +28,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         # Setup signals
         self.ui.shuntBoxCheckBox.toggled.connect(lambda: self.useShuntBoxChanged.emit(self.isShuntBoxEnabled()))
         self.ui.ivEndVoltageSpinBox.valueChanged.connect(lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage()))
+        self.ui.ivEndVoltageSpinBox.editingFinished.connect(self.onIvEndVoltageChanged)
         self.ui.ivStepSpinBox.valueChanged.connect(lambda: self.ivStepChanged.emit(self.ivStep()))
         self.ui.ivIntervalSpinBox.valueChanged.connect(lambda: self.ivIntervalChanged.emit(self.ivInterval()))
         self.ui.biasVoltageSpinBox.valueChanged.connect(lambda: self.biasVoltageChanged.emit(self.biasVoltage()))
@@ -36,6 +37,13 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.continueInComplianceCheckBox.toggled.connect(lambda: self.continueInComplianceChanged.emit(self.continueInCompliance()))
         self.ui.itDurationSpinBox.valueChanged.connect(lambda: self.itDurationChanged.emit(self.itDuration()))
         self.ui.itIntervalSpinBox.valueChanged.connect(lambda: self.itIntervalChanged.emit(self.itInterval()))
+        # Syncronize limits
+        self.onIvEndVoltageChanged()
+
+    def onIvEndVoltageChanged(self):
+        """Syncronize bias voltage and step with end voltage limit."""
+        self.ui.biasVoltageSpinBox.setMaximum(self.ivEndVoltage())
+        self.ui.ivStepSpinBox.setMaximum(self.ivEndVoltage())
 
     def isEnvironEnabled(self):
         """Returns True if use CTS is checked."""
@@ -154,7 +162,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))
         self.setTotalCompliance(settings.value('totalCompliance', 80.0 / 1000 / 1000, type=float))
         self.setSingleCompliance(settings.value('singleCompliance', 25.0 / 1000 / 1000, type=float))
-        self.setContinueInCompliance(settings.value('continueInCompliance', False, type=bool))
+        self.setContinueInCompliance(settings.value('continueInCompliance', True, type=bool))
         self.setItDuration(settings.value('itDuration', 0.0, type=float))
         self.setItInterval(settings.value('itInterval', 60.0, type=float))
 

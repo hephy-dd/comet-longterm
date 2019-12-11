@@ -23,9 +23,9 @@ def retry(callback, count=3, delay=.250):
         time.sleep(delay)
         try:
             return callback()
-        except pyvisa.errors.Error:
+        except pyvisa.errors.Error as e:
             logging.info("communication failed, retrying ({}/{})...".format(i + 1, count))
-    raise
+    raise e
 
 class Writer(object):
     """CSV file writer for IV and It measurements."""
@@ -272,7 +272,7 @@ class MeasureProcess(Process, DeviceMixin):
         # check SMU compliance
         totalCurrent = smu.read()[1]
         logging.info('SMU current (A): %s', totalCurrent)
-        if totalCurrent > self.totalCompliance():
+        if abs(totalCurrent) > self.totalCompliance():
             if not self.continueInCompliance():
                 raise ValueError("SMU in compliance ({} A)".format(totalCurrent))
 
@@ -320,18 +320,20 @@ class MeasureProcess(Process, DeviceMixin):
         self.showProgress(0, 3)
 
         # consider your fellow workers
-        smu.resource().write('BEEP OFF')
-        multi.resource().write('BEEP OFF')
+        smu.resource().write('SYST:BEEP:STAT 0')
+        multi.resource().write('SYST:BEEP:STAT 0')
 
         self.reset(smu, multi)
 
         logging.info("Multimeter: %s", multi.identification())
         logging.info("Source Unit: %s", smu.identification())
+        with self.devices().get('shunt') as shunt:
+            logging.info("HEPHY ShuntBox: %s", shunt.identification())
         self.sleep(1.0)
 
         self.showMessage("Setup multimeter")
         self.showProgress(1, 3)
-        multi.resource().write(':FUNC "VOLT:DC", (@101:140)')
+        multi.resource().write(':FUNC "VOLT:DC", (@101:110)')
         # andi start
         self.sleep(.100)
 
@@ -351,6 +353,8 @@ class MeasureProcess(Process, DeviceMixin):
         for sensor in self.sensors():
             if sensor.enabled:
                 channels.append(format(offset + sensor.index))
+        if not channels:
+            raise RuntimeError("No sensor channels selected!")
         # ROUTE:SCAN (@101,102,103...)
         multi.resource().write('ROUTE:SCAN (@{})'.format(','.join(channels)))
 
@@ -388,6 +392,7 @@ class MeasureProcess(Process, DeviceMixin):
         # switch output ON
         smu.enableOutput(True)
 
+        # Enable active shunt box channels
         with self.devices().get('shunt') as shunt:
             for sensor in self.sensors():
                 shunt.enable(sensor.index, sensor.enabled)
@@ -532,6 +537,7 @@ class MeasureProcess(Process, DeviceMixin):
             self.sleep(.25) # value from labview
             self.smuReading.emit(dict(U=self.currentVoltage(), I=None))
 
+        # Diable all shunt box channels
         with self.devices().get('shunt') as shunt:
             shunt.enableAll(False)
 
