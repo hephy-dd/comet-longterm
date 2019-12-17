@@ -15,7 +15,7 @@ from comet.devices.keithley import K2410, K2700
 from comet.devices.hephy import ShuntBox
 
 from .processes import EnvironProcess, MeasureProcess
-from .charts import IVChart, ItChart, CtsChart, Pt100Chart
+from .charts import IVChartProxy, ItChartProxy, CtsChartProxy, Pt100ChartProxy
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -52,21 +52,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
 
     def createCharts(self):
-        self.ivChart = IVChart(self.sensors())
-        self.ui.ivChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
-        self.ui.ivChartView.setChart(self.ivChart)
-
-        self.itChart = ItChart(self.sensors())
-        self.ui.itChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
-        self.ui.itChartView.setChart(self.itChart)
-
-        self.ctsChart = CtsChart()
-        self.ui.ctsChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
-        self.ui.ctsChartView.setChart(self.ctsChart)
-
-        self.pt100Chart = Pt100Chart(self.sensors())
-        self.ui.pt100ChartView.setRubberBand(QtChart.QChartView.RectangleRubberBand)
-        self.ui.pt100ChartView.setChart(self.pt100Chart)
+        self.ivChart = IVChartProxy(self.ui.ivChartView.chart(), self.sensors())
+        self.itChart = ItChartProxy(self.ui.itChartView.chart(), self.sensors())
+        self.ctsChart = CtsChartProxy(self.ui.ctsChartView.chart())
+        self.pt100Chart = Pt100ChartProxy(self.ui.pt100ChartView.chart(), self.sensors())
 
     def createProcesses(self):
         # Environ process

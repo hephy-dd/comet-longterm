@@ -15,6 +15,28 @@ CalibratedResistors = (
 
 SensorCount = 10
 
+class HVDelegate(QtWidgets.QItemDelegate):
+
+    States = ["OFF", "ON"]
+
+    def createEditor(self, parent, option, index):
+        editor = QtWidgets.QComboBox(parent)
+        editor.addItems(self.States)
+        editor.currentIndexChanged.connect(self.currentIndexChanged)
+        return editor
+
+    def setEditorData(self, editor, index):
+        pos = self.States.index(index.data(QtCore.Qt.DisplayRole))
+        editor.setCurrentIndex(pos)
+
+    def setModelData(self, editor, model, index):
+        editorIndex = editor.currentIndex()
+        model.setData(index, bool(editorIndex))
+
+    @QtCore.pyqtSlot()
+    def currentIndexChanged(self):
+        self.commitData.emit(self.sender())
+
 class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
 
     def __init__(self, *args, **kwargs):
@@ -25,8 +47,10 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.setModel(self.model)
         self.ui.tableView.resizeColumnsToContents()
         self.ui.tableView.resizeRowsToContents()
-        self.ui.tableView.setColumnWidth(0, 196)
+        self.ui.tableView.setColumnWidth(0, 172)
         self.ui.tableView.setColumnWidth(1, 64)
+        self.ui.tableView.setColumnWidth(3, 96)
+        self.ui.tableView.setItemDelegateForColumn(2, HVDelegate())
         self.verticalResizeTableView()
 
     def verticalResizeTableView(self):
@@ -45,7 +69,7 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
     def dataChanged(self):
         self.model.dataChanged.emit(
             self.model.createIndex(0, 1),
-            self.model.createIndex(len(self.sensors), 3),
+            self.model.createIndex(len(self.sensors), 4),
         )
 
 class SensorsModel(QtCore.QAbstractTableModel):
@@ -53,17 +77,19 @@ class SensorsModel(QtCore.QAbstractTableModel):
     columns = (
         "Sensor",
         "Status",
-        "Current (uA)",
-        "Temp. (°C)",
-        "Calib. (Ohm)",
+        "HV",
+        "Current",
+        "Temp.",
+        "Calib.",
     )
 
     class Column:
         Name = 0
         State = 1
-        Current = 2
-        Temperature = 3
-        Resistivity = 4
+        HV = 2
+        Current = 3
+        Temperature = 4
+        Resistivity = 5
 
     def __init__(self, sensors, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,15 +121,18 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.State:
                 if sensor.enabled:
                     return sensor.status
+            elif index.column() == self.Column.HV:
+                if sensor.enabled:
+                    return "ON" if sensor.hv else "OFF"
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
                     if not sensor.current is None:
-                        return sensor.current * 1000 * 1000 # in uA
+                        return "{} uA".format(format(sensor.current * 1000 * 1000, '.3G')) # in uA
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
-                    return sensor.temperature
+                    return "{} °C".format(sensor.temperature)
             elif index.column() == self.Column.Resistivity:
-                return sensor.resistivity
+                return "{} Ohm".format(sensor.resistivity)
 
         elif role == QtCore.Qt.DecorationRole:
             if index.column() == self.Column.Name:
@@ -112,8 +141,12 @@ class SensorsModel(QtCore.QAbstractTableModel):
         elif role == QtCore.Qt.ForegroundRole:
             if index.column() == self.Column.State:
                 if sensor.status == sensor.State.OK:
-                    return QtGui.QBrush(QtCore.Qt.darkGreen)
-                return QtGui.QBrush(QtCore.Qt.darkRed)
+                    return QtGui.QBrush(QtGui.QColor('#00bb00'))
+                return QtGui.QBrush(QtGui.QColor('#bb0000'))
+            if index.column() == self.Column.HV:
+                if sensor.hv:
+                    return QtGui.QBrush(QtGui.QColor('#00bb00'))
+                return QtGui.QBrush(QtGui.QColor('#bb0000'))
             else:
                 if not sensor.enabled:
                     return QtGui.QBrush(QtCore.Qt.darkGray)
@@ -122,9 +155,12 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if index.column() == self.Column.Name:
                 return [QtCore.Qt.Unchecked, QtCore.Qt.Checked][sensor.enabled]
 
+
         elif role == QtCore.Qt.EditRole:
             if index.column() == self.Column.Name:
                 return sensor.name
+            if index.column() == self.Column.HV:
+                return sensor.hv
             if index.column() == self.Column.Resistivity:
                 return sensor.resistivity
 
@@ -146,6 +182,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index)
                 self.sensors.storeSettings()
                 return True
+            if index.column() == self.Column.HV:
+                sensor.hv = value
+                self.dataChanged.emit(index, index)
+                self.sensors.storeSettings()
+                return True
             if index.column() == self.Column.Resistivity:
                 sensor.resistivity = format(value)
                 self.dataChanged.emit(index, index)
@@ -156,9 +197,13 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
     def flags(self, index):
         flags = super().flags(index)
+        sensor = self.sensors[index.row()]
         if self.sensors.isEditable():
             if index.column() == self.Column.Name:
                 return flags | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable
+            # if index.column() == self.Column.HV:
+            #     if sensor.enabled:
+            #         return flags | QtCore.Qt.ItemIsEditable
             if index.column() == self.Column.Resistivity:
                 return flags | QtCore.Qt.ItemIsEditable
         return flags
@@ -176,6 +221,7 @@ class Sensor(object):
         self.color = "#000000"
         self.name = "Unnamed{}".format(index)
         self.status = None
+        self.hv = False
         self.current = None
         self.temperature = None
         self.resistivity = None

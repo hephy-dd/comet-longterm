@@ -198,7 +198,8 @@ class MeasureProcess(Process, DeviceMixin):
         self.__totalCompliance = value
 
     def singleCompliance(self):
-        return self.__singleCompliance
+        """Limited to total compliance."""
+        return min(self.__singleCompliance, self.totalCompliance())
 
     def setSingleCompliance(self, value):
         self.__singleCompliance = value
@@ -269,12 +270,16 @@ class MeasureProcess(Process, DeviceMixin):
             R:  calibrated resistor value
             temp:  temperature (PT100)
         """
+        # Update SMU complicance
+        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance()))
+        logging.info("SMU total compliance: %G A", self.totalCompliance())
+
         # check SMU compliance
         totalCurrent = smu.read()[1]
-        logging.info('SMU current (A): %s', totalCurrent)
+        logging.info('SMU current: %G A', totalCurrent)
         if abs(totalCurrent) > self.totalCompliance():
             if not self.continueInCompliance():
-                raise ValueError("SMU in compliance ({} A)".format(totalCurrent))
+                raise ValueError("SMU in compliance ({:G} A)".format(totalCurrent))
 
         # Read temperatures
         temperature = {}
@@ -302,6 +307,7 @@ class MeasureProcess(Process, DeviceMixin):
                     # Switch relay off
                     with self.devices().get('shunt') as shunt:
                         shunt.enable(sensor.index, False)
+                        sensor.hv = False
                     #sensor.enabled = False
                 temp = temperature.get(sensor.index, float('nan'))
                 channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R, temp=temp)
@@ -384,6 +390,7 @@ class MeasureProcess(Process, DeviceMixin):
 
         self.sleep(.100) # value from labview
 
+        # Set SMU complicance
         smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance()))
 
         # clear voltage
@@ -396,6 +403,7 @@ class MeasureProcess(Process, DeviceMixin):
         with self.devices().get('shunt') as shunt:
             for sensor in self.sensors():
                 shunt.enable(sensor.index, sensor.enabled)
+                sensor.hv = sensor.enabled
 
         self.showProgress(3, 3)
         self.showMessage("Done")
@@ -528,6 +536,7 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Ramping down")
         self.showProgress(deltaVoltage, startVoltage)
         for value in Range(self.currentVoltage(), zeroVoltage, -self.ivStep()):
+            self.showMessage("Ramping to zero ({:.2f} V)".format(self.currentVoltage()))
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
             # Set voltage
@@ -540,6 +549,8 @@ class MeasureProcess(Process, DeviceMixin):
         # Diable all shunt box channels
         with self.devices().get('shunt') as shunt:
             shunt.enableAll(False)
+            for sensor in self.sensors():
+                sensor.hv = False
 
         self.showMessage("Done")
 

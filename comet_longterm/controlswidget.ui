@@ -282,6 +282,9 @@
         <property name="decimals">
          <number>1</number>
         </property>
+        <property name="minimum">
+         <double>0.100000000000000</double>
+        </property>
         <property name="value">
          <double>5.000000000000000</double>
         </property>
@@ -449,6 +452,12 @@
         <property name="decimals">
          <number>3</number>
         </property>
+        <property name="minimum">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>100000.000000000000000</double>
+        </property>
         <property name="value">
          <double>80.000000000000000</double>
         </property>
@@ -462,6 +471,12 @@
         <property name="decimals">
          <number>3</number>
         </property>
+        <property name="minimum">
+         <double>0.001000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>1000000.000000000000000</double>
+        </property>
         <property name="value">
          <double>25.000000000000000</double>
         </property>
@@ -474,6 +489,9 @@
         </property>
         <property name="text">
          <string>&amp;Continue i. C.</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

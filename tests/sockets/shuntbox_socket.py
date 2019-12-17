@@ -42,6 +42,16 @@ class ShuntBoxHandler(socketserver.BaseRequestHandler):
             elif re.match(r'GET:TEMP \d+', data):
                 self.send(format(random.uniform(22.0, 26.0), '.1f'))
 
+            elif re.match(r'SET:REL_(ON|OFF) (\d+|ALL)', data):
+                self.send("OK")
+
+            elif re.match(r'GET:REL (\d+)', data):
+                self.send("0")
+
+            elif re.match(r'GET:REL ALL', data):
+                self.send(",".join(["0"] * self.channels + 4))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
