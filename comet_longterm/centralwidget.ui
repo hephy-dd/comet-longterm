@@ -80,7 +80,7 @@
         </attribute>
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="0" column="0">
-          <widget class="QChartView" name="ivChartView"/>
+          <widget class="ChartView" name="ivChartView"/>
          </item>
         </layout>
        </widget>
@@ -90,7 +90,7 @@
         </attribute>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="0">
-          <widget class="QChartView" name="itChartView"/>
+          <widget class="ChartView" name="itChartView"/>
          </item>
         </layout>
        </widget>
@@ -107,7 +107,7 @@
         </attribute>
         <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
-          <widget class="QChartView" name="ctsChartView"/>
+          <widget class="ChartView" name="ctsChartView"/>
          </item>
         </layout>
        </widget>
@@ -117,7 +117,7 @@
         </attribute>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
-          <widget class="QChartView" name="pt100ChartView"/>
+          <widget class="ChartView" name="pt100ChartView"/>
          </item>
         </layout>
        </widget>
@@ -147,9 +147,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>QChartView</class>
+   <class>ChartView</class>
    <extends>QGraphicsView</extends>
-   <header>PyQt5.QtChart</header>
+   <header>comet.widgets</header>
   </customwidget>
  </customwidgets>
  <resources/>

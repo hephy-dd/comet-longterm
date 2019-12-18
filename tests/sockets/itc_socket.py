@@ -111,6 +111,8 @@ class ClimateHandler(socketserver.BaseRequestHandler):
             elif re.match(r'P\d{3}', data):
                 self.send(data)
 
+            elif re.match(r'a[0-6]\s+\d+\.\d+', data):
+                self.send('a')
 
 def main():
     parser = argparse.ArgumentParser()

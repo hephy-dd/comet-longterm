@@ -1,214 +1,177 @@
 import logging
+import math
 
-from PyQt5 import QtCore, QtGui, QtChart
+from PyQt5 import QtCore, QtGui
 
-class LineSeries(QtChart.QLineSeries):
-    """Base class for line series."""
+__all__ = ['IVChartProxy', 'ItChartProxy', 'CtsChartProxy', 'Pt100ChartProxy']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setUseOpenGL(True)
+class IVChartProxy:
 
-class SensorLineSeries(LineSeries):
-    """Line series class for a sensor."""
-
-    def __init__(self, sensor, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.load(sensor)
-
-    def load(self, sensor):
-        self.setName(format(sensor.name))
-        self.setColor(QtGui.QColor(sensor.color))
-        self.setVisible(sensor.enabled)
-
-class Chart(QtChart.QChart):
-    """Base class for charts."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.legend().setAlignment(QtCore.Qt.AlignRight)
-        self.setMargins(QtCore.QMargins(2, 2, 2, 2))
-
-class IVChart(Chart):
-
-    def __init__(self, sensors, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, chart, sensors):
+        self.chart = chart
+        self.chart.legend().setAlignment(QtCore.Qt.AlignRight)
 
         # X axis
-        self.axisX = QtChart.QValueAxis()
+        self.axisX = self.chart.addValueAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Voltage V")
         self.axisX.setRange(0, 800)
-        self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         # Y axis
-        self.axisY = QtChart.QValueAxis()
+        self.axisY = self.chart.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY.setTitleText("Current uA")
         self.axisY.setRange(0, 100)
-        self.addAxis(self.axisY, QtCore.Qt.AlignLeft)
 
-        self.ivSeries = []
+        self.ivSeries = {}
         for sensor in sensors:
-            series = SensorLineSeries(sensor)
-            self.addSeries(series)
-            series.attachAxis(self.axisX)
-            series.attachAxis(self.axisY)
-            self.ivSeries.append(series)
+            series = self.chart.addLineSeries(self.axisX, self.axisY)
+            self.ivSeries[sensor.index] = series
+        self.load(sensors)
 
     def load(self, sensors):
-        for i, sensor in enumerate(sensors):
-            series = self.ivSeries[i]
+        for sensor in sensors:
+            series = self.ivSeries.get(sensor.index)
             series.clear()
-            series.load(sensor)
+            series.setName(format(sensor.name))
+            series.setPen(QtGui.QColor(sensor.color))
+            series.setVisible(sensor.enabled)
 
     def append(self, reading):
         voltage = reading.get('U')
         for channel in reading.get('channels').values():
-            self.ivSeries[channel.get('index') - 1].append(voltage, channel.get('I') * 1000 * 1000) # a to uA
-        # minimum = self.ivSeries[0].at(0).x()
-        # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).x()
-        # self.axisX.setRange(minimum, maximum)
-        # minimum = self.ivSeries[0].at(0).y()
-        # maximum = self.ivSeries[0].at(self.ivSeries[0].count()-1).y()
-        # self.axisY.setRange(minimum, maximum)
+            series = self.ivSeries.get(channel.get('index'))
+            series.data().append(voltage, channel.get('I') * 1000 * 1000) # a to uA
+        if self.chart.isZoomed():
+            self.chart.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.chart.fit()
 
-class ItChart(Chart):
+class ItChartProxy:
 
-    def __init__(self, sensors, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, chart, sensors):
+        self.chart = chart
+        self.chart.legend().setAlignment(QtCore.Qt.AlignRight)
 
-        self.axisX = QtChart.QDateTimeAxis()
+        self.axisX = self.chart.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
-        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
-        self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
-        self.axisY = QtChart.QValueAxis()
+        self.axisY = self.chart.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY.setTitleText("Current uA")
         self.axisY.setRange(0, 100)
-        self.addAxis(self.axisY, QtCore.Qt.AlignLeft)
 
-        self.itSeries = []
+        self.itSeries = {}
         for sensor in sensors:
-            series = SensorLineSeries(sensor)
-            self.addSeries(series)
-            series.attachAxis(self.axisX)
-            series.attachAxis(self.axisY)
-            self.itSeries.append(series)
+            series = self.chart.addLineSeries(self.axisX, self.axisY)
+            self.itSeries[sensor.index] = series
+        self.load(sensors)
 
     def load(self, sensors):
-        for i, sensor in enumerate(sensors):
-            series = self.itSeries[i]
+        for sensor in sensors:
+            series = self.itSeries.get(sensor.index)
             series.clear()
-            series.load(sensor)
+            series.setName(format(sensor.name))
+            series.setPen(QtGui.QColor(sensor.color))
+            series.setVisible(sensor.enabled)
 
     def append(self, reading):
-        time = reading.get('time') * 1000
+        ts = reading.get('time')
         for channel in reading.get('channels').values():
-            self.itSeries[channel.get('index') - 1].append(time, channel.get('I') * 1000 * 1000) # A to uA
-        series = self.itSeries[channel.get('index') - 1]
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
-        self.axisX.setRange(minimum, maximum)
+            series = self.itSeries.get(channel.get('index'))
+            series.data().append(ts, channel.get('I') * 1000 * 1000) # A to uA
+        if self.chart.isZoomed():
+            self.chart.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.chart.fit()
 
-class CtsChart(Chart):
+class CtsChartProxy:
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, chart):
+        self.chart = chart
+        self.chart.legend().setAlignment(QtCore.Qt.AlignRight)
 
         # X axis
-        self.axisX = QtChart.QDateTimeAxis()
+        self.axisX = self.chart.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
-        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
         self.axisX.setTickCount(3)
-        self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         # Y axis left
-        self.axisY1 = QtChart.QValueAxis()
+        self.axisY1 = self.chart.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY1.setTitleText("Temp")
         self.axisY1.setRange(0, 180)
         self.axisY1.setLinePenColor(QtCore.Qt.red)
-        self.addAxis(self.axisY1, QtCore.Qt.AlignLeft)
 
-        self.ctsTempSeries = LineSeries()
+        self.ctsTempSeries = self.chart.addLineSeries(self.axisX, self.axisY1)
         self.ctsTempSeries.setName("Temp")
-        self.ctsTempSeries.setColor(self.axisY1.linePenColor())
-        self.addSeries(self.ctsTempSeries)
-        self.ctsTempSeries.attachAxis(self.axisX)
-        self.ctsTempSeries.attachAxis(self.axisY1)
+        self.ctsTempSeries.setPen(self.axisY1.linePenColor())
 
         # Y axis right
-        self.axisY2 = QtChart.QValueAxis()
+        self.axisY2 = self.chart.addValueAxis(QtCore.Qt.AlignRight)
         self.axisY2.setRange(0, 100)
         self.axisY2.setLinePenColor(QtCore.Qt.blue)
-        self.addAxis(self.axisY2, QtCore.Qt.AlignRight)
 
-        self.ctsHumidSeries = LineSeries()
+        self.ctsHumidSeries = self.chart.addLineSeries(self.axisX, self.axisY2)
         self.ctsHumidSeries.setName("Humid")
-        self.ctsHumidSeries.setColor(self.axisY2.linePenColor())
-        self.addSeries(self.ctsHumidSeries)
-        self.ctsHumidSeries.attachAxis(self.axisX)
-        self.ctsHumidSeries.attachAxis(self.axisY2)
+        self.ctsHumidSeries.setPen(self.axisY2.linePenColor())
 
         # another Y axis left
-        self.axisY3 = QtChart.QCategoryAxis()
+        self.axisY3 = self.chart.addCategoryAxis(QtCore.Qt.AlignRight)
         self.axisY3.setRange(0, 1)
         self.axisY3.append("Off", 0)
         self.axisY3.append("On", 1)
         self.axisY3.setLinePenColor(QtCore.Qt.magenta)
-        self.addAxis(self.axisY3, QtCore.Qt.AlignRight)
 
-        self.ctsProgramSeries = LineSeries()
+        self.ctsProgramSeries = self.chart.addLineSeries(self.axisX, self.axisY3)
         self.ctsProgramSeries.setName("Program")
-        self.ctsProgramSeries.setColor(self.axisY3.linePenColor())
-        self.addSeries(self.ctsProgramSeries)
-        self.ctsProgramSeries.attachAxis(self.axisX)
-        self.ctsProgramSeries.attachAxis(self.axisY3)
+        self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
     def append(self, reading):
-        ts = reading.get('time') * 1000
-        self.ctsTempSeries.append(ts, reading.get('temp'))
-        self.ctsHumidSeries.append(ts, reading.get('humid'))
-        self.ctsProgramSeries.append(ts, reading.get('program') != 0)
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(self.ctsTempSeries.at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(self.ctsTempSeries.at(self.ctsTempSeries.count()-1).x())
-        self.axisX.setRange(minimum, maximum)
+        ts = reading.get('time')
+        self.ctsTempSeries.data().append(ts, reading.get('temp'))
+        self.ctsHumidSeries.data().append(ts, reading.get('humid'))
+        self.ctsProgramSeries.data().append(ts, reading.get('program') != 0)
+        if self.chart.isZoomed():
+            self.chart.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.chart.fit()
 
-class Pt100Chart(Chart):
+class Pt100ChartProxy:
 
-    def __init__(self, sensors, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, chart, sensors):
+        self.chart = chart
+        self.chart.legend().setAlignment(QtCore.Qt.AlignRight)
 
         # X axis
-        self.axisX = QtChart.QDateTimeAxis()
+        self.axisX = self.chart.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
-        self.axisX.setFormat("HH:mm:ss<br/>yyyy-MM-dd")
         self.axisX.setTickCount(3)
-        self.addAxis(self.axisX, QtCore.Qt.AlignBottom)
 
         # Y axis left
-        self.axisY = QtChart.QValueAxis()
+        self.axisY = self.chart.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY.setTitleText("Temp")
         self.axisY.setRange(0, 100)
-        self.addAxis(self.axisY, QtCore.Qt.AlignLeft)
 
-        self.pt100Series = []
+        self.pt100Series = {}
         for sensor in sensors:
-            series = SensorLineSeries(sensor)
-            self.addSeries(series)
-            series.attachAxis(self.axisX)
-            series.attachAxis(self.axisY)
-            self.pt100Series.append(series)
+            series = self.chart.addLineSeries(self.axisX, self.axisY)
+            self.pt100Series[sensor.index] = series
+        self.load(sensors)
 
     def load(self, sensors):
-        for i, sensor in enumerate(sensors):
-            series = self.pt100Series[i]
+        for sensor in sensors:
+            series = self.pt100Series[sensor.index]
             series.clear()
-            series.load(sensor)
+            series.setName(format(sensor.name))
+            series.setPen(QtGui.QColor(sensor.color))
+            series.setVisible(sensor.enabled)
 
     def append(self, reading):
-        time = reading.get('time') * 1000
+        ts = reading.get('time')
         for channel in reading.get('channels').values():
-            series = self.pt100Series[channel.get('index') - 1]
-            series.append(time, channel.get('temp')) #degC
-        minimum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(0).x())
-        maximum = QtCore.QDateTime.fromMSecsSinceEpoch(series.at(series.count()-1).x())
-        self.axisX.setRange(minimum, maximum)
+            series = self.pt100Series.get(channel.get('index'))
+            if channel.get('temp') is not None:
+                # watch out!
+                if not math.isnan(channel.get('temp')):
+                    series.data().append(ts, channel.get('temp'))
+        if self.chart.isZoomed():
+            self.chart.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.chart.fit()
