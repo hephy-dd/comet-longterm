@@ -30,7 +30,7 @@ class IVChartProxy:
     def load(self, sensors):
         for sensor in sensors:
             series = self.ivSeries.get(sensor.index)
-            series.clear()
+            series.data().clear()
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)
@@ -67,7 +67,7 @@ class ItChartProxy:
     def load(self, sensors):
         for sensor in sensors:
             series = self.itSeries.get(sensor.index)
-            series.clear()
+            series.data().clear()
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)
@@ -158,7 +158,7 @@ class Pt100ChartProxy:
     def load(self, sensors):
         for sensor in sensors:
             series = self.pt100Series[sensor.index]
-            series.clear()
+            series.data().clear()
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)

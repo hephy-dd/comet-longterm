@@ -1,1 +1,1 @@
-comet @ https://github.com/hephy-dd/comet/archive/0.4.0.zip#egg=comet-0.4.0
+comet @ https://github.com/hephy-dd/comet/archive/0.4.1.zip#egg=comet-0.4.1
