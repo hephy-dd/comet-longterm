@@ -305,9 +305,10 @@ class MeasureProcess(Process, DeviceMixin):
                 if I > self.singleCompliance():
                     sensor.status = sensor.State.COMPL_ERR
                     # Switch relay off
-                    with self.devices().get('shunt') as shunt:
-                        shunt.enable(sensor.index, False)
-                        sensor.hv = False
+                    if self.useShuntBox():
+                        with self.devices().get('shunt') as shunt:
+                            shunt.enable(sensor.index, False)
+                            sensor.hv = False
                     #sensor.enabled = False
                 temp = temperature.get(sensor.index, float('nan'))
                 channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R, temp=temp)
@@ -333,8 +334,9 @@ class MeasureProcess(Process, DeviceMixin):
 
         logging.info("Multimeter: %s", multi.identification())
         logging.info("Source Unit: %s", smu.identification())
-        with self.devices().get('shunt') as shunt:
-            logging.info("HEPHY ShuntBox: %s", shunt.identification())
+        if self.useShuntBox():
+            with self.devices().get('shunt') as shunt:
+                logging.info("HEPHY ShuntBox: %s", shunt.identification())
         self.sleep(1.0)
 
         self.showMessage("Setup multimeter")
@@ -400,10 +402,11 @@ class MeasureProcess(Process, DeviceMixin):
         smu.enableOutput(True)
 
         # Enable active shunt box channels
-        with self.devices().get('shunt') as shunt:
-            for sensor in self.sensors():
-                shunt.enable(sensor.index, sensor.enabled)
-                sensor.hv = sensor.enabled
+        if self.useShuntBox():
+            with self.devices().get('shunt') as shunt:
+                for sensor in self.sensors():
+                    shunt.enable(sensor.index, sensor.enabled)
+                    sensor.hv = sensor.enabled
 
         self.showProgress(3, 3)
         self.showMessage("Done")
@@ -547,10 +550,11 @@ class MeasureProcess(Process, DeviceMixin):
             self.smuReading.emit(dict(U=self.currentVoltage(), I=None))
 
         # Diable all shunt box channels
-        with self.devices().get('shunt') as shunt:
-            shunt.enableAll(False)
-            for sensor in self.sensors():
-                sensor.hv = False
+        if self.useShuntBox():
+            with self.devices().get('shunt') as shunt:
+                shunt.enableAll(False)
+                for sensor in self.sensors():
+                    sensor.hv = False
 
         self.showMessage("Done")
 

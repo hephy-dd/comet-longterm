@@ -73,7 +73,7 @@ class ItChartProxy:
             series.setVisible(sensor.enabled)
 
     def append(self, reading):
-        ts = reading.get('time') * 1000
+        ts = reading.get('time')
         for channel in reading.get('channels').values():
             series = self.itSeries.get(channel.get('index'))
             series.data().append(ts, channel.get('I') * 1000 * 1000) # A to uA
@@ -124,7 +124,7 @@ class CtsChartProxy:
         self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
     def append(self, reading):
-        ts = reading.get('time') * 1000
+        ts = reading.get('time')
         self.ctsTempSeries.data().append(ts, reading.get('temp'))
         self.ctsHumidSeries.data().append(ts, reading.get('humid'))
         self.ctsProgramSeries.data().append(ts, reading.get('program') != 0)
@@ -164,7 +164,7 @@ class Pt100ChartProxy:
             series.setVisible(sensor.enabled)
 
     def append(self, reading):
-        ts = reading.get('time') * 1000
+        ts = reading.get('time')
         for channel in reading.get('channels').values():
             series = self.pt100Series.get(channel.get('index'))
             if channel.get('temp') is not None:

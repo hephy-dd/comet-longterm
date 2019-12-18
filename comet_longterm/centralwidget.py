@@ -190,12 +190,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
         # TODO
         self.ivChart.load(self.sensors())
-        self.ivChart.axisX.setRange(0, self.controlsWidget().ivEndVoltage()) # V
-        self.ivChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
         self.itChart.load(self.sensors())
-        self.itChart.axisY.setRange(0, self.controlsWidget().singleCompliance() * 1000 * 1000) # uA
         self.pt100Chart.load(self.sensors())
-        self.itChart.axisY.setRange(0, 100)
 
         # Setup output location
         path = os.path.normpath(self.controlsWidget().path())
