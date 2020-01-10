@@ -298,7 +298,6 @@ class MeasureProcess(Process, DeviceMixin):
 
         # start measurement scan
         multi.init()
-        multi.resource.query('*OPC?')
 
         # read buffer, auto retry on failure (slow instrument reading)
         results = retry(lambda: multi.fetch(), count=5, delay=.120)
