@@ -9,16 +9,17 @@ in a controlled climate environment.
 
 ### Required instruments:
 
-- CTS Climate Chamber
-- Keithley 2700 Multimeter/Switch with equipped switch card
 - Keithley 2410 SourceMeter
+- Keithley 2700 Multimeter/Switch with equipped switch card
+- CTS Climate Chamber (optional)
+- HEPHY ShuntBox (optional)
 
 ## Install
 
 Install using pip in a virtual environment.
 
 ```bash
-pip install git+https://github.com/hephy-dd/comet-longterm.git@0.4.1
+pip install git+https://github.com/hephy-dd/comet-longterm.git@0.5.0
 comet-longterm
 ```
 

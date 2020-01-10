@@ -149,7 +149,7 @@
   <customwidget>
    <class>ChartView</class>
    <extends>QGraphicsView</extends>
-   <header>comet.widgets</header>
+   <header>QCharted</header>
   </customwidget>
  </customwidgets>
  <resources/>
