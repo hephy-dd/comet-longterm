@@ -15,7 +15,7 @@ setup(
         ],
     },
     entry_points={
-        'gui_scripts': [
+        'console_scripts': [
             'comet-longterm = comet_longterm.__main__:main',
         ],
     },

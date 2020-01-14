@@ -274,8 +274,6 @@ class MeasureProcess(Process, DeviceMixin):
         if code:
             raise RuntimeError(f"{multi.resource.resource_name}: {code}, {message}")
 
-
-
     def scan(self, smu, multi):
         """Scan selected channels and return dictionary of readings.
 
