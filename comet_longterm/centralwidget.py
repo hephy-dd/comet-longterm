@@ -15,7 +15,7 @@ from comet.devices.keithley import K2410, K2700
 from comet.devices.hephy import ShuntBox
 
 from .processes import EnvironProcess, MeasureProcess
-from .charts import IVChartProxy, ItChartProxy, CtsChartProxy, Pt100ChartProxy
+from .charts import IVChart, ItChart, CtsChart, Pt100Chart, ShuntBoxChart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -47,15 +47,18 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.devices().add('smu', K2410(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET')))
         self.devices().add('multi', K2700(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET')))
         self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
-        # Fix read termination
-        self.devices().get('shunt').options['read_termination'] = '\n'
-
 
     def createCharts(self):
-        self.ivChart = IVChartProxy(self.ui.ivChartView.chart(), self.sensors())
-        self.itChart = ItChartProxy(self.ui.itChartView.chart(), self.sensors())
-        self.ctsChart = CtsChartProxy(self.ui.ctsChartView.chart())
-        self.pt100Chart = Pt100ChartProxy(self.ui.pt100ChartView.chart(), self.sensors())
+        self.ivChart = IVChart(self.sensors())
+        self.ui.ivChartView.setChart(self.ivChart)
+        self.itChart = ItChart(self.sensors())
+        self.ui.itChartView.setChart(self.itChart)
+        self.ctsChart = CtsChart()
+        self.ui.ctsChartView.setChart(self.ctsChart)
+        self.pt100Chart = Pt100Chart(self.sensors())
+        self.ui.pt100ChartView.setChart(self.pt100Chart)
+        self.shuntBoxChart = ShuntBoxChart()
+        self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
 
     def createProcesses(self):
         # Environ process
@@ -167,6 +170,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
         self.pt100Chart.append(reading)
+        self.shuntBoxChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
@@ -177,6 +181,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
         self.pt100Chart.append(reading)
+        self.shuntBoxChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):

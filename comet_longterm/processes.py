@@ -253,15 +253,28 @@ class MeasureProcess(Process, DeviceMixin):
         self.__operator = value
 
     def reset(self, smu, multi):
-        smu.reset()
+        # Reset SMU
+        smu.resource.write('*RST')
         smu.resource.query('*OPC?')
-        smu.clear()
+        self.sleep(.500)
+        smu.resource.write('*CLS')
         smu.resource.query('*OPC?')
-        multi.reset()
-        multi.resource.query('*OPC?')
-        multi.clear()
+        smu.system.beeper.status = 0
+        code, message = smu.system.error
+        if code:
+            raise RuntimeError(f"{smu.resource.resource_name}: {code}, {message}")
+        # Reset multimeter
+        multi.resource.write('*RST')
         multi.resource.query('*OPC?')
         self.sleep(.500)
+        multi.resource.write('*CLS')
+        multi.resource.query('*OPC?')
+        multi.system.beeper.status = 0
+        code, message = multi.system.error
+        if code:
+            raise RuntimeError(f"{multi.resource.resource_name}: {code}, {message}")
+
+
 
     def scan(self, smu, multi):
         """Scan selected channels and return dictionary of readings.
@@ -289,20 +302,19 @@ class MeasureProcess(Process, DeviceMixin):
             if not self.continueInCompliance():
                 raise ValueError("SMU in compliance ({:G} A)".format(totalCurrent))
 
-        # Read temperatures
+        # Read temperatures and shunt box stats
         temperature = {}
+        shuntbox = dict(uptime=0, memory=0)
         if self.useShuntBox():
             with self.devices().get('shunt') as shunt:
-                for index, value in enumerate(shunt.temperature()):
+                shuntbox['uptime'] = shunt.uptime
+                shuntbox['memory'] = shunt.memory
+                for index, value in enumerate(shunt.temperature):
                     temperature[index + 1] = value
 
-        # start measurement scan
+        # start measurement
         multi.init()
-        time.sleep(1)
-        multi.resource.query('*OPC?')
-
-        # read buffer, auto retry on failure (slow instrument reading)
-        results = retry(lambda: multi.fetch(), count=5, delay=.120)
+        results = multi.fetch()
 
         channels = {}
         for sensor in self.sensors():
@@ -313,15 +325,24 @@ class MeasureProcess(Process, DeviceMixin):
                 I = U / R
                 if I > self.singleCompliance():
                     sensor.status = sensor.State.COMPL_ERR
-                    # Switch relay off
+                    # Switch HV relay off
                     if self.useShuntBox():
                         with self.devices().get('shunt') as shunt:
                             shunt.enable(sensor.index, False)
                             sensor.hv = False
-                    #sensor.enabled = False
                 temp = temperature.get(sensor.index, float('nan'))
-                channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R, temp=temp)
-        return dict(time=self.time(), channels=channels, I=totalCurrent, U=self.currentVoltage())
+                channels[sensor.index] = dict(
+                    index=sensor.index,
+                    I=I, U=U, R=R,
+                    temp=temp
+                )
+        return dict(
+            time=self.time(),
+            channels=channels,
+            I=totalCurrent,
+            U=self.currentVoltage(),
+            shuntbox=shuntbox
+        )
 
     def setup(self, smu, multi):
         """Setup SMU and Multimeter instruments."""
@@ -335,20 +356,18 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
 
-        # consider your fellow workers
-        smu.resource.write('SYST:BEEP:STAT 0')
-        smu.resource.query('*OPC?')
-        multi.resource.write('SYST:BEEP:STAT 0')
-        multi.resource.query('*OPC?')
-
+        # Reset instruments
         self.reset(smu, multi)
 
-        logging.info("Multimeter: %s", multi.identification())
-        logging.info("Source Unit: %s", smu.identification())
+        # Read instrument identifications
+        idn = multi.identification()
+        logging.info("Multimeter: %s", idn)
+        idn = smu.identification()
+        logging.info("Source Unit: %s", idn)
         if self.useShuntBox():
             with self.devices().get('shunt') as shunt:
-                logging.info("HEPHY ShuntBox: %s", shunt.identification())
-        self.sleep(1.0)
+                idn = shunt.identification
+                logging.info("HEPHY ShuntBox: %s", idn)
 
         self.showMessage("Setup multimeter")
         self.showProgress(1, 3)
@@ -391,13 +410,11 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
         smu.resource.write('SENS:AVER:TCON REP')
-        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER ON')
-        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
-        smu.resource.query('*OPC?')
         smu.resource.write(':SOUR:FUNC VOLT')
         smu.resource.query('*OPC?')
+        # switch output OFF
         smu.output = 'off'
         smu.resource.write('SOUR:VOLT:RANG MAX')
         smu.resource.query('*OPC?')
@@ -406,13 +423,9 @@ class MeasureProcess(Process, DeviceMixin):
         smu.resource.query('*OPC?')
         # output data format
         smu.resource.write('SENS:CURR:RANG:AUTO 1')
-        smu.resource.query('*OPC?')
         smu.resource.write('TRIG:CLE')
-        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER:TCON REP')
-        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER OFF')
-        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
         smu.resource.query('*OPC?')
 
@@ -423,7 +436,7 @@ class MeasureProcess(Process, DeviceMixin):
 
         # clear voltage
         self.setCurrentVoltage(0.0)
-        smu.voltage = self.currentVoltage()
+        smu.source.voltage.level = self.currentVoltage()
         # switch output ON
         smu.output = 'on'
 
@@ -458,7 +471,7 @@ class MeasureProcess(Process, DeviceMixin):
                 if not self.stopRequested():
                     self.showMessage("Ramping up ({:.2f} V)".format(self.currentVoltage()))
                     # Set voltage
-                    smu.voltage = value
+                    smu.source.voltage.level = value
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                     self.sleep(self.ivInterval())
                     reading = self.scan(smu, multi)
@@ -493,7 +506,7 @@ class MeasureProcess(Process, DeviceMixin):
             if not self.stopRequested():
                 self.showMessage("Ramping to bias ({:.2f} V)".format(self.currentVoltage()))
                 # Set voltage
-                smu.voltage = value
+                smu.source.voltage.level = value
                 deltaVoltage = startVoltage - self.currentVoltage()
                 self.showProgress(deltaVoltage, startVoltage)
                 self.sleep(self.ivInterval())
@@ -569,7 +582,7 @@ class MeasureProcess(Process, DeviceMixin):
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
             # Set voltage
-            smu.voltage = value
+            smu.source.voltage.level = value
             deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             self.sleep(.25) # value from labview
@@ -581,6 +594,9 @@ class MeasureProcess(Process, DeviceMixin):
                 shunt.enableAll(False)
                 for sensor in self.sensors():
                     sensor.hv = False
+
+        # switch output OFF
+        smu.output = 'off'
 
         self.showMessage("Done")
 
