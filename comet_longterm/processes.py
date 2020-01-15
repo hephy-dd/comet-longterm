@@ -76,9 +76,9 @@ class EnvironProcess(Process, DeviceMixin):
 
     def read(self, device):
         """Read environment data from device."""
-        temp = device.analogChannel(1)[0]
-        humid = device.analogChannel(2)[0]
-        program = device.program()
+        temp = device.analog_channel(1)[0]
+        humid = device.analog_channel(2)[0]
+        program = device.program
         return dict(time=self.time(), temp=temp, humid=humid, program=program)
 
     def run(self):
