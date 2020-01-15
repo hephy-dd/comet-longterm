@@ -116,7 +116,7 @@ class CtsChart(Chart):
         # another Y axis left
         self.axisY3 = self.addCategoryAxis(QtCore.Qt.AlignRight)
         self.axisY3.setRange(0, 1)
-        self.axisY3.append("Off", 0)
+        self.axisY3.append("Off", 0.5)
         self.axisY3.append("On", 1)
         self.axisY3.setLinePenColor(QtCore.Qt.magenta)
 
