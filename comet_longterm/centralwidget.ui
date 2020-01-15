@@ -121,6 +121,16 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="shuntBoxTab">
+        <attribute name="title">
+         <string>Shunt Box</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="ChartView" name="shuntBoxChartView"/>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </item>
     </layout>
@@ -149,7 +159,7 @@
   <customwidget>
    <class>ChartView</class>
    <extends>QGraphicsView</extends>
-   <header>comet.widgets</header>
+   <header>QCharted</header>
   </customwidget>
  </customwidgets>
  <resources/>

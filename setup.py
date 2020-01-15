@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='comet-longterm',
-    version='0.4.1',
+    version='0.5.0',
     author="Bernhard Arnold",
     author_email="bernhard.arnold@oeaw.ac.at",
     packages=find_packages(exclude=['tests']),
     install_requires=[
-        'comet @ https://github.com/hephy-dd/comet/archive/0.4.0.zip#egg=comet-0.4.0',
+        'comet @ https://github.com/hephy-dd/comet/archive/0.5.0.zip#egg=comet-0.5.0',
     ],
     package_data={
         'comet_longterm': [
@@ -15,7 +15,7 @@ setup(
         ],
     },
     entry_points={
-        'gui_scripts': [
+        'console_scripts': [
             'comet-longterm = comet_longterm.__main__:main',
         ],
     },

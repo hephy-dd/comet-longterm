@@ -27,21 +27,31 @@ class K2700Handler(socketserver.BaseRequestHandler):
         # Keep socket alive
         while True:
             time.sleep(.100) # throttle
-            data = self.recv(1024).strip()
+            for data in self.recv(1024).split('\r\n'):
+                data = data.strip()
 
-            if re.match(r'\*IDN\?', data):
-                self.send("Keithley 2700 Emulator, Spanish Inquisition Inc.")
+                if re.match(r'\*IDN\?', data):
+                    self.send("Keithley 2700 Emulator, Spanish Inquisition Inc.")
 
-            elif re.match(r'\:?READ\?', data):
-                self.send(",".join(["0.000024"]*10))
+                elif re.match(r'\*OPC\?', data):
+                    self.send("1")
 
-            elif re.match(r'\:?FETC[h]?\?', data):
-                values = []
-                for i in range(self.channels):
-                    vdc = random.uniform(.00025,.001)
-                    values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
-                time.sleep(random.uniform(.5, 1.0)) # rev B10 ;)
-                self.send(",".join(values))
+                elif re.match(r'\*ESR\?', data):
+                    self.send("1")
+
+                elif re.match(r'\:SYST\:ERR\?', data):
+                    self.send('0,"no error"')
+
+                elif re.match(r'\:?READ\?', data):
+                    self.send(",".join(["0.000024"]*10))
+
+                elif re.match(r'\:?FETC[h]?\?', data):
+                    values = []
+                    for i in range(self.channels):
+                        vdc = random.uniform(.00025,.001)
+                        values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
+                    time.sleep(random.uniform(.5, 1.0)) # rev B10 ;)
+                    self.send(",".join(values))
 
 def main():
     parser = argparse.ArgumentParser()

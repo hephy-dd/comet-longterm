@@ -76,9 +76,9 @@ class EnvironProcess(Process, DeviceMixin):
 
     def read(self, device):
         """Read environment data from device."""
-        temp = device.analogChannel(1)[0]
-        humid = device.analogChannel(2)[0]
-        program = device.program()
+        temp = device.analog_channel(1)[0]
+        humid = device.analog_channel(2)[0]
+        program = device.program
         return dict(time=self.time(), temp=temp, humid=humid, program=program)
 
     def run(self):
@@ -253,9 +253,26 @@ class MeasureProcess(Process, DeviceMixin):
         self.__operator = value
 
     def reset(self, smu, multi):
-        smu.reset()
-        multi.reset()
+        # Reset SMU
+        smu.resource.write('*RST')
+        smu.resource.query('*OPC?')
         self.sleep(.500)
+        smu.resource.write('*CLS')
+        smu.resource.query('*OPC?')
+        smu.system.beeper.status = 0
+        code, message = smu.system.error
+        if code:
+            raise RuntimeError(f"{smu.resource.resource_name}: {code}, {message}")
+        # Reset multimeter
+        multi.resource.write('*RST')
+        multi.resource.query('*OPC?')
+        self.sleep(.500)
+        multi.resource.write('*CLS')
+        multi.resource.query('*OPC?')
+        multi.system.beeper.status = 0
+        code, message = multi.system.error
+        if code:
+            raise RuntimeError(f"{multi.resource.resource_name}: {code}, {message}")
 
     def scan(self, smu, multi):
         """Scan selected channels and return dictionary of readings.
@@ -271,8 +288,10 @@ class MeasureProcess(Process, DeviceMixin):
             temp:  temperature (PT100)
         """
         # Update SMU complicance
-        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance()))
-        logging.info("SMU total compliance: %G A", self.totalCompliance())
+        total_compliance = self.totalCompliance()
+        logging.info("SMU total compliance: %G A", total_compliance)
+        smu.resource.write(f'SENS:CURR:PROT:LEV {total_compliance:E}')
+        smu.resource.query('*OPC?')
 
         # check SMU compliance
         totalCurrent = smu.read()[1]
@@ -281,19 +300,19 @@ class MeasureProcess(Process, DeviceMixin):
             if not self.continueInCompliance():
                 raise ValueError("SMU in compliance ({:G} A)".format(totalCurrent))
 
-        # Read temperatures
+        # Read temperatures and shunt box stats
         temperature = {}
+        shuntbox = dict(uptime=0, memory=0)
         if self.useShuntBox():
             with self.devices().get('shunt') as shunt:
-                for index, value in enumerate(shunt.temperature()):
+                shuntbox['uptime'] = shunt.uptime
+                shuntbox['memory'] = shunt.memory
+                for index, value in enumerate(shunt.temperature):
                     temperature[index + 1] = value
 
-        # start measurement scan
-        multi.init() # INIT
-        time.sleep(.100) # temper down
-
-        # read buffer, auto retry on failure (slow instrument reading)
-        results = retry(lambda: multi.fetch(), count=5, delay=.500)
+        # start measurement
+        multi.init()
+        results = multi.fetch()
 
         channels = {}
         for sensor in self.sensors():
@@ -304,15 +323,24 @@ class MeasureProcess(Process, DeviceMixin):
                 I = U / R
                 if I > self.singleCompliance():
                     sensor.status = sensor.State.COMPL_ERR
-                    # Switch relay off
+                    # Switch HV relay off
                     if self.useShuntBox():
                         with self.devices().get('shunt') as shunt:
                             shunt.enable(sensor.index, False)
                             sensor.hv = False
-                    #sensor.enabled = False
                 temp = temperature.get(sensor.index, float('nan'))
-                channels[sensor.index] = dict(index=sensor.index, I=I, U=U, R=R, temp=temp)
-        return dict(time=self.time(), channels=channels, I=totalCurrent, U=self.currentVoltage())
+                channels[sensor.index] = dict(
+                    index=sensor.index,
+                    I=I, U=U, R=R,
+                    temp=temp
+                )
+        return dict(
+            time=self.time(),
+            channels=channels,
+            I=totalCurrent,
+            U=self.currentVoltage(),
+            shuntbox=shuntbox
+        )
 
     def setup(self, smu, multi):
         """Setup SMU and Multimeter instruments."""
@@ -326,33 +354,32 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
 
-        # consider your fellow workers
-        smu.resource().write('SYST:BEEP:STAT 0')
-        multi.resource().write('SYST:BEEP:STAT 0')
-
+        # Reset instruments
         self.reset(smu, multi)
 
-        logging.info("Multimeter: %s", multi.identification())
-        logging.info("Source Unit: %s", smu.identification())
+        # Read instrument identifications
+        idn = multi.identification()
+        logging.info("Multimeter: %s", idn)
+        idn = smu.identification()
+        logging.info("Source Unit: %s", idn)
         if self.useShuntBox():
             with self.devices().get('shunt') as shunt:
-                logging.info("HEPHY ShuntBox: %s", shunt.identification())
-        self.sleep(1.0)
+                idn = shunt.identification
+                logging.info("HEPHY ShuntBox: %s", idn)
 
         self.showMessage("Setup multimeter")
         self.showProgress(1, 3)
-        multi.resource().write(':FUNC "VOLT:DC", (@101:110)')
-        # andi start
-        self.sleep(.100)
-
-        self.sleep(.100)
-        # andi ende
+        multi.resource.write(':FUNC "VOLT:DC", (@101:110)')
+        multi.resource.query('*OPC?')
         # delete instrument buffer
-        multi.resource().write(':TRACE:CLEAR')
+        multi.resource.write(':TRACE:CLEAR')
+        multi.resource.query('*OPC?')
         # turn off continous measurements
-        multi.resource().write(':INIT:CONT OFF')
+        multi.resource.write(':INIT:CONT OFF')
+        multi.resource.query('*OPC?')
         # set trigger source immediately
-        multi.resource().write(':TRIG:SOUR IMM')
+        multi.resource.write(':TRIG:SOUR IMM')
+        multi.resource.query('*OPC?')
 
         # set channels to scan (up to max 10)
         count = len(self.sensors())
@@ -364,42 +391,52 @@ class MeasureProcess(Process, DeviceMixin):
         if not channels:
             raise RuntimeError("No sensor channels selected!")
         # ROUTE:SCAN (@101,102,103...)
-        multi.resource().write('ROUTE:SCAN (@{})'.format(','.join(channels)))
+        multi.resource.write('ROUTE:SCAN (@{})'.format(','.join(channels)))
+        multi.resource.query('*OPC?')
 
-        multi.resource().write(':TRIG:COUN 1')
-        multi.resource().write(':SAMP:COUN {}'.format(count))
+        multi.resource.write(':TRIG:COUN 1')
+        multi.resource.query('*OPC?')
+        multi.resource.write(f':SAMP:COUN {count}')
+        multi.resource.query('*OPC?')
         # start scan when triggered
-        multi.resource().write(':ROUT:SCAN:TSO IMM')
+        multi.resource.write(':ROUT:SCAN:TSO IMM')
+        multi.resource.query('*OPC?')
         # enable scan
-        multi.resource().write(':ROUT:SCAN:LSEL INT')
+        multi.resource.write(':ROUT:SCAN:LSEL INT')
+        multi.resource.query('*OPC?')
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
-        smu.resource().write('SENS:AVER:TCON REP')
-        smu.resource().write('SENS:AVER ON')
-        smu.resource().write('ROUT:TERM REAR')
-        smu.resource().write(':SOUR:FUNC VOLT')
-        smu.enableOutput(False)
-        smu.resource().write('SOUR:VOLT:RANG MAX')
+        smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.write('SENS:AVER ON')
+        smu.resource.write('ROUT:TERM REAR')
+        smu.resource.write(':SOUR:FUNC VOLT')
+        smu.resource.query('*OPC?')
+        # switch output OFF
+        smu.output = 'off'
+        smu.resource.write('SOUR:VOLT:RANG MAX')
+        smu.resource.query('*OPC?')
         # measure current DC
-        smu.resource().write('SENS:FUNC "CURR"')
+        smu.resource.write('SENS:FUNC "CURR"')
+        smu.resource.query('*OPC?')
         # output data format
-        smu.resource().write('SENS:CURR:RANG:AUTO 1')
-        smu.resource().write('TRIG:CLE')
-        smu.resource().write('SENS:AVER:TCON REP')
-        smu.resource().write('SENS:AVER OFF')
-        smu.resource().write('ROUT:TERM REAR')
-
-        self.sleep(.100) # value from labview
+        smu.resource.write('SENS:CURR:RANG:AUTO 1')
+        smu.resource.write('TRIG:CLE')
+        smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.write('SENS:AVER OFF')
+        smu.resource.write('ROUT:TERM REAR')
+        smu.resource.query('*OPC?')
 
         # Set SMU complicance
-        smu.resource().write('SENS:CURR:PROT:LEV {:E}'.format(self.totalCompliance()))
+        total_compliance = self.totalCompliance()
+        smu.resource.write(f'SENS:CURR:PROT:LEV {total_compliance:E}')
+        smu.resource.query('*OPC?')
 
         # clear voltage
         self.setCurrentVoltage(0.0)
-        smu.setVoltage(self.currentVoltage())
+        smu.source.voltage.level = self.currentVoltage()
         # switch output ON
-        smu.enableOutput(True)
+        smu.output = 'on'
 
         # Enable active shunt box channels
         if self.useShuntBox():
@@ -432,7 +469,7 @@ class MeasureProcess(Process, DeviceMixin):
                 if not self.stopRequested():
                     self.showMessage("Ramping up ({:.2f} V)".format(self.currentVoltage()))
                     # Set voltage
-                    smu.setVoltage(value)
+                    smu.source.voltage.level = value
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                     self.sleep(self.ivInterval())
                     reading = self.scan(smu, multi)
@@ -467,10 +504,10 @@ class MeasureProcess(Process, DeviceMixin):
             if not self.stopRequested():
                 self.showMessage("Ramping to bias ({:.2f} V)".format(self.currentVoltage()))
                 # Set voltage
-                smu.setVoltage(value)
+                smu.source.voltage.level = value
                 deltaVoltage = startVoltage - self.currentVoltage()
                 self.showProgress(deltaVoltage, startVoltage)
-                self.sleep(2.0) # value from labview
+                self.sleep(self.ivInterval())
                 totalCurrent = smu.read()[1]
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=totalCurrent))
             else:
@@ -543,7 +580,7 @@ class MeasureProcess(Process, DeviceMixin):
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
             # Set voltage
-            smu.setVoltage(value)
+            smu.source.voltage.level = value
             deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             self.sleep(.25) # value from labview
@@ -555,6 +592,9 @@ class MeasureProcess(Process, DeviceMixin):
                 shunt.enableAll(False)
                 for sensor in self.sensors():
                     sensor.hv = False
+
+        # switch output OFF
+        smu.output = 'off'
 
         self.showMessage("Done")
 
