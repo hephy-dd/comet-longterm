@@ -60,10 +60,10 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         for i in range(count):
             if not self.ui.tableView.verticalHeader().isSectionHidden(i):
                 rowTotalHeight += self.ui.tableView.verticalHeader().sectionSize(i)
-        if not self.ui.tableView.horizontalScrollBar().isHidden():
-            rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
-        if not self.ui.tableView.horizontalHeader().isHidden():
-            rowTotalHeight += self.ui.tableView.horizontalHeader().height()
+        # if not self.ui.tableView.horizontalScrollBar().isHidden():
+        #     rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
+        # if not self.ui.tableView.horizontalHeader().isHidden():
+        #     rowTotalHeight += self.ui.tableView.horizontalHeader().height()
         self.ui.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self):
@@ -123,6 +123,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
                     return sensor.status
             elif index.column() == self.Column.HV:
                 if sensor.enabled:
+                    if sensor.hv is None:
+                        return "N/A"
                     return "ON" if sensor.hv else "OFF"
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
@@ -182,16 +184,16 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index)
                 self.sensors.storeSettings()
                 return True
-            if index.column() == self.Column.HV:
-                sensor.hv = value
-                self.dataChanged.emit(index, index)
-                self.sensors.storeSettings()
-                return True
-            if index.column() == self.Column.Resistivity:
-                sensor.resistivity = format(value)
-                self.dataChanged.emit(index, index)
-                self.sensors.storeSettings()
-                return True
+            # if index.column() == self.Column.HV:
+            #     sensor.hv = value
+            #     self.dataChanged.emit(index, index)
+            #     self.sensors.storeSettings()
+            #     return True
+            # if index.column() == self.Column.Resistivity:
+            #     sensor.resistivity = format(value)
+            #     self.dataChanged.emit(index, index)
+            #     self.sensors.storeSettings()
+            #     return True
 
         return False
 
@@ -204,8 +206,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
             # if index.column() == self.Column.HV:
             #     if sensor.enabled:
             #         return flags | QtCore.Qt.ItemIsEditable
-            if index.column() == self.Column.Resistivity:
-                return flags | QtCore.Qt.ItemIsEditable
+            # if index.column() == self.Column.Resistivity:
+            #     return flags | QtCore.Qt.ItemIsEditable
         return flags
 
 class Sensor(object):
@@ -221,7 +223,7 @@ class Sensor(object):
         self.color = "#000000"
         self.name = "Unnamed{}".format(index)
         self.status = None
-        self.hv = False
+        self.hv = None # valid: None, True, False
         self.current = None
         self.temperature = None
         self.resistivity = None

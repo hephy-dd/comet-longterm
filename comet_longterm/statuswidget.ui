@@ -17,7 +17,7 @@
    <item>
     <widget class="QGroupBox" name="smuGroupBox">
      <property name="title">
-      <string>SMU</string>
+      <string>SMU Status</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="1" column="1">
@@ -118,7 +118,7 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>CTS</string>
+      <string>Chamber Status</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="3">

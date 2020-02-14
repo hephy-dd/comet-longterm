@@ -89,7 +89,7 @@
          <string>Use CTS climate chamber for measurements.</string>
         </property>
         <property name="text">
-         <string>&amp;CTS</string>
+         <string>Use &amp;Chamber</string>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -105,7 +105,7 @@
          <string>Use HEPHY shunt box in measurements.</string>
         </property>
         <property name="text">
-         <string>Shunt &amp;Box</string>
+         <string>Use Shunt&amp;Box</string>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -216,6 +216,9 @@
         <property name="decimals">
          <number>1</number>
         </property>
+        <property name="minimum">
+         <double>-1000.000000000000000</double>
+        </property>
         <property name="maximum">
          <double>1000.000000000000000</double>
         </property>
@@ -266,6 +269,9 @@
         <property name="decimals">
          <number>1</number>
         </property>
+        <property name="minimum">
+         <double>-1000.000000000000000</double>
+        </property>
         <property name="maximum">
          <double>1000.000000000000000</double>
         </property>
@@ -283,7 +289,10 @@
          <number>1</number>
         </property>
         <property name="minimum">
-         <double>0.100000000000000</double>
+         <double>-1000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>1000.000000000000000</double>
         </property>
         <property name="value">
          <double>5.000000000000000</double>
@@ -291,9 +300,9 @@
        </widget>
       </item>
       <item row="5" column="0">
-       <widget class="QDoubleSpinBox" name="ivIntervalSpinBox">
+       <widget class="QDoubleSpinBox" name="ivDelaySpinBox">
         <property name="suffix">
-         <string> s</string>
+         <string> ms</string>
         </property>
         <property name="decimals">
          <number>0</number>
@@ -302,10 +311,10 @@
          <double>1.000000000000000</double>
         </property>
         <property name="maximum">
-         <double>3600.000000000000000</double>
+         <double>3600000.000000000000000</double>
         </property>
         <property name="value">
-         <double>10.000000000000000</double>
+         <double>1000.000000000000000</double>
         </property>
        </widget>
       </item>
@@ -317,9 +326,9 @@
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QLabel" name="ivIntervalLabel">
+       <widget class="QLabel" name="ivDelayLabel">
         <property name="text">
-         <string>Interval</string>
+         <string>Meas. Delay</string>
         </property>
        </widget>
       </item>
@@ -488,7 +497,7 @@
          <string>Continue measurement when in compliance.</string>
         </property>
         <property name="text">
-         <string>&amp;Continue i. C.</string>
+         <string>&amp;Continue in Compl.</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -522,7 +531,7 @@
   <tabstop>continueInComplianceCheckBox</tabstop>
   <tabstop>ivEndVoltageSpinBox</tabstop>
   <tabstop>ivStepSpinBox</tabstop>
-  <tabstop>ivIntervalSpinBox</tabstop>
+  <tabstop>ivDelaySpinBox</tabstop>
   <tabstop>biasVoltageSpinBox</tabstop>
   <tabstop>itDurationSpinBox</tabstop>
   <tabstop>itIntervalSpinBox</tabstop>
