@@ -130,7 +130,7 @@ class MeasureProcess(Process, DeviceMixin):
     def ivDelay(self):
         return self.__ivDelay
 
-    def setivDelay(self, value):
+    def setIvDelay(self, value):
         self.__ivDelay = value
 
     def biasVoltage(self,):

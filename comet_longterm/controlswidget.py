@@ -101,7 +101,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Returns IV measurement interval in seconds."""
         return self.ui.ivDelaySpinBox.value() / 1000.
 
-    def setivDelay(self, value):
+    def setIvDelay(self, value):
         """Set IV measurement interval in seconds."""
         self.ui.ivDelaySpinBox.setValue(value * 1000.)
 
@@ -178,7 +178,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
-        self.setivDelay(settings.value('ivDelay', 1.0, type=float))
+        self.setIvDelay(settings.value('ivDelay', 1.0, type=float))
         self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))
         self.setTotalCompliance(settings.value('totalCompliance', 80.0 / 1000 / 1000, type=float))
         self.setSingleCompliance(settings.value('singleCompliance', 25.0 / 1000 / 1000, type=float))
