@@ -189,11 +189,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
             #     self.dataChanged.emit(index, index)
             #     self.sensors.storeSettings()
             #     return True
-            if index.column() == self.Column.Resistivity:
-                sensor.resistivity = format(value)
-                self.dataChanged.emit(index, index)
-                self.sensors.storeSettings()
-                return True
+            # if index.column() == self.Column.Resistivity:
+            #     sensor.resistivity = format(value)
+            #     self.dataChanged.emit(index, index)
+            #     self.sensors.storeSettings()
+            #     return True
 
         return False
 
@@ -206,8 +206,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
             # if index.column() == self.Column.HV:
             #     if sensor.enabled:
             #         return flags | QtCore.Qt.ItemIsEditable
-            if index.column() == self.Column.Resistivity:
-                return flags | QtCore.Qt.ItemIsEditable
+            # if index.column() == self.Column.Resistivity:
+            #     return flags | QtCore.Qt.ItemIsEditable
         return flags
 
 class Sensor(object):

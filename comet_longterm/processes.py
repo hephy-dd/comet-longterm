@@ -416,7 +416,6 @@ class MeasureProcess(Process, DeviceMixin):
                     writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
                     writer.write_header()
                     writers[sensor.index] = writer
-            logging.info("range: [%s:%s:%s]", self.currentVoltage(), self.ivEndVoltage(), self.ivStep())
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
                 if not self.stopRequested():
@@ -452,7 +451,6 @@ class MeasureProcess(Process, DeviceMixin):
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping to bias")
         self.showProgress(deltaVoltage, startVoltage)
-        logging.info("range: [%s:%s:%s]", self.currentVoltage(), self.biasVoltage(), self.ivStep() * -1)
         for value in Range(self.currentVoltage(), self.biasVoltage(), self.ivStep() * -1):
             self.setCurrentVoltage(value)
             if not self.stopRequested():
