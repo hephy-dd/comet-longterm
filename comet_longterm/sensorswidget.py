@@ -123,6 +123,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
                     return sensor.status
             elif index.column() == self.Column.HV:
                 if sensor.enabled:
+                    if sensor.hv is None:
+                        return "N/A"
                     return "ON" if sensor.hv else "OFF"
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
@@ -182,11 +184,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index)
                 self.sensors.storeSettings()
                 return True
-            if index.column() == self.Column.HV:
-                sensor.hv = value
-                self.dataChanged.emit(index, index)
-                self.sensors.storeSettings()
-                return True
+            # if index.column() == self.Column.HV:
+            #     sensor.hv = value
+            #     self.dataChanged.emit(index, index)
+            #     self.sensors.storeSettings()
+            #     return True
             if index.column() == self.Column.Resistivity:
                 sensor.resistivity = format(value)
                 self.dataChanged.emit(index, index)
@@ -221,7 +223,7 @@ class Sensor(object):
         self.color = "#000000"
         self.name = "Unnamed{}".format(index)
         self.status = None
-        self.hv = False
+        self.hv = None # valid: None, True, False
         self.current = None
         self.temperature = None
         self.resistivity = None

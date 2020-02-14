@@ -1,7 +1,7 @@
 import logging
 import csv
 import contextlib
-import time, datetime
+import time
 import os
 import traceback
 
@@ -12,53 +12,8 @@ import pyvisa
 from comet import Process, StopRequest, Range
 from comet import DeviceMixin
 
-def retry(callback, count=3, delay=.250):
-    """Retry callback on failure, returns result of callback on success, raises
-    last callback exception after failing `count` times. Delay retries using
-    `delay` in seconds.
-
-    >>> retry(device.read(), count=5, delay=.500)
-    """
-    for i in range(count):
-        time.sleep(delay)
-        try:
-            return callback()
-        except pyvisa.errors.Error as e:
-            logging.info("communication failed, retrying ({}/{})...".format(i + 1, count))
-    raise e
-
-class Writer(object):
-    """CSV file writer for IV and It measurements."""
-
-    def __init__(self, context):
-        self.context = context
-        self.writer = csv.writer(context)
-
-    def writeHeader(self, sensor, operator, timestamp, calibration, voltage):
-        self.writer.writerows([
-            ["HEPHY Vienna longtime It measurement"],
-            ["sensor name: {}".format(sensor.name)],
-            ["sensor channel: {}".format(sensor.index)],
-            ["operator: {}".format(operator)],
-            ["datetime: {}".format(timestamp)],
-            ["calibration [Ohm]: {}".format(calibration)],
-            ["Voltage [V]: {}".format(voltage)],
-            [],
-            ["timestamp [s]", "voltage [V]", "current [A]", "pt100 [°C]", "temperature [°C]", "humidity [%rH]", "program [Nr]"]
-        ])
-        self.context.flush()
-
-    def writeRow(self, timestamp, voltage, current, pt100, temperature, humidity, program):
-        self.writer.writerow([
-            format(timestamp, '.3f'),
-            format(voltage, 'E'),
-            format(current, 'E'),
-            format(pt100, 'E'),
-            format(temperature, 'E'),
-            format(humidity, 'E'),
-            format(program, 'd')
-        ])
-        self.context.flush()
+from .utils import make_iso
+from .writers import IVWriter, ItWriter
 
 class EnvironProcess(Process, DeviceMixin):
     """Environment monitoring process. Polls for temperature, humidity and
@@ -132,7 +87,6 @@ class MeasureProcess(Process, DeviceMixin):
         super().__init__(*args, **kwargs)
         self.setUseShuntBox(True)
         self.setCurrentVoltage(0.0)
-        self.setTotalCurrent(0.0)
         self.setTemperature(float('nan'))
         self.setHumidity(float('nan'))
         self.setProgram(0)
@@ -155,12 +109,6 @@ class MeasureProcess(Process, DeviceMixin):
     def setCurrentVoltage(self, value):
         self.__currentVoltage = value
 
-    def totalCurrent(self):
-        return self.__totalCurrent
-
-    def setTotalCurrent(self, value):
-        self.__totalCurrent = value
-
     def useShuntBox(self):
         return self.__useShuntBox
 
@@ -179,11 +127,11 @@ class MeasureProcess(Process, DeviceMixin):
     def setIvStep(self, value):
         self.__ivStep = value
 
-    def ivInterval(self):
-        return self.__ivInterval
+    def ivDelay(self):
+        return self.__ivDelay
 
-    def setIvInterval(self, value):
-        self.__ivInterval = value
+    def setivDelay(self, value):
+        self.__ivDelay = value
 
     def biasVoltage(self,):
         return self.__biasVoltage
@@ -298,7 +246,7 @@ class MeasureProcess(Process, DeviceMixin):
         logging.info('SMU current: %G A', totalCurrent)
         if abs(totalCurrent) > self.totalCompliance():
             if not self.continueInCompliance():
-                raise ValueError("SMU in compliance ({:G} A)".format(totalCurrent))
+                raise ValueError(f"SMU in compliance ({totalCurrent:G} A)")
 
         # Read temperatures and shunt box stats
         temperature = {}
@@ -444,6 +392,9 @@ class MeasureProcess(Process, DeviceMixin):
                 for sensor in self.sensors():
                     shunt.enable(sensor.index, sensor.enabled)
                     sensor.hv = sensor.enabled
+        else:
+            for sensor in self.sensors():
+                sensor.hv = None
 
         self.showProgress(3, 3)
         self.showMessage("Done")
@@ -455,30 +406,32 @@ class MeasureProcess(Process, DeviceMixin):
         self.ivStarted.emit()
         with contextlib.ExitStack() as stack:
             writers = {}
+            timestamp = make_iso(self.startTime())
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
-                    filename = os.path.join(self.path(), 'IV-{}-{}.txt'.format(name, timestamp))
+                    filename = os.path.join(self.path(), f'IV-{name}-{timestamp}.txt')
                     f = open(filename, 'w', newline='')
-                    writer = Writer(stack.enter_context(f))
-                    writer.writeHeader(sensor, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
+                    writer = IVWriter(stack.enter_context(f))
+                    writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
+                    writer.write_header()
                     writers[sensor.index] = writer
+            logging.info("range: [%s:%s:%s]", self.currentVoltage(), self.ivEndVoltage(), self.ivStep())
             for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
                 self.setCurrentVoltage(value)
                 if not self.stopRequested():
-                    self.showMessage("Ramping up ({:.2f} V)".format(self.currentVoltage()))
+                    self.showMessage(f"Ramping up ({value:.2f} V)")
                     # Set voltage
                     smu.source.voltage.level = value
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
-                    self.sleep(self.ivInterval())
+                    self.sleep(self.ivDelay())
                     reading = self.scan(smu, multi)
                     logging.info("scan reading: %s", reading)
                     self.ivReading.emit(reading)
                     self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                     for sensor in self.sensors():
                         if sensor.enabled:
-                            writers[sensor.index].writeRow(
+                            writers[sensor.index].write_row(
                                 timestamp=reading.get('time'),
                                 voltage=reading.get('U'),
                                 current=reading.get('channels')[sensor.index].get('I'),
@@ -499,15 +452,16 @@ class MeasureProcess(Process, DeviceMixin):
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping to bias")
         self.showProgress(deltaVoltage, startVoltage)
-        for value in Range(self.currentVoltage(), self.biasVoltage(), -self.ivStep()):
+        logging.info("range: [%s:%s:%s]", self.currentVoltage(), self.biasVoltage(), self.ivStep() * -1)
+        for value in Range(self.currentVoltage(), self.biasVoltage(), self.ivStep() * -1):
             self.setCurrentVoltage(value)
             if not self.stopRequested():
-                self.showMessage("Ramping to bias ({:.2f} V)".format(self.currentVoltage()))
+                self.showMessage(f"Ramping to bias ({value:.2f} V)")
                 # Set voltage
                 smu.source.voltage.level = value
                 deltaVoltage = startVoltage - self.currentVoltage()
                 self.showProgress(deltaVoltage, startVoltage)
-                self.sleep(self.ivInterval())
+                self.sleep(self.ivDelay())
                 totalCurrent = smu.read()[1]
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=totalCurrent))
             else:
@@ -529,11 +483,12 @@ class MeasureProcess(Process, DeviceMixin):
             for sensor in self.sensors():
                 if sensor.enabled:
                     name = sensor.name
-                    timestamp = datetime.datetime.utcfromtimestamp(self.startTime()).strftime('%Y-%m-%dT%H-%M-%S')
-                    filename = os.path.join(self.path(), 'it-{}-{}.txt'.format(name, timestamp))
+                    timestamp = make_iso(self.startTime())
+                    filename = os.path.join(self.path(), f'it-{name}-{timestamp}.txt')
                     f = open(filename, 'w', newline='')
-                    writer = Writer(stack.enter_context(f))
-                    writer.writeHeader(sensor, self.operator(), timestamp, sensor.resistivity, self.ivEndVoltage())
+                    writer = ItWriter(stack.enter_context(f))
+                    writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
+                    writer.write_header()
                     writers[sensor.index] = writer
             while not self.stopRequested():
                 self.showMessage("Measuring...")
@@ -548,7 +503,7 @@ class MeasureProcess(Process, DeviceMixin):
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                 for sensor in self.sensors():
                     if sensor.enabled:
-                        writers[sensor.index].writeRow(
+                        writers[sensor.index].write_row(
                             timestamp=reading.get('time'),
                             voltage=reading.get('U'),
                             current=reading.get('channels')[sensor.index].get('I'),
@@ -559,12 +514,13 @@ class MeasureProcess(Process, DeviceMixin):
                         )
                 # Wait...
                 interval = self.itInterval()
+                interval_step = .25
                 while interval > 0:
                     if self.stopRequested():
                         raise StopRequest()
-                    self.sleep(.25)
-                    self.showMessage("Next measurement in {:.0f} s".format(interval))
-                    interval -= .25
+                    self.sleep(interval_step)
+                    self.showMessage(f"Next measurement in {interval:.0f} s")
+                    interval -= interval_step
         self.showProgress(1, 1)
         self.showMessage("Done")
 
@@ -576,9 +532,9 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Ramping down")
         self.showProgress(deltaVoltage, startVoltage)
         for value in Range(self.currentVoltage(), zeroVoltage, -self.ivStep()):
-            self.showMessage("Ramping to zero ({:.2f} V)".format(self.currentVoltage()))
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
+            self.showMessage(f"Ramping to zero ({value:.2f} V)")
             # Set voltage
             smu.source.voltage.level = value
             deltaVoltage = startVoltage - self.currentVoltage()
@@ -600,17 +556,17 @@ class MeasureProcess(Process, DeviceMixin):
 
     def run(self):
         # Open connection to instruments
-        with self.devices().get('smu') as smu, \
-             self.devices().get('multi') as multi:
-            try:
-                self.setup(smu, multi)
-                self.rampUp(smu, multi)
-                self.rampBias(smu, multi)
-                self.longterm(smu, multi)
-            except StopRequest:
-                pass
-            finally:
-                self.rampDown(smu, multi)
-                self.reset(smu, multi)
-                self.showMessage("Stopped")
-                self.hideProgress()
+        with self.devices().get('smu') as smu:
+            with self.devices().get('multi') as multi:
+                try:
+                    self.setup(smu, multi)
+                    self.rampUp(smu, multi)
+                    self.rampBias(smu, multi)
+                    self.longterm(smu, multi)
+                except StopRequest:
+                    pass
+                finally:
+                    self.rampDown(smu, multi)
+                    self.reset(smu, multi)
+                    self.showMessage("Stopped")
+                    self.hideProgress()

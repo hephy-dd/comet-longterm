@@ -12,7 +12,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     useShuntBoxChanged = QtCore.pyqtSignal(bool)
     ivEndVoltageChanged = QtCore.pyqtSignal(float)
     ivStepChanged = QtCore.pyqtSignal(float)
-    ivIntervalChanged = QtCore.pyqtSignal(float)
+    ivDelayChanged = QtCore.pyqtSignal(float)
     biasVoltageChanged = QtCore.pyqtSignal(float)
     totalComplianceChanged = QtCore.pyqtSignal(float)
     singleComplianceChanged = QtCore.pyqtSignal(float)
@@ -30,7 +30,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.ivEndVoltageSpinBox.editingFinished.connect(lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage()))
         self.ui.ivEndVoltageSpinBox.editingFinished.connect(self.onIvEndVoltageChanged)
         self.ui.ivStepSpinBox.editingFinished.connect(lambda: self.ivStepChanged.emit(self.ivStep()))
-        self.ui.ivIntervalSpinBox.editingFinished.connect(lambda: self.ivIntervalChanged.emit(self.ivInterval()))
+        self.ui.ivDelaySpinBox.editingFinished.connect(lambda: self.ivDelayChanged.emit(self.ivDelay()))
         self.ui.biasVoltageSpinBox.editingFinished.connect(lambda: self.biasVoltageChanged.emit(self.biasVoltage()))
         self.ui.totalComplianceSpinBox.editingFinished.connect(lambda: self.totalComplianceChanged.emit(self.totalCompliance()))
         self.ui.totalComplianceSpinBox.editingFinished.connect(self.onTotalComplianceChanged)
@@ -44,8 +44,22 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def onIvEndVoltageChanged(self):
         """Syncronize bias voltage and step with end voltage limit."""
-        self.ui.biasVoltageSpinBox.setMaximum(self.ivEndVoltage())
-        self.ui.ivStepSpinBox.setMaximum(self.ivEndVoltage())
+        bias = self.ui.biasVoltageSpinBox.value()
+        step = self.ui.ivStepSpinBox.value()
+        if self.ivEndVoltage() < 0:
+            self.ui.biasVoltageSpinBox.setMinimum(self.ivEndVoltage())
+            self.ui.biasVoltageSpinBox.setMaximum(0)
+            self.ui.biasVoltageSpinBox.setValue(-abs(bias))
+            self.ui.ivStepSpinBox.setMinimum(self.ivEndVoltage())
+            self.ui.ivStepSpinBox.setMaximum(0)
+            self.ui.ivStepSpinBox.setValue(-abs(step))
+        else:
+            self.ui.biasVoltageSpinBox.setMinimum(0)
+            self.ui.biasVoltageSpinBox.setMaximum(self.ivEndVoltage())
+            self.ui.biasVoltageSpinBox.setValue(abs(bias))
+            self.ui.ivStepSpinBox.setMinimum(0)
+            self.ui.ivStepSpinBox.setMaximum(self.ivEndVoltage())
+            self.ui.ivStepSpinBox.setValue(abs(step))
 
     def onTotalComplianceChanged(self):
         """Syncronize total/single compliance limit."""
@@ -83,13 +97,13 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Set IV ramp up step size in volts."""
         self.ui.ivStepSpinBox.setValue(value)
 
-    def ivInterval(self):
+    def ivDelay(self):
         """Returns IV measurement interval in seconds."""
-        return self.ui.ivIntervalSpinBox.value() / 1000.
+        return self.ui.ivDelaySpinBox.value() / 1000.
 
-    def setIvInterval(self, value):
+    def setivDelay(self, value):
         """Set IV measurement interval in seconds."""
-        self.ui.ivIntervalSpinBox.setValue(value * 1000.)
+        self.ui.ivDelaySpinBox.setValue(value * 1000.)
 
     def biasVoltage(self):
         """Returns It bias voltage in volts."""
@@ -164,7 +178,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
-        self.setIvInterval(settings.value('ivInterval', 1000.0, type=float))
+        self.setivDelay(settings.value('ivDelay', 1.0, type=float))
         self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))
         self.setTotalCompliance(settings.value('totalCompliance', 80.0 / 1000 / 1000, type=float))
         self.setSingleCompliance(settings.value('singleCompliance', 25.0 / 1000 / 1000, type=float))
@@ -178,7 +192,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         settings.setValue('useShuntBox', self.isShuntBoxEnabled())
         settings.setValue('ivEndVoltage', self.ivEndVoltage())
         settings.setValue('ivStep', self.ivStep())
-        settings.setValue('ivInterval', self.ivInterval())
+        settings.setValue('ivDelay', self.ivDelay())
         settings.setValue('biasVoltage', self.biasVoltage())
         settings.setValue('totalCompliance', self.totalCompliance())
         settings.setValue('singleCompliance', self.singleCompliance())

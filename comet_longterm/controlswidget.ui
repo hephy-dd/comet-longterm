@@ -289,7 +289,10 @@
          <number>1</number>
         </property>
         <property name="minimum">
-         <double>0.100000000000000</double>
+         <double>-1000.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>1000.000000000000000</double>
         </property>
         <property name="value">
          <double>5.000000000000000</double>
@@ -297,7 +300,7 @@
        </widget>
       </item>
       <item row="5" column="0">
-       <widget class="QDoubleSpinBox" name="ivIntervalSpinBox">
+       <widget class="QDoubleSpinBox" name="ivDelaySpinBox">
         <property name="suffix">
          <string> ms</string>
         </property>
@@ -323,9 +326,9 @@
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QLabel" name="ivIntervalLabel">
+       <widget class="QLabel" name="ivDelayLabel">
         <property name="text">
-         <string>Delay</string>
+         <string>Meas. Delay</string>
         </property>
        </widget>
       </item>
@@ -528,7 +531,7 @@
   <tabstop>continueInComplianceCheckBox</tabstop>
   <tabstop>ivEndVoltageSpinBox</tabstop>
   <tabstop>ivStepSpinBox</tabstop>
-  <tabstop>ivIntervalSpinBox</tabstop>
+  <tabstop>ivDelaySpinBox</tabstop>
   <tabstop>biasVoltageSpinBox</tabstop>
   <tabstop>itDurationSpinBox</tabstop>
   <tabstop>itIntervalSpinBox</tabstop>

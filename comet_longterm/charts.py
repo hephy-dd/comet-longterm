@@ -14,7 +14,7 @@ class IVChart(Chart):
 
         # X axis
         self.axisX = self.addValueAxis(QtCore.Qt.AlignBottom)
-        self.axisX.setTitleText("Voltage V")
+        self.axisX.setTitleText("Voltage V (abs)")
         self.axisX.setRange(0, 800)
 
         # Y axis
@@ -38,7 +38,7 @@ class IVChart(Chart):
         self.fit()
 
     def append(self, reading):
-        voltage = reading.get('U')
+        voltage = abs(reading.get('U')) # absolute (can be negative)
         for channel in reading.get('channels').values():
             series = self.ivSeries.get(channel.get('index'))
             series.data().append(voltage, channel.get('I') * 1000 * 1000) # a to uA
