@@ -85,11 +85,11 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def ivInterval(self):
         """Returns IV measurement interval in seconds."""
-        return self.ui.ivIntervalSpinBox.value()
+        return self.ui.ivIntervalSpinBox.value() / 1000.
 
     def setIvInterval(self, value):
         """Set IV measurement interval in seconds."""
-        self.ui.ivIntervalSpinBox.setValue(value)
+        self.ui.ivIntervalSpinBox.setValue(value * 1000.)
 
     def biasVoltage(self):
         """Returns It bias voltage in volts."""
@@ -164,7 +164,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
-        self.setIvInterval(settings.value('ivInterval', 10.0, type=float))
+        self.setIvInterval(settings.value('ivInterval', 1000.0, type=float))
         self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))
         self.setTotalCompliance(settings.value('totalCompliance', 80.0 / 1000 / 1000, type=float))
         self.setSingleCompliance(settings.value('singleCompliance', 25.0 / 1000 / 1000, type=float))

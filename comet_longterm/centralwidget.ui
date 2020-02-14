@@ -103,7 +103,7 @@
        </property>
        <widget class="QWidget" name="ctsTab">
         <attribute name="title">
-         <string>CTS</string>
+         <string>Chamber</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
@@ -111,13 +111,23 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="pt100Tab">
+       <widget class="QWidget" name="ivTempTab">
         <attribute name="title">
-         <string>PT100</string>
+         <string>IV Temp.</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
-          <widget class="ChartView" name="pt100ChartView"/>
+          <widget class="ChartView" name="ivTempChartView"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="itTempTab">
+        <attribute name="title">
+         <string>It Temp.</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="ChartView" name="itTempChartView"/>
          </item>
         </layout>
        </widget>

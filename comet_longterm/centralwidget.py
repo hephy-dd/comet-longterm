@@ -15,7 +15,7 @@ from comet.devices.keithley import K2410, K2700
 from comet.devices.hephy import ShuntBox
 
 from .processes import EnvironProcess, MeasureProcess
-from .charts import IVChart, ItChart, CtsChart, Pt100Chart, ShuntBoxChart
+from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart, ShuntBoxChart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -55,8 +55,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.itChartView.setChart(self.itChart)
         self.ctsChart = CtsChart()
         self.ui.ctsChartView.setChart(self.ctsChart)
-        self.pt100Chart = Pt100Chart(self.sensors())
-        self.ui.pt100ChartView.setChart(self.pt100Chart)
+        self.ivTempChart = IVTempChart(self.sensors())
+        self.ui.ivTempChartView.setChart(self.ivTempChart)
+        self.itTempChart = ItTempChart(self.sensors())
+        self.ui.itTempChartView.setChart(self.itTempChart)
         self.shuntBoxChart = ShuntBoxChart()
         self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
 
@@ -154,12 +156,12 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     @QtCore.pyqtSlot()
     def onIvStarted(self):
         self.ui.topTabWidget.setCurrentIndex(0)
-        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to PT100
+        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to IV temperature
 
     @QtCore.pyqtSlot()
     def onItStarted(self):
         self.ui.topTabWidget.setCurrentIndex(1)
-        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to PT100
+        self.ui.bottomTabWidget.setCurrentIndex(2) # switch to It temperature
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
@@ -169,7 +171,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.ivChart.append(reading)
-        self.pt100Chart.append(reading)
+        self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
 
     @QtCore.pyqtSlot(object)
@@ -180,7 +182,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
         self.itChart.append(reading)
-        self.pt100Chart.append(reading)
+        self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)
 
     @QtCore.pyqtSlot(object)
@@ -194,9 +196,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.statusWidget().setCurrent(None)
 
         # TODO
+        self.ctsChart.reset()
         self.ivChart.load(self.sensors())
         self.itChart.load(self.sensors())
-        self.pt100Chart.load(self.sensors())
+        self.ivTempChart.load(self.sensors())
+        self.itTempChart.load(self.sensors())
 
         # Setup output location
         path = os.path.normpath(self.controlsWidget().path())

@@ -60,10 +60,10 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         for i in range(count):
             if not self.ui.tableView.verticalHeader().isSectionHidden(i):
                 rowTotalHeight += self.ui.tableView.verticalHeader().sectionSize(i)
-        if not self.ui.tableView.horizontalScrollBar().isHidden():
-            rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
-        if not self.ui.tableView.horizontalHeader().isHidden():
-            rowTotalHeight += self.ui.tableView.horizontalHeader().height()
+        # if not self.ui.tableView.horizontalScrollBar().isHidden():
+        #     rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
+        # if not self.ui.tableView.horizontalHeader().isHidden():
+        #     rowTotalHeight += self.ui.tableView.horizontalHeader().height()
         self.ui.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self):

@@ -4,7 +4,7 @@ import math
 from PyQt5 import QtCore, QtGui
 from QCharted import Chart
 
-__all__ = ['IVChart', 'ItChart', 'CtsChart', 'Pt100Chart', 'ShuntBoxChart']
+__all__ = ['IVChart', 'ItChart', 'CtsChart', 'IVTempChart', 'ItTempChart', 'ShuntBoxChart']
 
 class IVChart(Chart):
 
@@ -35,6 +35,7 @@ class IVChart(Chart):
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)
+        self.fit()
 
     def append(self, reading):
         voltage = reading.get('U')
@@ -72,6 +73,7 @@ class ItChart(Chart):
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)
+        self.fit()
 
     def append(self, reading):
         ts = reading.get('time')
@@ -124,6 +126,12 @@ class CtsChart(Chart):
         self.ctsProgramSeries.setName("Program")
         self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
+    def reset(self):
+        self.ctsTempSeries.data().clear()
+        self.ctsHumidSeries.data().clear()
+        self.ctsProgramSeries.data().clear()
+        self.fit()
+
     def append(self, reading):
         ts = reading.get('time')
         self.ctsTempSeries.data().append(ts, reading.get('temp'))
@@ -134,7 +142,7 @@ class CtsChart(Chart):
         else:
             self.fit()
 
-class Pt100Chart(Chart):
+class IVTempChart(Chart):
 
     def __init__(self, sensors):
         super().__init__()
@@ -150,24 +158,25 @@ class Pt100Chart(Chart):
         self.axisY.setTitleText("Temp")
         self.axisY.setRange(0, 100)
 
-        self.pt100Series = {}
+        self.tempSeries = {}
         for sensor in sensors:
             series = self.addLineSeries(self.axisX, self.axisY)
-            self.pt100Series[sensor.index] = series
+            self.tempSeries[sensor.index] = series
         self.load(sensors)
 
     def load(self, sensors):
         for sensor in sensors:
-            series = self.pt100Series[sensor.index]
+            series = self.tempSeries[sensor.index]
             series.data().clear()
             series.setName(format(sensor.name))
             series.setPen(QtGui.QColor(sensor.color))
             series.setVisible(sensor.enabled)
+        self.fit()
 
     def append(self, reading):
         ts = reading.get('time')
         for channel in reading.get('channels').values():
-            series = self.pt100Series.get(channel.get('index'))
+            series = self.tempSeries.get(channel.get('index'))
             if channel.get('temp') is not None:
                 # watch out!
                 if not math.isnan(channel.get('temp')):
@@ -176,6 +185,10 @@ class Pt100Chart(Chart):
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
+
+class ItTempChart(IVTempChart):
+
+    pass
 
 class ShuntBoxChart(Chart):
 
