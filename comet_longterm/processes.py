@@ -90,6 +90,9 @@ class MeasureProcess(Process, DeviceMixin):
         self.setTemperature(float('nan'))
         self.setHumidity(float('nan'))
         self.setProgram(0)
+        self.setFilterEnable(False)
+        self.setFilterType('repeat')
+        self.setFilterCount(10)
 
     def sensors(self):
         return self.__sensors
@@ -169,6 +172,26 @@ class MeasureProcess(Process, DeviceMixin):
 
     def setItInterval(self, value):
         self.__itInterval = value
+
+    def filterEnable(self):
+        return self.__filterEnable
+
+    def setFilterEnable(self, enabled):
+        self.__filterEnable = enabled
+
+    def filterType(self):
+        return self.__filterType
+
+    def setFilterType(self, type):
+        assert type in ('repeat', 'moving')
+        self.__filterType = type
+
+    def filterCount(self):
+        return self.__filterCount
+
+    def setFilterCount(self, count):
+        assert 0 <= count <= 100
+        self.__filterCount = count
 
     def temperature(self):
         return self.__temperature
@@ -372,11 +395,28 @@ class MeasureProcess(Process, DeviceMixin):
         multi.resource.write(':ROUT:SCAN:LSEL INT')
         multi.resource.query('*OPC?')
 
+        # Filter
+        logging.info("multimeter.filter.enable: %s", self.filterEnable())
+        enable = {False: 'OFF', True: 'ON'}[self.filterEnable()]
+        multi.resource.write(f':SENS:CURR:AVER:STAT {enable}')
+        multi.resource.query('*OPC?')
+        logging.info("multimeter.filter.type: %s", self.filterType())
+        tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.filterType()]
+        multi.resource.write(f':SENS:CURR:AVER:TCON {tcontrol}')
+        multi.resource.query('*OPC?')
+        logging.info("multimeter.filter.count: %s", self.filterCount())
+        count = self.filterCount()
+        multi.resource.write(f':SENS:CURR:AVER:COUN {count}')
+        multi.resource.query('*OPC?')
+
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
         smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER ON')
+        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
+        smu.resource.query('*OPC?')
         smu.resource.write(':SOUR:FUNC VOLT')
         smu.resource.query('*OPC?')
         # switch output OFF
@@ -388,9 +428,13 @@ class MeasureProcess(Process, DeviceMixin):
         smu.resource.query('*OPC?')
         # output data format
         smu.resource.write('SENS:CURR:RANG:AUTO 1')
+        smu.resource.query('*OPC?')
         smu.resource.write('TRIG:CLE')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER OFF')
+        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
         smu.resource.query('*OPC?')
 

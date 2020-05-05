@@ -14,6 +14,7 @@ from comet.devices.cts import ITC
 from comet.devices.keithley import K2410, K2700
 from comet.devices.hephy import ShuntBox
 
+from .logwindow import LogWindow
 from .processes import EnvironProcess, MeasureProcess
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart, ShuntBoxChart
 
@@ -25,6 +26,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.loadDevices()
         self.createCharts()
         self.createProcesses()
+
+        self.logWindow = LogWindow()
+        self.logWindow.addLogger(logging.getLogger())
+        self.logWindow.resize(640, 420)
+        self.logWindow.hide()
 
         self.parent().closeRequest.connect(self.onClose)
         self.controlsWidget().started.connect(self.onStart)
@@ -40,6 +46,12 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.importCalibAction.triggered.connect(self.onImportCalib)
         self.parent().ui.fileMenu.insertAction(self.parent().ui.quitAction, self.importCalibAction)
         self.parent().ui.fileMenu.insertSeparator(self.parent().ui.quitAction)
+        self.showLogAction = QtWidgets.QAction(self.tr("Logging..."))
+        self.showLogAction.triggered.connect(self.onShowLogWindow)
+        action = self.parent().ui.helpMenu.menuAction()
+        menu = QtWidgets.QMenu(self.tr("&View"))
+        self.parent().ui.viewMenu = self.parent().menuBar().insertMenu(action, menu).menu()
+        self.parent().ui.viewMenu.addAction(self.showLogAction)
 
     def loadDevices(self):
         resources = QtCore.QSettings().value('resources', {})
@@ -92,9 +104,15 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.controlsWidget().continueInComplianceChanged.connect(meas.setContinueInCompliance)
         self.controlsWidget().itDurationChanged.connect(meas.setItDuration)
         self.controlsWidget().itIntervalChanged.connect(meas.setItInterval)
+        self.controlsWidget().filterEnableChanged.connect(meas.setFilterEnable)
+        self.controlsWidget().filterTypeChanged.connect(meas.setFilterType)
+        self.controlsWidget().filterCountChanged.connect(meas.setFilterCount)
 
         self.parent().connectProcess(meas)
         self.processes().add('meas', meas)
+
+    def setLevel(self, level):
+        self.logWindow.setLevel(level)
 
     def sensors(self):
         """Returns sensors manager."""
@@ -130,7 +148,6 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     def onEnableShuntBox(self, enabled):
         """Enable shunt box."""
         # Toggle pt100 tab
-
 
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
@@ -258,6 +275,13 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 self.parent().showException(e)
 
     @QtCore.pyqtSlot()
+    def onShowLogWindow(self):
+        self.logWindow.show()
+        self.logWindow.raise_()
+
+    @QtCore.pyqtSlot()
     def onClose(self):
+        self.logWindow.hide()
+        self.logWindow.removeLogger(logging.getLogger())
         self.sensors().storeSettings()
         self.controlsWidget().storeSettings()
