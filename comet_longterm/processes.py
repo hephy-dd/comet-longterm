@@ -238,6 +238,7 @@ class MeasureProcess(Process, DeviceMixin):
         # Check SMU compliance tripped?
         compliance_tripped = int(smu.resource.query(":SENS:CURR:PROT:TRIP?"))
         if compliance_tripped:
+            logging.warning("SMU in compliance!")
             if not self.continueInCompliance():
                 raise ValueError(f"SMU in compliance")
 
@@ -250,7 +251,7 @@ class MeasureProcess(Process, DeviceMixin):
         # SMU current
         logging.info("Read SMU current...")
         totalCurrent = smu.read()[1]
-        logging.info("SMU current: {totalCurrent:G} A")
+        logging.info(f"SMU current: {totalCurrent:G} A")
 
         # Read temperatures and shunt box stats
         temperature = {}
@@ -278,7 +279,7 @@ class MeasureProcess(Process, DeviceMixin):
                 U = results.pop(0).get('VDC', 0) # pop result
                 # Calculate sensor current
                 I = U / R
-                if I > self.singleCompliance():
+                if abs(I) > self.singleCompliance():
                     sensor.status = sensor.State.COMPL_ERR
                     # Switch HV relay off
                     if self.useShuntBox():
@@ -434,7 +435,8 @@ class MeasureProcess(Process, DeviceMixin):
                     writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
                     writer.write_header()
                     writers[sensor.index] = writer
-            for value in Range(self.currentVoltage(), self.ivEndVoltage(), self.ivStep()):
+            step = -self.ivStep() if self.ivEndVoltage() < self.currentVoltage() else self.ivStep()
+            for value in Range(self.currentVoltage(), self.ivEndVoltage(), step):
                 self.setCurrentVoltage(value)
                 if not self.stopRequested():
                     self.showMessage(f"Ramping up ({value:.2f} V)")
@@ -469,7 +471,8 @@ class MeasureProcess(Process, DeviceMixin):
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping to bias")
         self.showProgress(deltaVoltage, startVoltage)
-        for value in Range(self.currentVoltage(), self.biasVoltage(), self.ivStep() * -1):
+        step = -self.ivStep() if self.biasVoltage() < self.currentVoltage() else self.ivStep()
+        for value in Range(self.currentVoltage(), self.biasVoltage(), step):
             self.setCurrentVoltage(value)
             if not self.stopRequested():
                 self.showMessage(f"Ramping to bias ({value:.2f} V)")
@@ -547,7 +550,8 @@ class MeasureProcess(Process, DeviceMixin):
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping down")
         self.showProgress(deltaVoltage, startVoltage)
-        for value in Range(self.currentVoltage(), zeroVoltage, -self.ivStep()):
+        step = -self.ivStep() if zeroVoltage < self.currentVoltage() else self.ivStep()
+        for value in Range(self.currentVoltage(), zeroVoltage, step):
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
             self.showMessage(f"Ramping to zero ({value:.2f} V)")
