@@ -397,17 +397,22 @@ class MeasureProcess(Process, DeviceMixin):
 
         # Filter
         logging.info("multimeter.filter.enable: %s", self.filterEnable())
-        enable = {False: 'OFF', True: 'ON'}[self.filterEnable()]
-        multi.resource.write(f':SENS:CURR:AVER:STAT {enable}')
+        enable = int(self.filterEnable())
+        multi.resource.write(f':SENS:VOLT:AVER:STAT {enable}')
         multi.resource.query('*OPC?')
+        assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?')) == enable
+
         logging.info("multimeter.filter.type: %s", self.filterType())
         tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.filterType()]
-        multi.resource.write(f':SENS:CURR:AVER:TCON {tcontrol}')
+        multi.resource.write(f':SENS:VOLT:AVER:TCON {tcontrol}')
         multi.resource.query('*OPC?')
+        assert multi.resource.query(':SENS:VOLT:AVER:TCON?') == tcontrol
+
         logging.info("multimeter.filter.count: %s", self.filterCount())
         count = self.filterCount()
-        multi.resource.write(f':SENS:CURR:AVER:COUN {count}')
+        multi.resource.write(f':SENS:VOLT:AVER:COUN {count}')
         multi.resource.query('*OPC?')
+        assert int(multi.resource.query(':SENS:VOLT:AVER:COUN?')) == count
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
