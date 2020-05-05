@@ -45,21 +45,15 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     def onIvEndVoltageChanged(self):
         """Syncronize bias voltage and step with end voltage limit."""
         bias = self.ui.biasVoltageSpinBox.value()
-        step = self.ui.ivStepSpinBox.value()
         if self.ivEndVoltage() < 0:
             self.ui.biasVoltageSpinBox.setMinimum(self.ivEndVoltage())
             self.ui.biasVoltageSpinBox.setMaximum(0)
             self.ui.biasVoltageSpinBox.setValue(-abs(bias))
-            self.ui.ivStepSpinBox.setMinimum(self.ivEndVoltage())
-            self.ui.ivStepSpinBox.setMaximum(0)
-            self.ui.ivStepSpinBox.setValue(-abs(step))
         else:
             self.ui.biasVoltageSpinBox.setMinimum(0)
             self.ui.biasVoltageSpinBox.setMaximum(self.ivEndVoltage())
             self.ui.biasVoltageSpinBox.setValue(abs(bias))
-            self.ui.ivStepSpinBox.setMinimum(0)
-            self.ui.ivStepSpinBox.setMaximum(self.ivEndVoltage())
-            self.ui.ivStepSpinBox.setValue(abs(step))
+        self.ui.ivStepSpinBox.setMaximum(abs(self.ivEndVoltage()))
 
     def onTotalComplianceChanged(self):
         """Syncronize total/single compliance limit."""

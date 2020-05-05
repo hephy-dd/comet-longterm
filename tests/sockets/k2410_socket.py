@@ -46,6 +46,9 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 elif re.match(r'\:SYST\:ERR\?', data):
                     self.send('0,"no error"')
 
+                elif re.match(r'\:?SENS\:CURR\:PROT\:TRIP\?', data):
+                    self.send("0")
+
                 elif re.match(r'OUTP\?', data):
                     self.send(self.state.get('OUTP'))
 
