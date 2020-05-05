@@ -42,12 +42,15 @@ class K2700Handler(socketserver.BaseRequestHandler):
                 elif re.match(r'\:SYST\:ERR\?', data):
                     self.send('0,"no error"')
 
+                elif re.match(r'\:SAMP\:COUN\s+\d+', data):
+                    K2700Handler.channels = int(data.split()[-1])
+
                 elif re.match(r'\:?READ\?', data):
-                    self.send(",".join(["0.000024"]*10))
+                    self.send(",".join(["0.000024"] * K2700Handler.channels))
 
                 elif re.match(r'\:?FETC[h]?\?', data):
                     values = []
-                    for i in range(self.channels):
+                    for i in range(K2700Handler.channels):
                         vdc = random.uniform(.00025,.001)
                         values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
                     time.sleep(random.uniform(.5, 1.0)) # rev B10 ;)

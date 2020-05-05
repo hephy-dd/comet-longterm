@@ -235,18 +235,22 @@ class MeasureProcess(Process, DeviceMixin):
             R:  calibrated resistor value
             temp:  temperature (PT100)
         """
+        # Check SMU compliance tripped?
+        compliance_tripped = int(smu.resource.query(":SENS:CURR:PROT:TRIP?"))
+        if compliance_tripped:
+            if not self.continueInCompliance():
+                raise ValueError(f"SMU in compliance")
+
         # Update SMU complicance
         total_compliance = self.totalCompliance()
         logging.info("SMU total compliance: %G A", total_compliance)
         smu.resource.write(f'SENS:CURR:PROT:LEV {total_compliance:E}')
         smu.resource.query('*OPC?')
 
-        # check SMU compliance
+        # SMU current
+        logging.info("Read SMU current...")
         totalCurrent = smu.read()[1]
-        logging.info('SMU current: %G A', totalCurrent)
-        if abs(totalCurrent) > self.totalCompliance():
-            if not self.continueInCompliance():
-                raise ValueError(f"SMU in compliance ({totalCurrent:G} A)")
+        logging.info("SMU current: {totalCurrent:G} A")
 
         # Read temperatures and shunt box stats
         temperature = {}
@@ -259,8 +263,13 @@ class MeasureProcess(Process, DeviceMixin):
                     temperature[index + 1] = value
 
         # start measurement
+        logging.info("Initiate measurement...")
         multi.init()
+        logging.info("Read results buffer...")
         results = multi.fetch()
+
+        for index, result in enumerate(results):
+            logging.info("[%d]: %s", index, result)
 
         channels = {}
         for sensor in self.sensors():
@@ -282,6 +291,10 @@ class MeasureProcess(Process, DeviceMixin):
                     I=I, U=U, R=R,
                     temp=temp
                 )
+
+        if len(results):
+            raise RuntimeError("Too many results in buffer.")
+
         return dict(
             time=self.time(),
             channels=channels,
@@ -330,7 +343,6 @@ class MeasureProcess(Process, DeviceMixin):
         multi.resource.query('*OPC?')
 
         # set channels to scan (up to max 10)
-        count = len(self.sensors())
         channels = []
         offset = 100
         for sensor in self.sensors():
@@ -338,12 +350,18 @@ class MeasureProcess(Process, DeviceMixin):
                 channels.append(format(offset + sensor.index))
         if not channels:
             raise RuntimeError("No sensor channels selected!")
+
+        count = len(channels)
+
         # ROUTE:SCAN (@101,102,103...)
+        logging.info("channels: %s", ','.join(channels))
         multi.resource.write('ROUTE:SCAN (@{})'.format(','.join(channels)))
         multi.resource.query('*OPC?')
 
         multi.resource.write(':TRIG:COUN 1')
         multi.resource.query('*OPC?')
+
+        logging.info("sample count: %d", count)
         multi.resource.write(f':SAMP:COUN {count}')
         multi.resource.query('*OPC?')
         # start scan when triggered
