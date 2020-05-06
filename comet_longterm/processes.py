@@ -17,7 +17,7 @@ from .writers import IVWriter, ItWriter
 
 class EnvironProcess(Process, DeviceMixin):
     """Environment monitoring process. Polls for temperature, humidity and
-    climate chamber program in intervals.
+    climate chamber running state in intervals.
     """
 
     reading = QtCore.pyqtSignal(object)
@@ -33,8 +33,8 @@ class EnvironProcess(Process, DeviceMixin):
         """Read environment data from device."""
         temp = device.analog_channel(1)[0]
         humid = device.analog_channel(2)[0]
-        program = device.program
-        return dict(time=self.time(), temp=temp, humid=humid, program=program)
+        running = device.status.running
+        return dict(time=self.time(), temp=temp, humid=humid, running=running)
 
     def run(self):
         while not self.stopRequested():
@@ -89,7 +89,7 @@ class MeasureProcess(Process, DeviceMixin):
         self.setCurrentVoltage(0.0)
         self.setTemperature(float('nan'))
         self.setHumidity(float('nan'))
-        self.setProgram(0)
+        self.setRunning(False)
         self.setFilterEnable(False)
         self.setFilterType('repeat')
         self.setFilterCount(10)
@@ -205,11 +205,11 @@ class MeasureProcess(Process, DeviceMixin):
     def setHumidity(self, value):
         self.__humidity = value
 
-    def program(self):
-        return self.__program
+    def running(self):
+        return self.__running
 
-    def setProgram(self, value):
-        self.__program = value
+    def setRunning(self, value):
+        self.__running = value
 
     def path(self):
         return self.__path
@@ -509,7 +509,7 @@ class MeasureProcess(Process, DeviceMixin):
                                 pt100=reading.get('channels')[sensor.index].get('temp'),
                                 temperature=self.temperature(),
                                 humidity=self.humidity(),
-                                program=self.program()
+                                running=self.running()
                             )
                 else:
                     raise StopRequest()
@@ -584,7 +584,7 @@ class MeasureProcess(Process, DeviceMixin):
                             pt100=reading.get('channels')[sensor.index].get('temp'),
                             temperature=self.temperature(),
                             humidity=self.humidity(),
-                            program=self.program()
+                            running=self.running()
                         )
                 # Wait...
                 interval = self.itInterval()

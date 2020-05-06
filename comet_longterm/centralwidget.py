@@ -159,13 +159,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ctsChart.append(reading)
         self.statusWidget().setTemperature(reading.get('temp'))
         self.statusWidget().setHumidity(reading.get('humid'))
-        self.statusWidget().setProgram(reading.get('program'))
+        self.statusWidget().setRunning(reading.get('running'))
         meas = self.processes().get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
-        meas.setProgram(reading.get('program'))
-        for i, sensor in enumerate(self.sensors()):
-            sensor.temperature = reading.get('temp')
+        meas.setRunning(reading.get('running'))
         self.sensorsWidget().dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)

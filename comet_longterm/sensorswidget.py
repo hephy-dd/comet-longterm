@@ -52,6 +52,7 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.setColumnWidth(0, 172)
         self.ui.tableView.setColumnWidth(1, 64)
         self.ui.tableView.setColumnWidth(3, 96)
+        self.ui.tableView.setColumnWidth(4, 64)
         self.ui.tableView.setItemDelegateForColumn(2, HVDelegate())
         self.verticalResizeTableView()
 

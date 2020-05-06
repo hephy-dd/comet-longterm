@@ -132,7 +132,7 @@ class CtsChart(Chart):
         self.axisY3.setLinePenColor(QtCore.Qt.magenta)
 
         self.ctsProgramSeries = self.addLineSeries(self.axisX, self.axisY3)
-        self.ctsProgramSeries.setName("Program")
+        self.ctsProgramSeries.setName("Running")
         self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
     def reset(self):
@@ -145,7 +145,7 @@ class CtsChart(Chart):
         ts = reading.get('time')
         self.ctsTempSeries.data().append(ts, reading.get('temp'))
         self.ctsHumidSeries.data().append(ts, reading.get('humid'))
-        self.ctsProgramSeries.data().append(ts, reading.get('program') != 0)
+        self.ctsProgramSeries.data().append(ts, reading.get('running') != 0)
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
