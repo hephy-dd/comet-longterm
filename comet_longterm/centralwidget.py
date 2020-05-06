@@ -16,7 +16,8 @@ from comet.devices.hephy import ShuntBox
 
 from .logwindow import LogWindow
 from .processes import EnvironProcess, MeasureProcess
-from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart, ShuntBoxChart
+from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
+from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -73,6 +74,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.itTempChartView.setChart(self.itTempChart)
         self.shuntBoxChart = ShuntBoxChart()
         self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
+        self.ivSourceChart = IVSourceChart()
+        self.ui.ivSourceChartView.setChart(self.ivSourceChart)
+        self.itSourceChart = ItSourceChart()
+        self.ui.itSourceChartView.setChart(self.itSourceChart)
 
     def createProcesses(self):
         # Environ process
@@ -190,6 +195,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ivChart.append(reading)
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
+        self.ivSourceChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
@@ -201,6 +207,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.itChart.append(reading)
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)
+        self.itSourceChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):
@@ -218,6 +225,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.itChart.load(self.sensors())
         self.ivTempChart.load(self.sensors())
         self.itTempChart.load(self.sensors())
+        self.ivSourceChart.reset()
+        self.itSourceChart.reset()
 
         # Setup output location
         path = os.path.normpath(self.controlsWidget().path())

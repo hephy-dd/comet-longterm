@@ -472,6 +472,7 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Ramping up")
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
         self.ivStarted.emit()
+        t0 = time.time()
         with contextlib.ExitStack() as stack:
             writers = {}
             timestamp = make_iso(self.startTime())
@@ -499,8 +500,10 @@ class MeasureProcess(Process, DeviceMixin):
                     self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                     for sensor in self.sensors():
                         if sensor.enabled:
+                            # Time delta since start of IV
+                            dt = time.time() - t0
                             writers[sensor.index].write_row(
-                                timestamp=reading.get('time'),
+                                timestamp=dt,
                                 voltage=reading.get('U'),
                                 current=reading.get('channels')[sensor.index].get('I'),
                                 pt100=reading.get('channels')[sensor.index].get('temp'),
@@ -546,6 +549,7 @@ class MeasureProcess(Process, DeviceMixin):
             self.showProgress(0, timeEnd - timeBegin)
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
+        t0 = time.time()
         with contextlib.ExitStack() as stack:
             writers = {}
             for sensor in self.sensors():
@@ -571,8 +575,10 @@ class MeasureProcess(Process, DeviceMixin):
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                 for sensor in self.sensors():
                     if sensor.enabled:
+                        # Time delta since start of IV
+                        dt = time.time() - t0
                         writers[sensor.index].write_row(
-                            timestamp=reading.get('time'),
+                            timestamp=dt,
                             voltage=reading.get('U'),
                             current=reading.get('channels')[sensor.index].get('I'),
                             pt100=reading.get('channels')[sensor.index].get('temp'),

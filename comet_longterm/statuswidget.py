@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtWidgets
 
 from comet import UiLoaderMixin
 
+from .utils import auto_unit
+
 class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def __init__(self, *args, **kwargs):
@@ -10,17 +12,11 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def setVoltage(self, voltage):
         """Set current in Volts."""
-        if voltage is None:
-            self.ui.voltageLineEdit.setText("n/a")
-        else:
-            self.ui.voltageLineEdit.setText("{:.3f} V".format(voltage))
+        self.ui.voltageLineEdit.setText(auto_unit(voltage, 'V', decimals=3))
 
     def setCurrent(self, current):
         """Set current in Ampere."""
-        if current is None:
-            self.ui.currentLineEdit.setText("n/a")
-        else:
-            self.ui.currentLineEdit.setText("{:.3f} uA".format(current * 1000 * 1000))
+        self.ui.currentLineEdit.setText(auto_unit(current, 'A', decimals=3))
 
     def setTemperature(self, temperature):
         """Set temperature in Celsius."""

@@ -50,6 +50,8 @@ class LogItem(QtWidgets.QTreeWidgetItem):
 
 class LogWidget(QtWidgets.QTreeWidget):
 
+    HistorySize = 8192
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.mutex = threading.RLock()
@@ -77,6 +79,10 @@ class LogWidget(QtWidgets.QTreeWidget):
         item = LogItem(record)
         with self.mutex:
             self.addTopLevelItem(item)
+            # Remove first records if exceeding history size.
+            if self.HistorySize is not None:
+                if self.topLevelItemCount() > self.HistorySize:
+                    self.takeTopLevelItem(0)
             self.scrollToItem(item)
 
 class LogWindow(QtWidgets.QWidget):

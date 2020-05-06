@@ -37,9 +37,9 @@ class Writer:
             format(timestamp, '.3f'),
             format(voltage, 'E'),
             format(current, 'E'),
-            format(pt100, 'E'),
-            format(temperature, 'E'),
-            format(humidity, 'E'),
+            format(pt100, '.2f'),
+            format(temperature, '.2f'),
+            format(humidity, '.2f'),
             format(program, 'd')
         ])
         self.context.flush()
