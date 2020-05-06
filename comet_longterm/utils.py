@@ -28,6 +28,6 @@ def auto_unit(value, unit, decimals=3):
     if value is None:
         return "n/a"
     for scale, prefix in scales:
-        if value >= scale:
+        if abs(value) >= scale:
             return f"{value * (1 / scale):.{decimals}f} {prefix}{unit}"
     return f"{value:G} {unit}"
