@@ -53,7 +53,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                     self.send(self.state.get('OUTP'))
 
                 elif re.match(r'\:?READ\?', data):
-                    self.send(",".join(["0.000024"]*10))
+                    self.send(",".join([format(random.uniform(.000020, .0000245), 'E')] * 10))
 
                 elif re.match(r'\:?FETC[h]?\?', data):
                     values = []

@@ -131,6 +131,26 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="ivSourceTab">
+        <attribute name="title">
+         <string>IV SMU</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_6">
+         <item row="0" column="0">
+          <widget class="ChartView" name="ivSourceChartView"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="itSourceTab">
+        <attribute name="title">
+         <string>It SMU</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <widget class="ChartView" name="itSourceChartView"/>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="shuntBoxTab">
         <attribute name="title">
          <string>Shunt Box</string>

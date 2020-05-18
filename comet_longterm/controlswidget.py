@@ -19,6 +19,9 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     continueInComplianceChanged = QtCore.pyqtSignal(bool)
     itDurationChanged = QtCore.pyqtSignal(float)
     itIntervalChanged = QtCore.pyqtSignal(float)
+    filterEnableChanged = QtCore.pyqtSignal(bool)
+    filterTypeChanged = QtCore.pyqtSignal(str)
+    filterCountChanged = QtCore.pyqtSignal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,9 +41,13 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.continueInComplianceCheckBox.toggled.connect(lambda: self.continueInComplianceChanged.emit(self.continueInCompliance()))
         self.ui.itDurationSpinBox.editingFinished.connect(lambda: self.itDurationChanged.emit(self.itDuration()))
         self.ui.itIntervalSpinBox.editingFinished.connect(lambda: self.itIntervalChanged.emit(self.itInterval()))
+        self.ui.multiFilterEnableComboBox.currentIndexChanged.connect(self.onFilterEnableChanged)
+        self.ui.multiFilterTypeComboBox.currentIndexChanged.connect(lambda: self.filterTypeChanged.emit(self.filterType()))
+        self.ui.multiFilterCountSpinBox.editingFinished.connect(lambda: self.filterCountChanged.emit(self.filterCount()))
         # Syncronize limits
         self.onIvEndVoltageChanged()
         self.onTotalComplianceChanged()
+        self.onFilterEnableChanged()
 
     def onIvEndVoltageChanged(self):
         """Syncronize bias voltage and step with end voltage limit."""
@@ -147,6 +154,33 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Set It measurement interval in seconds."""
         self.ui.itIntervalSpinBox.setValue(value)
 
+    def filterEnable(self):
+        """Returns filter enable state."""
+        return bool(self.ui.multiFilterEnableComboBox.currentIndex())
+
+    def setFilterEnable(self, enabled):
+        """Set filter enable state."""
+        self.ui.multiFilterEnableComboBox.setCurrentIndex(int(enabled))
+
+    def filterType(self):
+        """Returns filter type."""
+        return self.ui.multiFilterTypeComboBox.currentText().lower()
+
+    def setFilterType(self, type):
+        """Set filter type."""
+        index = self.ui.multiFilterTypeComboBox.findText(type.title())
+        if index < 0:
+            index = 0
+        self.ui.multiFilterTypeComboBox.setCurrentIndex(index)
+
+    def filterCount(self):
+        """Returns filter count."""
+        return self.ui.multiFilterCountSpinBox.value()
+
+    def setFilterCount(self, count):
+        """Set filter count."""
+        self.ui.multiFilterCountSpinBox.setValue(count)
+
     def operator(self):
         """Returns current operator."""
         return self.ui.operatorComboBox.currentText()
@@ -179,6 +213,9 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.setContinueInCompliance(settings.value('continueInCompliance', True, type=bool))
         self.setItDuration(settings.value('itDuration', 0.0, type=float))
         self.setItInterval(settings.value('itInterval', 60.0, type=float))
+        self.setFilterEnable(settings.value('filterEnable', False, type=bool))
+        self.setFilterType(settings.value('filterType', 'repeat', type=str))
+        self.setFilterCount(settings.value('filterCount', 10, type=int))
 
     def storeSettings(self):
         settings = QtCore.QSettings()
@@ -193,6 +230,16 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         settings.setValue('continueInCompliance', self.continueInCompliance())
         settings.setValue('itDuration', self.itDuration())
         settings.setValue('itInterval', self.itInterval())
+        settings.setValue('filterEnable', self.filterEnable())
+        settings.setValue('filterType', self.filterType())
+        settings.setValue('filterCount', self.filterCount())
+
+    @QtCore.pyqtSlot()
+    def onFilterEnableChanged(self):
+        enabled = self.filterEnable()
+        self.ui.multiFilterTypeComboBox.setEnabled(enabled)
+        self.ui.multiFilterCountSpinBox.setEnabled(enabled)
+        self.filterEnableChanged.emit(enabled)
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -205,6 +252,9 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.ivEndVoltageSpinBox.setEnabled(False)
         self.ui.ivStepSpinBox.setEnabled(False)
         self.ui.biasVoltageSpinBox.setEnabled(False)
+        self.ui.multiFilterEnableComboBox.setEnabled(False)
+        self.ui.multiFilterTypeComboBox.setEnabled(False)
+        self.ui.multiFilterCountSpinBox.setEnabled(False)
         self.ui.operatorGroupBox.setEnabled(False)
         self.ui.pathGroupBox.setEnabled(False)
         self.started.emit()
@@ -226,6 +276,9 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.ivEndVoltageSpinBox.setEnabled(True)
         self.ui.ivStepSpinBox.setEnabled(True)
         self.ui.biasVoltageSpinBox.setEnabled(True)
+        self.ui.multiFilterEnableComboBox.setEnabled(True)
+        self.ui.multiFilterTypeComboBox.setEnabled(True)
+        self.ui.multiFilterCountSpinBox.setEnabled(True)
         self.ui.operatorGroupBox.setEnabled(True)
         self.ui.pathGroupBox.setEnabled(True)
 

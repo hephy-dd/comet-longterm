@@ -18,14 +18,18 @@ def main():
     app.setApplicationName('comet-longterm')
 
     args = parse_args()
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
-    w = MainWindow()
-    w.resize(1280, 700)
-    w.setCentralWidget(CentralWidget(w))
-    w.setWindowTitle("{} {}".format(w.windowTitle(), __version__))
-    w.show()
+    # Set logging level
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().addHandler(logging.StreamHandler())
+    logging.getLogger().setLevel(level)
+
+    window = MainWindow()
+    window.setCentralWidget(CentralWidget(window))
+    window.setWindowTitle("{} {}".format(window.windowTitle(), __version__))
+    window.centralWidget().setLevel(level)
+    window.resize(1280, 700)
+    window.show()
 
     return app.run()
 

@@ -17,7 +17,7 @@ from .writers import IVWriter, ItWriter
 
 class EnvironProcess(Process, DeviceMixin):
     """Environment monitoring process. Polls for temperature, humidity and
-    climate chamber program in intervals.
+    climate chamber running state in intervals.
     """
 
     reading = QtCore.pyqtSignal(object)
@@ -33,8 +33,8 @@ class EnvironProcess(Process, DeviceMixin):
         """Read environment data from device."""
         temp = device.analog_channel(1)[0]
         humid = device.analog_channel(2)[0]
-        program = device.program
-        return dict(time=self.time(), temp=temp, humid=humid, program=program)
+        running = device.status.running
+        return dict(time=self.time(), temp=temp, humid=humid, running=running)
 
     def run(self):
         while not self.stopRequested():
@@ -89,7 +89,10 @@ class MeasureProcess(Process, DeviceMixin):
         self.setCurrentVoltage(0.0)
         self.setTemperature(float('nan'))
         self.setHumidity(float('nan'))
-        self.setProgram(0)
+        self.setRunning(False)
+        self.setFilterEnable(False)
+        self.setFilterType('repeat')
+        self.setFilterCount(10)
 
     def sensors(self):
         return self.__sensors
@@ -170,6 +173,26 @@ class MeasureProcess(Process, DeviceMixin):
     def setItInterval(self, value):
         self.__itInterval = value
 
+    def filterEnable(self):
+        return self.__filterEnable
+
+    def setFilterEnable(self, enabled):
+        self.__filterEnable = enabled
+
+    def filterType(self):
+        return self.__filterType
+
+    def setFilterType(self, type):
+        assert type in ('repeat', 'moving')
+        self.__filterType = type
+
+    def filterCount(self):
+        return self.__filterCount
+
+    def setFilterCount(self, count):
+        assert 0 <= count <= 100
+        self.__filterCount = count
+
     def temperature(self):
         return self.__temperature
 
@@ -182,11 +205,11 @@ class MeasureProcess(Process, DeviceMixin):
     def setHumidity(self, value):
         self.__humidity = value
 
-    def program(self):
-        return self.__program
+    def running(self):
+        return self.__running
 
-    def setProgram(self, value):
-        self.__program = value
+    def setRunning(self, value):
+        self.__running = value
 
     def path(self):
         return self.__path
@@ -372,11 +395,33 @@ class MeasureProcess(Process, DeviceMixin):
         multi.resource.write(':ROUT:SCAN:LSEL INT')
         multi.resource.query('*OPC?')
 
+        # Filter
+        logging.info("multimeter.filter.enable: %s", self.filterEnable())
+        enable = int(self.filterEnable())
+        multi.resource.write(f':SENS:VOLT:AVER:STAT {enable}')
+        multi.resource.query('*OPC?')
+        assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?')) == enable
+
+        logging.info("multimeter.filter.type: %s", self.filterType())
+        tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.filterType()]
+        multi.resource.write(f':SENS:VOLT:AVER:TCON {tcontrol}')
+        multi.resource.query('*OPC?')
+        assert multi.resource.query(':SENS:VOLT:AVER:TCON?') == tcontrol
+
+        logging.info("multimeter.filter.count: %s", self.filterCount())
+        count = self.filterCount()
+        multi.resource.write(f':SENS:VOLT:AVER:COUN {count}')
+        multi.resource.query('*OPC?')
+        assert int(multi.resource.query(':SENS:VOLT:AVER:COUN?')) == count
+
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
         smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER ON')
+        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
+        smu.resource.query('*OPC?')
         smu.resource.write(':SOUR:FUNC VOLT')
         smu.resource.query('*OPC?')
         # switch output OFF
@@ -388,9 +433,13 @@ class MeasureProcess(Process, DeviceMixin):
         smu.resource.query('*OPC?')
         # output data format
         smu.resource.write('SENS:CURR:RANG:AUTO 1')
+        smu.resource.query('*OPC?')
         smu.resource.write('TRIG:CLE')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER:TCON REP')
+        smu.resource.query('*OPC?')
         smu.resource.write('SENS:AVER OFF')
+        smu.resource.query('*OPC?')
         smu.resource.write('ROUT:TERM REAR')
         smu.resource.query('*OPC?')
 
@@ -423,6 +472,7 @@ class MeasureProcess(Process, DeviceMixin):
         self.showMessage("Ramping up")
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
         self.ivStarted.emit()
+        t0 = time.time()
         with contextlib.ExitStack() as stack:
             writers = {}
             timestamp = make_iso(self.startTime())
@@ -450,14 +500,16 @@ class MeasureProcess(Process, DeviceMixin):
                     self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                     for sensor in self.sensors():
                         if sensor.enabled:
+                            # Time delta since start of IV
+                            dt = time.time() - t0
                             writers[sensor.index].write_row(
-                                timestamp=reading.get('time'),
+                                timestamp=dt,
                                 voltage=reading.get('U'),
                                 current=reading.get('channels')[sensor.index].get('I'),
                                 pt100=reading.get('channels')[sensor.index].get('temp'),
                                 temperature=self.temperature(),
                                 humidity=self.humidity(),
-                                program=self.program()
+                                running=self.running()
                             )
                 else:
                     raise StopRequest()
@@ -497,6 +549,7 @@ class MeasureProcess(Process, DeviceMixin):
             self.showProgress(0, timeEnd - timeBegin)
         else:
             self.showProgress(0, 0) # progress unknown, infinite run
+        t0 = time.time()
         with contextlib.ExitStack() as stack:
             writers = {}
             for sensor in self.sensors():
@@ -522,14 +575,16 @@ class MeasureProcess(Process, DeviceMixin):
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                 for sensor in self.sensors():
                     if sensor.enabled:
+                        # Time delta since start of IV
+                        dt = time.time() - t0
                         writers[sensor.index].write_row(
-                            timestamp=reading.get('time'),
+                            timestamp=dt,
                             voltage=reading.get('U'),
                             current=reading.get('channels')[sensor.index].get('I'),
                             pt100=reading.get('channels')[sensor.index].get('temp'),
                             temperature=self.temperature(),
                             humidity=self.humidity(),
-                            program=self.program()
+                            running=self.running()
                         )
                 # Wait...
                 interval = self.itInterval()

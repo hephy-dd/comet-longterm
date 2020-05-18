@@ -12,6 +12,10 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
     channels = 10
 
+    average_enable = 0
+    average_type = 'REP'
+    average_count = 10
+
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
@@ -41,6 +45,27 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
                 elif re.match(r'\:SYST\:ERR\?', data):
                     self.send('0,"no error"')
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:STAT\?', data):
+                    self.send("{:d}".format(K2700Handler.average_enable))
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:STAT\s+(ON|OFF|1|0)', data):
+                    value = data.split()[-1]
+                    K2700Handler.average_enable = {'ON': 1, 'OFF': 0, '1': 1, '0': 0}[value]
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:TCON\?', data):
+                    self.send(K2700Handler.average_type)
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:TCON\s+(MOV|REP)', data):
+                    value = data.split()[-1]
+                    K2700Handler.average_type = value
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:COUN\?', data):
+                    self.send("{:d}".format(K2700Handler.average_count))
+
+                elif re.match(r'\:SENS\:VOLT\:AVER\:COUN\s+(\d+)', data):
+                    value = int(data.split()[-1])
+                    K2700Handler.average_count = value
 
                 elif re.match(r'\:SAMP\:COUN\s+\d+', data):
                     K2700Handler.channels = int(data.split()[-1])

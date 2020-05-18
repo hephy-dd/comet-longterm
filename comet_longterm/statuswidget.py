@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtWidgets
 
 from comet import UiLoaderMixin
 
+from .utils import auto_unit
+
 class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def __init__(self, *args, **kwargs):
@@ -10,17 +12,11 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     def setVoltage(self, voltage):
         """Set current in Volts."""
-        if voltage is None:
-            self.ui.voltageLineEdit.setText("n/a")
-        else:
-            self.ui.voltageLineEdit.setText("{:.3f} V".format(voltage))
+        self.ui.voltageLineEdit.setText(auto_unit(voltage, 'V', decimals=3))
 
     def setCurrent(self, current):
         """Set current in Ampere."""
-        if current is None:
-            self.ui.currentLineEdit.setText("n/a")
-        else:
-            self.ui.currentLineEdit.setText("{:.3f} uA".format(current * 1000 * 1000))
+        self.ui.currentLineEdit.setText(auto_unit(current, 'A', decimals=3))
 
     def setTemperature(self, temperature):
         """Set temperature in Celsius."""
@@ -30,11 +26,11 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Set humidity in percent relative humidity."""
         self.ui.humidLineEdit.setText("{:.1f} %rH".format(humidity))
 
-    def setProgram(self, program):
-        if program == 0:
-            self.ui.statusLineEdit.setText(self.tr("Halted (0)"))
+    def setRunning(self, running):
+        if running == 0:
+            self.ui.statusLineEdit.setText(self.tr("Halted"))
         else:
-            self.ui.statusLineEdit.setText(self.tr("Running ({})").format(program))
+            self.ui.statusLineEdit.setText(self.tr("Running"))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
@@ -43,6 +39,6 @@ if __name__ == '__main__':
     w.setCurrent(.42)
     w.setTemperature(4.2)
     w.setHumidity(2.4)
-    w.setProgram(0)
+    w.setRunning(False)
     w.show()
     app.exec_()

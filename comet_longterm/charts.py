@@ -4,7 +4,16 @@ import math
 from PyQt5 import QtCore, QtGui
 from QCharted import Chart
 
-__all__ = ['IVChart', 'ItChart', 'CtsChart', 'IVTempChart', 'ItTempChart', 'ShuntBoxChart']
+__all__ = [
+    'IVChart',
+    'ItChart',
+    'CtsChart',
+    'IVTempChart',
+    'ItTempChart',
+    'ShuntBoxChart',
+    'IVSourceChart',
+    'ItSourceChart'
+]
 
 class IVChart(Chart):
 
@@ -123,7 +132,7 @@ class CtsChart(Chart):
         self.axisY3.setLinePenColor(QtCore.Qt.magenta)
 
         self.ctsProgramSeries = self.addLineSeries(self.axisX, self.axisY3)
-        self.ctsProgramSeries.setName("Program")
+        self.ctsProgramSeries.setName("Running")
         self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
     def reset(self):
@@ -136,7 +145,7 @@ class CtsChart(Chart):
         ts = reading.get('time')
         self.ctsTempSeries.data().append(ts, reading.get('temp'))
         self.ctsHumidSeries.data().append(ts, reading.get('humid'))
-        self.ctsProgramSeries.data().append(ts, reading.get('program') != 0)
+        self.ctsProgramSeries.data().append(ts, reading.get('running') != 0)
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
@@ -223,3 +232,65 @@ class ShuntBoxChart(Chart):
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
+
+class IVSourceChart(Chart):
+
+    def __init__(self):
+        super().__init__()
+        self.legend().setAlignment(QtCore.Qt.AlignRight)
+
+        # X axis
+        self.axisX = self.addValueAxis(QtCore.Qt.AlignBottom)
+        self.axisX.setTitleText("Voltage V (abs)")
+        self.axisX.setRange(0, 800)
+
+        # Y axis
+        self.axisY = self.addValueAxis(QtCore.Qt.AlignLeft)
+        self.axisY.setTitleText("Current uA")
+
+        self.ivSeries = self.addLineSeries(self.axisX, self.axisY)
+        self.ivSeries.setName("SMU")
+        self.ivSeries.setPen(QtGui.QColor("red"))
+
+    def append(self, reading):
+        import random
+        voltage = abs(reading.get('U')) # absolute (can be negative)
+        current = reading.get('I') * 1e6 # A to uA
+        self.ivSeries.data().append(voltage, current)
+        if self.isZoomed():
+            self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.fit()
+
+    def reset(self):
+        self.ivSeries.data().clear()
+        self.fit()
+
+class ItSourceChart(Chart):
+
+    def __init__(self):
+        super().__init__()
+        self.legend().setAlignment(QtCore.Qt.AlignRight)
+
+        self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
+        self.axisX.setTitleText("Time")
+
+        self.axisY = self.addValueAxis(QtCore.Qt.AlignLeft)
+        self.axisY.setTitleText("Current uA")
+
+        self.itSeries = self.addLineSeries(self.axisX, self.axisY)
+        self.itSeries.setName("SMU")
+        self.itSeries.setPen(QtGui.QColor("red"))
+
+    def append(self, reading):
+        ts = reading.get('time')
+        current = reading.get('I') * 1e6 # A to uA
+        self.itSeries.data().append(ts, current)
+        if self.isZoomed():
+            self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+        else:
+            self.fit()
+
+    def reset(self):
+        self.itSeries.data().clear()
+        self.fit()

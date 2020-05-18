@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from comet import UiLoaderMixin, DeviceMixin
 
+from .utils import auto_unit
+
 Colors = (
     '#2a7fff', '#5fd3bc', '#ffd42a', '#ff7f2a', '#ff1f2a', '#ff40d9',
     '#aa00d4', '#5f00ff', '#5fe556', '#00aa44', '#217321'
@@ -50,6 +52,7 @@ class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
         self.ui.tableView.setColumnWidth(0, 172)
         self.ui.tableView.setColumnWidth(1, 64)
         self.ui.tableView.setColumnWidth(3, 96)
+        self.ui.tableView.setColumnWidth(4, 64)
         self.ui.tableView.setItemDelegateForColumn(2, HVDelegate())
         self.verticalResizeTableView()
 
@@ -129,10 +132,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Current:
                 if sensor.enabled:
                     if not sensor.current is None:
-                        return "{} uA".format(format(sensor.current * 1000 * 1000, '.3G')) # in uA
+                        return auto_unit(sensor.current, 'A', decimals=3)
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
-                    return "{} °C".format(sensor.temperature)
+                    if not sensor.temperature is None:
+                        return "{} °C".format(sensor.temperature)
             elif index.column() == self.Column.Resistivity:
                 return "{} Ohm".format(sensor.resistivity)
 

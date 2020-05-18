@@ -14,8 +14,10 @@ from comet.devices.cts import ITC
 from comet.devices.keithley import K2410, K2700
 from comet.devices.hephy import ShuntBox
 
+from .logwindow import LogWindow
 from .processes import EnvironProcess, MeasureProcess
-from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart, ShuntBoxChart
+from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
+from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -25,6 +27,11 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.loadDevices()
         self.createCharts()
         self.createProcesses()
+
+        self.logWindow = LogWindow()
+        self.logWindow.addLogger(logging.getLogger())
+        self.logWindow.resize(640, 420)
+        self.logWindow.hide()
 
         self.parent().closeRequest.connect(self.onClose)
         self.controlsWidget().started.connect(self.onStart)
@@ -40,6 +47,12 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.importCalibAction.triggered.connect(self.onImportCalib)
         self.parent().ui.fileMenu.insertAction(self.parent().ui.quitAction, self.importCalibAction)
         self.parent().ui.fileMenu.insertSeparator(self.parent().ui.quitAction)
+        self.showLogAction = QtWidgets.QAction(self.tr("Logging..."))
+        self.showLogAction.triggered.connect(self.onShowLogWindow)
+        action = self.parent().ui.helpMenu.menuAction()
+        menu = QtWidgets.QMenu(self.tr("&View"))
+        self.parent().ui.viewMenu = self.parent().menuBar().insertMenu(action, menu).menu()
+        self.parent().ui.viewMenu.addAction(self.showLogAction)
 
     def loadDevices(self):
         resources = QtCore.QSettings().value('resources', {})
@@ -61,6 +74,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ui.itTempChartView.setChart(self.itTempChart)
         self.shuntBoxChart = ShuntBoxChart()
         self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
+        self.ivSourceChart = IVSourceChart()
+        self.ui.ivSourceChartView.setChart(self.ivSourceChart)
+        self.itSourceChart = ItSourceChart()
+        self.ui.itSourceChartView.setChart(self.itSourceChart)
 
     def createProcesses(self):
         # Environ process
@@ -92,9 +109,15 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.controlsWidget().continueInComplianceChanged.connect(meas.setContinueInCompliance)
         self.controlsWidget().itDurationChanged.connect(meas.setItDuration)
         self.controlsWidget().itIntervalChanged.connect(meas.setItInterval)
+        self.controlsWidget().filterEnableChanged.connect(meas.setFilterEnable)
+        self.controlsWidget().filterTypeChanged.connect(meas.setFilterType)
+        self.controlsWidget().filterCountChanged.connect(meas.setFilterCount)
 
         self.parent().connectProcess(meas)
         self.processes().add('meas', meas)
+
+    def setLevel(self, level):
+        self.logWindow.setLevel(level)
 
     def sensors(self):
         """Returns sensors manager."""
@@ -131,19 +154,16 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         """Enable shunt box."""
         # Toggle pt100 tab
 
-
     @QtCore.pyqtSlot(object)
     def onEnvironReading(self, reading):
         self.ctsChart.append(reading)
         self.statusWidget().setTemperature(reading.get('temp'))
         self.statusWidget().setHumidity(reading.get('humid'))
-        self.statusWidget().setProgram(reading.get('program'))
+        self.statusWidget().setRunning(reading.get('running'))
         meas = self.processes().get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
-        meas.setProgram(reading.get('program'))
-        for i, sensor in enumerate(self.sensors()):
-            sensor.temperature = reading.get('temp')
+        meas.setRunning(reading.get('running'))
         self.sensorsWidget().dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
@@ -173,6 +193,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ivChart.append(reading)
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
+        self.ivSourceChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
@@ -184,6 +205,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.itChart.append(reading)
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)
+        self.itSourceChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):
@@ -201,6 +223,8 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.itChart.load(self.sensors())
         self.ivTempChart.load(self.sensors())
         self.itTempChart.load(self.sensors())
+        self.ivSourceChart.reset()
+        self.itSourceChart.reset()
 
         # Setup output location
         path = os.path.normpath(self.controlsWidget().path())
@@ -258,6 +282,13 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 self.parent().showException(e)
 
     @QtCore.pyqtSlot()
+    def onShowLogWindow(self):
+        self.logWindow.show()
+        self.logWindow.raise_()
+
+    @QtCore.pyqtSlot()
     def onClose(self):
+        self.logWindow.hide()
+        self.logWindow.removeLogger(logging.getLogger())
         self.sensors().storeSettings()
         self.controlsWidget().storeSettings()
