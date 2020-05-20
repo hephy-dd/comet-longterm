@@ -1,5 +1,6 @@
 import logging
 import threading
+import html
 
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -23,43 +24,13 @@ class LogHandler(logging.Handler):
     def emit(self, record):
         self.object.message.emit(record)
 
-class LogItem(QtWidgets.QTreeWidgetItem):
-
-    TimeColumn = 0
-    LevelColumn = 1
-    MessageColumn = 2
-
-    Colors = {
-        logging.DEBUG: "grey",
-        logging.INFO: "black",
-        logging.WARNING: "orange",
-        logging.ERROR: "red"
-    }
-
-    def __init__(self, record):
-        super().__init__()
-        self.setFromRecord(record)
-
-    def setFromRecord(self, record):
-        self.setText(self.TimeColumn, self.formatTime(record.created))
-        self.setText(self.LevelColumn, record.levelname)
-        self.setText(self.MessageColumn, record.getMessage())
-        brush = QtGui.QBrush(QtGui.QColor(self.Colors.get(record.levelno)))
-        self.setForeground(self.TimeColumn, brush)
-        self.setForeground(self.LevelColumn, brush)
-        self.setForeground(self.MessageColumn, brush)
-
-    @classmethod
-    def formatTime(cls, seconds):
-        dt = QtCore.QDateTime.fromMSecsSinceEpoch(seconds * 1000)
-        return dt.toString("yyyy-MM-dd hh:mm:ss")
-
 class LogWidget(QtWidgets.QTextEdit):
 
     MaximumEntries = 1024 * 1024
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setReadOnly(True)
         self.mutex = threading.RLock()
         self.handler = LogHandler(self)
         self.handler.object.message.connect(self.appendRecord)
@@ -87,7 +58,7 @@ class LogWidget(QtWidgets.QTextEdit):
     def appendRecord(self, record):
         with self.mutex:
             # Clear when exceeding maximum allowed entries...
-            if self.entries > MaximumEntries:
+            if self.entries > self.MaximumEntries:
                 self.clear() # TODO
             # Get current scrollbar position
             scrollbar = self.verticalScrollBar()
@@ -122,9 +93,11 @@ class LogWidget(QtWidgets.QTextEdit):
             color = 'orange'
         else:
             color = 'inherit'
-        style = f"white-space:pre;color:{color}"
+        style = f"white-space:pre;color:{color};margin:0"
         timestamp = cls.formatTime(record.created)
         message = "{}\t{}\t{}".format(timestamp, record.levelname, record.getMessage())
+        # Escape to HTML
+        message = html.escape(message)
         return f"<span style=\"{style}\">{message}</span>"
 
 class LogWindow(QtWidgets.QWidget):

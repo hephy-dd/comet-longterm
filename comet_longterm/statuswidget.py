@@ -26,11 +26,11 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
         """Set humidity in percent relative humidity."""
         self.ui.humidLineEdit.setText("{:.1f} %rH".format(humidity))
 
-    def setRunning(self, running):
-        if running == 0:
-            self.ui.statusLineEdit.setText(self.tr("Halted"))
+    def setStatus(self, status, program=None):
+        if program is not None:
+            self.ui.statusLineEdit.setText(self.tr("{} ({})").format(status, program))
         else:
-            self.ui.statusLineEdit.setText(self.tr("Running"))
+            self.ui.statusLineEdit.setText(self.tr("{}").format(status))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
