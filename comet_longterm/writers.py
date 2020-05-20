@@ -28,11 +28,12 @@ class Writer:
             "pt100 [°C]",
             "temperature [°C]",
             "humidity [%rH]",
-            "running",
+            "status",
+            "program",
         ])
         self.context.flush()
 
-    def write_row(self, timestamp, voltage, current, pt100, temperature, humidity, running):
+    def write_row(self, timestamp, voltage, current, pt100, temperature, humidity, status, program):
         self.writer.writerow([
             format(timestamp, '.3f'),
             format(voltage, 'E'),
@@ -40,7 +41,8 @@ class Writer:
             format(pt100, '.2f'),
             format(temperature, '.2f'),
             format(humidity, '.2f'),
-            format(running, 'd')
+            format(status),
+            format(program),
         ])
         self.context.flush()
 

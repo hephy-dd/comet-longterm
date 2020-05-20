@@ -21,8 +21,8 @@ def main():
 
     # Set logging level
     level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().addHandler(logging.StreamHandler())
     logging.getLogger().setLevel(level)
+    logging.info("Longterm It version %s", __version__)
 
     window = MainWindow()
     window.setCentralWidget(CentralWidget(window))

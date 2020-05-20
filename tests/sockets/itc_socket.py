@@ -104,6 +104,10 @@ class ClimateHandler(socketserver.BaseRequestHandler):
                 result = 'S11110100\x06'
                 self.send(result)
 
+            elif re.match(r'O', data):
+                result = 'O1100000000000'
+                self.send(result)
+
             elif re.match(r'P', data):
                 result = 'P000'
                 self.send(result)

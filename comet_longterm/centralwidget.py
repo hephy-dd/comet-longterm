@@ -159,11 +159,12 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         self.ctsChart.append(reading)
         self.statusWidget().setTemperature(reading.get('temp'))
         self.statusWidget().setHumidity(reading.get('humid'))
-        self.statusWidget().setRunning(reading.get('running'))
+        self.statusWidget().setStatus('{} ({})'.format(reading.get('status'), reading.get('program')))
         meas = self.processes().get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
-        meas.setRunning(reading.get('running'))
+        meas.setStatus(reading.get('status'))
+        meas.setProgram(reading.get('program'))
         self.sensorsWidget().dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
@@ -283,6 +284,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot()
     def onShowLogWindow(self):
+        self.logWindow.toBottom()
         self.logWindow.show()
         self.logWindow.raise_()
 
