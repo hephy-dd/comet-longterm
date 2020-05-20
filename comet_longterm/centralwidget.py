@@ -283,6 +283,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
 
     @QtCore.pyqtSlot()
     def onShowLogWindow(self):
+        self.logWindow.toBottom()
         self.logWindow.show()
         self.logWindow.raise_()
 

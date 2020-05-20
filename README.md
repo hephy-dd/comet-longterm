@@ -19,7 +19,7 @@ in a controlled climate environment.
 Install using pip in a virtual environment.
 
 ```bash
-pip install git+https://github.com/hephy-dd/comet-longterm.git@0.6.1
+pip install git+https://github.com/hephy-dd/comet-longterm.git@0.8.0
 comet-longterm
 ```
 
