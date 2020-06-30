@@ -15,6 +15,8 @@ __all__ = [
     'ItSourceChart'
 ]
 
+DateTimeFormat = 'dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss'
+
 class IVChart(Chart):
 
     def __init__(self, sensors):
@@ -64,6 +66,7 @@ class ItChart(Chart):
 
         self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
+        self.axisX.setFormat(DateTimeFormat)
 
         self.axisY = self.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY.setTitleText("Current uA")
@@ -104,6 +107,7 @@ class CtsChart(Chart):
         self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
         self.axisX.setTickCount(3)
+        self.axisX.setFormat(DateTimeFormat)
 
         # Y axis left
         self.axisY1 = self.addValueAxis(QtCore.Qt.AlignLeft)
@@ -161,6 +165,7 @@ class IVTempChart(Chart):
         self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
         self.axisX.setTickCount(3)
+        self.axisX.setFormat(DateTimeFormat)
 
         # Y axis left
         self.axisY = self.addValueAxis(QtCore.Qt.AlignLeft)
@@ -209,6 +214,7 @@ class ShuntBoxChart(Chart):
         self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
         self.axisX.setTickCount(3)
+        self.axisX.setFormat(DateTimeFormat)
 
         # Y axis left
         self.axisY1 = self.addValueAxis(QtCore.Qt.AlignLeft)
@@ -274,6 +280,7 @@ class ItSourceChart(Chart):
 
         self.axisX = self.addDateTimeAxis(QtCore.Qt.AlignBottom)
         self.axisX.setTitleText("Time")
+        self.axisX.setFormat(DateTimeFormat)
 
         self.axisY = self.addValueAxis(QtCore.Qt.AlignLeft)
         self.axisY.setTitleText("Current uA")
