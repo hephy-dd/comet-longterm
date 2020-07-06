@@ -16,7 +16,7 @@ class Writer:
             [f"datetime: {timestamp}"],
             [f"calibration [Ohm]: {sensor.resistivity}"],
             [f"Voltage [V]: {voltage}"],
-            [],
+            []
         ])
         self.context.flush()
 
@@ -26,23 +26,25 @@ class Writer:
             "voltage [V]",
             "current [A]",
             "pt100 [°C]",
-            "temperature [°C]",
-            "humidity [%rH]",
-            "status",
-            "program",
+            "cts_temperature [°C]",
+            "cts_humidity [%rH]",
+            "cts_status",
+            "cts_program",
+            "hv_status"
         ])
         self.context.flush()
 
-    def write_row(self, timestamp, voltage, current, pt100, temperature, humidity, status, program):
+    def write_row(self, timestamp, voltage, current, pt100, cts_temperature, cts_humidity, cts_status, cts_program, hv_status):
         self.writer.writerow([
             format(timestamp, '.3f'),
             format(voltage, 'E'),
             format(current, 'E'),
             format(pt100, '.2f'),
-            format(temperature, '.2f'),
-            format(humidity, '.2f'),
-            format(status),
-            format(program),
+            format(cts_temperature, '.2f'),
+            format(cts_humidity, '.2f'),
+            format(cts_status),
+            format(cts_program),
+            {False: 'OFF', True: 'ON'}.get(hv_status, 'N/A')
         ])
         self.context.flush()
 

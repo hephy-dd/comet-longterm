@@ -524,10 +524,11 @@ class MeasureProcess(Process, DeviceMixin):
                                 voltage=reading.get('U'),
                                 current=reading.get('channels')[sensor.index].get('I'),
                                 pt100=reading.get('channels')[sensor.index].get('temp'),
-                                temperature=self.temperature(),
-                                humidity=self.humidity(),
-                                status=self.status(),
-                                program=self.program()
+                                cts_temperature=self.temperature(),
+                                cts_humidity=self.humidity(),
+                                cts_status=self.status(),
+                                cts_program=self.program(),
+                                hv_status=sensor.hv
                             )
                 else:
                     raise StopRequest()
@@ -600,10 +601,11 @@ class MeasureProcess(Process, DeviceMixin):
                             voltage=reading.get('U'),
                             current=reading.get('channels')[sensor.index].get('I'),
                             pt100=reading.get('channels')[sensor.index].get('temp'),
-                            temperature=self.temperature(),
-                            humidity=self.humidity(),
-                            status=self.status(),
-                            program=self.program()
+                            cts_temperature=self.temperature(),
+                            cts_humidity=self.humidity(),
+                            cts_status=self.status(),
+                            cts_program=self.program(),
+                            hv_status=sensor.hv
                         )
                 # Wait...
                 interval = self.itInterval()

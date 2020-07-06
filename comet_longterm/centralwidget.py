@@ -142,6 +142,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
         index = self.ui.bottomTabWidget.indexOf(self.ui.ctsTab)
         self.ui.bottomTabWidget.setTabEnabled(index, enabled)
         self.statusWidget().ui.ctsGroupBox.setEnabled(enabled)
+        self.statusWidget().setTemperature(float('nan'))
+        self.statusWidget().setHumidity(float('nan'))
+        self.statusWidget().setStatus('N/A')
+        self.sensorsWidget().dataChanged() # HACK keep updated
         # Toggle environ process
         environ = self.processes().get('environ')
         environ.stop()
