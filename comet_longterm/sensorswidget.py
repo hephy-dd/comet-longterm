@@ -114,7 +114,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
     def data(self, index, role):
         if not index.isValid():
-            retrun
+            return
 
         sensor = self.sensors[index.row()]
 
