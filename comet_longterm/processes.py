@@ -69,7 +69,7 @@ class EnvironProcess(Process, DeviceMixin):
 class MeasureProcess(Process, DeviceMixin):
     """Long term measurement process, consisting of five stages:
 
-    - reset and setup instruments
+    - ramp down, reset and setup instruments
     - ramp up to end voltage
     - ramp down to bias voltage
     - long term It measurement
@@ -242,6 +242,7 @@ class MeasureProcess(Process, DeviceMixin):
 
     def reset(self, smu, multi):
         # Reset SMU
+        logging.info("Reset SMU...")
         smu.resource.write('*RST')
         smu.resource.query('*OPC?')
         self.sleep(.500)
@@ -252,6 +253,7 @@ class MeasureProcess(Process, DeviceMixin):
         if code:
             raise RuntimeError(f"{smu.resource.resource_name}: {code}, {message}")
         # Reset multimeter
+        logging.info("Reset Multimeter...")
         multi.resource.write('*RST')
         multi.resource.query('*OPC?')
         self.sleep(.500)
@@ -355,6 +357,10 @@ class MeasureProcess(Process, DeviceMixin):
 
         self.showMessage("Reset instruments")
         self.showProgress(0, 3)
+
+        # Optional ramp down SMU
+        self.setCurrentVoltage(smu.source.voltage.level)
+        self.rampDown(smu, multi)
 
         # Reset instruments
         self.reset(smu, multi)
@@ -621,12 +627,14 @@ class MeasureProcess(Process, DeviceMixin):
 
     def rampDown(self, smu, multi):
         """Ramp down SMU voltage to zero."""
+        minimumStep = 5.0 # quick ramp down minimum step
         zeroVoltage = 0.0
         startVoltage = self.currentVoltage()
         deltaVoltage = startVoltage - self.currentVoltage()
         self.showMessage("Ramping down")
         self.showProgress(deltaVoltage, startVoltage)
-        step = -self.ivStep() if zeroVoltage < self.currentVoltage() else self.ivStep()
+        ivStep = max(minimumStep, self.ivStep())
+        step = -ivStep if zeroVoltage < self.currentVoltage() else ivStep
         for value in Range(self.currentVoltage(), zeroVoltage, step):
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
@@ -663,6 +671,5 @@ class MeasureProcess(Process, DeviceMixin):
                     pass
                 finally:
                     self.rampDown(smu, multi)
-                    self.reset(smu, multi)
                     self.showMessage("Stopped")
                     self.hideProgress()

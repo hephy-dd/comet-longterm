@@ -10,6 +10,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
 
     state = {
         'OUTP': 0,
+        'VDC': 0.0
     }
 
     write_termination = '\r'
@@ -49,8 +50,19 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 elif re.match(r'\:?SENS\:CURR\:PROT\:TRIP\?', data):
                     self.send("0")
 
-                elif re.match(r'OUTP\?', data):
+                elif re.match(r'\:?SOUR\:VOLT\:LEV\?', data):
+                    self.send(self.state.get('VDC'))
+
+                elif re.match(r'\:?SOUR\:VOLT\:LEV\s+[\w\.\+\-]+', data):
+                    value = data.split()[1].lower()
+                    self.state['VDC'] = float(value)
+
+                elif re.match(r'\:?OUTP\?', data):
                     self.send(self.state.get('OUTP'))
+
+                elif re.match(r'\:?OUTP\s+[\w\.\+\-]+', data):
+                    value = data.split()[1].lower()
+                    self.state['OUTP'] = {'0': 0, '1': 1, 'off': 0, 'on': 1}[value]
 
                 elif re.match(r'\:?READ\?', data):
                     self.send(",".join([format(random.uniform(.000020, .0000245), 'E')] * 10))
@@ -58,7 +70,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 elif re.match(r'\:?FETC[h]?\?', data):
                     values = []
                     for i in range(self.channels):
-                        vdc = random.uniform(.00025,.001)
+                        vdc = self.state.get('VDC') + random.random(-0.1, +.1)
                         values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
                     self.send(",".join(values))
 
