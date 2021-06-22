@@ -1,3 +1,4 @@
+from . import __version__
 import csv
 
 class Writer:
@@ -9,7 +10,7 @@ class Writer:
 
     def write_meta(self, sensor, operator, timestamp, voltage):
         self.writer.writerows([
-            ["HEPHY Vienna longtime It measurement"],
+            [f"HEPHY Vienna longtime It measurement version {__version__}"],
             [f"sensor name: {sensor.name}"],
             [f"sensor channel: {sensor.index}"],
             [f"operator: {operator}"],
@@ -25,6 +26,7 @@ class Writer:
             "timestamp [s]",
             "voltage [V]",
             "current [A]",
+            "smu_current [A]",
             "pt100 [°C]",
             "cts_temperature [°C]",
             "cts_humidity [%rH]",
@@ -34,11 +36,12 @@ class Writer:
         ])
         self.context.flush()
 
-    def write_row(self, timestamp, voltage, current, pt100, cts_temperature, cts_humidity, cts_status, cts_program, hv_status):
+    def write_row(self, *, timestamp, voltage, current, smu_current, pt100, cts_temperature, cts_humidity, cts_status, cts_program, hv_status):
         self.writer.writerow([
             format(timestamp, '.3f'),
             format(voltage, 'E'),
             format(current, 'E'),
+            format(smu_current, 'E'),
             format(pt100, '.2f'),
             format(cts_temperature, '.2f'),
             format(cts_humidity, '.2f'),
