@@ -64,20 +64,39 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     def createCharts(self):
         self.ivChart = IVChart(self.sensors())
         self.ui.ivChartView.setChart(self.ivChart)
+        self.ui.ivChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itChart = ItChart(self.sensors())
         self.ui.itChartView.setChart(self.itChart)
+        self.ui.itChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ctsChart = CtsChart()
         self.ui.ctsChartView.setChart(self.ctsChart)
+        self.ui.ctsChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ivTempChart = IVTempChart(self.sensors())
         self.ui.ivTempChartView.setChart(self.ivTempChart)
+        self.ui.ivTempChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itTempChart = ItTempChart(self.sensors())
         self.ui.itTempChartView.setChart(self.itTempChart)
+        self.ui.itTempChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.shuntBoxChart = ShuntBoxChart()
         self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
+        self.ui.shuntBoxChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ivSourceChart = IVSourceChart()
         self.ui.ivSourceChartView.setChart(self.ivSourceChart)
+        self.ui.ivSourceChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itSourceChart = ItSourceChart()
         self.ui.itSourceChartView.setChart(self.itSourceChart)
+        self.ui.itSourceChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
+
+        def ivRangeChanged(minimum, maximum):
+            self.ivSourceChart.axisX.setRange(minimum, maximum)
+        self.ivChart.axisX.rangeChanged.connect(ivRangeChanged)
+
+        def itRangeChanged(minimum, maximum):
+            self.ctsChart.axisX.setRange(minimum, maximum)
+            self.ivTempChart.axisX.setRange(minimum, maximum)
+            self.itTempChart.axisX.setRange(minimum, maximum)
+            self.itSourceChart.axisX.setRange(minimum, maximum)
+        self.itChart.axisX.rangeChanged.connect(itRangeChanged)
 
     def createProcesses(self):
         # Environ process

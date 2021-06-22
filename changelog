@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2021-06-22
+### Changed
+- Synchronized zoom for IV and It plots (#18).
+
 ## [0.10.0] - 2020-08-17
 ### Changed
 - Ramp down before SMU reset (#19).
