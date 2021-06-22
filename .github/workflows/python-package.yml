@@ -56,11 +56,3 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
-    - name: Build
-      run: |
-        pyinstaller pyinstaller.spec
-    - name: Publish
-      uses: actions/upload-artifact@v2
-      with:
-        name: comet-longterm
-        path: ./dist/comet-longterm.exe
