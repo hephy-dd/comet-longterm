@@ -195,10 +195,7 @@ class IVTempChart(Chart):
                 # watch out!
                 if not math.isnan(channel.get('temp')):
                     series.data().append(ts, channel.get('temp'))
-        if self.isZoomed():
-            self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
-        else:
-            self.fit()
+        self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
 class ItTempChart(IVTempChart):
 
@@ -259,14 +256,10 @@ class IVSourceChart(Chart):
         self.ivSeries.setPen(QtGui.QColor("red"))
 
     def append(self, reading):
-        import random
         voltage = abs(reading.get('U')) # absolute (can be negative)
         current = reading.get('I') * 1e6 # A to uA
         self.ivSeries.data().append(voltage, current)
-        if self.isZoomed():
-            self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
-        else:
-            self.fit()
+        self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
     def reset(self):
         self.ivSeries.data().clear()
@@ -293,10 +286,7 @@ class ItSourceChart(Chart):
         ts = reading.get('time')
         current = reading.get('I') * 1e6 # A to uA
         self.itSeries.data().append(ts, current)
-        if self.isZoomed():
-            self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
-        else:
-            self.fit()
+        self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
     def reset(self):
         self.itSeries.data().clear()
