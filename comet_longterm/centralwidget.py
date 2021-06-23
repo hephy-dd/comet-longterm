@@ -4,7 +4,10 @@ import time
 import datetime # TODO unify timestamp formatting!
 import logging
 
-from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtChart
 
 from comet import UiLoaderMixin
 from comet import Device, DeviceMixin
@@ -18,6 +21,8 @@ from .logwindow import LogWindow
 from .processes import EnvironProcess, MeasureProcess
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
 from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
+
+logger = logging.getLogger(__name__)
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -64,37 +69,31 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     def createCharts(self):
         self.ivChart = IVChart(self.sensors())
         self.ui.ivChartView.setChart(self.ivChart)
-        self.ui.ivChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itChart = ItChart(self.sensors())
         self.ui.itChartView.setChart(self.itChart)
-        self.ui.itChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ctsChart = CtsChart()
         self.ui.ctsChartView.setChart(self.ctsChart)
-        self.ui.ctsChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ivTempChart = IVTempChart(self.sensors())
         self.ui.ivTempChartView.setChart(self.ivTempChart)
-        self.ui.ivTempChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itTempChart = ItTempChart(self.sensors())
         self.ui.itTempChartView.setChart(self.itTempChart)
-        self.ui.itTempChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.shuntBoxChart = ShuntBoxChart()
         self.ui.shuntBoxChartView.setChart(self.shuntBoxChart)
-        self.ui.shuntBoxChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.ivSourceChart = IVSourceChart()
         self.ui.ivSourceChartView.setChart(self.ivSourceChart)
-        self.ui.ivSourceChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
         self.itSourceChart = ItSourceChart()
         self.ui.itSourceChartView.setChart(self.itSourceChart)
-        self.ui.itSourceChartView.setRubberBand(QtChart.QChartView.HorizontalRubberBand)
 
         def ivRangeChanged(minimum, maximum):
+            self.ivSourceChart.fit()
             self.ivSourceChart.axisX.setRange(minimum, maximum)
+            self.ivTempChart.fit()
         self.ivChart.axisX.rangeChanged.connect(ivRangeChanged)
 
         def itRangeChanged(minimum, maximum):
-            self.ctsChart.axisX.setRange(minimum, maximum)
-            self.ivTempChart.axisX.setRange(minimum, maximum)
+            self.itTempChart.fit()
             self.itTempChart.axisX.setRange(minimum, maximum)
+            self.itSourceChart.fit()
             self.itSourceChart.axisX.setRange(minimum, maximum)
         self.itChart.axisX.rangeChanged.connect(itRangeChanged)
 
@@ -214,10 +213,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 sensor.current = reading.get('channels')[sensor.index].get('I')
                 sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
-        self.ivChart.append(reading)
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
         self.ivSourceChart.append(reading)
+        self.ivChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onMeasItReading(self, reading):
@@ -226,10 +225,10 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 sensor.current = reading.get('channels')[sensor.index].get('I')
                 sensor.temperature = reading.get('channels')[sensor.index].get('temp')
         self.sensorsWidget().dataChanged() # HACK keep updated
-        self.itChart.append(reading)
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)
         self.itSourceChart.append(reading)
+        self.itChart.append(reading)
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):
@@ -299,7 +298,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 if len(resistors) < count:
                     raise RuntimeError("Missing calibration values, expected at least {}".format(count))
                 for i in range(count):
-                    logging.info("sensor[%s].resistivity = %s", i, resistors[i])
+                    logger.info("sensor[%s].resistivity = %s", i, resistors[i])
                     self.sensors()[i].resistivity = resistors[i]
                 QtWidgets.QMessageBox.information(self, self.tr("Success"), self.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as e:

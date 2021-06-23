@@ -31,6 +31,7 @@ class LogWidget(QtWidgets.QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setReadOnly(True)
+        self.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
         self.mutex = threading.RLock()
         self.handler = LogHandler(self)
         self.handler.object.message.connect(self.appendRecord)
