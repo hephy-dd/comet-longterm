@@ -5,6 +5,8 @@ import time
 import os
 import traceback
 
+import pyvisa.errors
+
 from PyQt5 import QtCore
 
 from comet import Process, StopRequest, Range
