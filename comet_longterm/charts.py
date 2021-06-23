@@ -15,6 +15,8 @@ __all__ = [
     'ItSourceChart'
 ]
 
+logger = logging.getLogger(__name__)
+
 DateTimeFormat = 'dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss'
 
 class IVChart(Chart):

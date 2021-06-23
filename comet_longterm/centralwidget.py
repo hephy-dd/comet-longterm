@@ -4,7 +4,10 @@ import time
 import datetime # TODO unify timestamp formatting!
 import logging
 
-from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtChart
 
 from comet import UiLoaderMixin
 from comet import Device, DeviceMixin
@@ -18,6 +21,8 @@ from .logwindow import LogWindow
 from .processes import EnvironProcess, MeasureProcess
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
 from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
+
+logger = logging.getLogger(__name__)
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin):
 
@@ -293,7 +298,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
                 if len(resistors) < count:
                     raise RuntimeError("Missing calibration values, expected at least {}".format(count))
                 for i in range(count):
-                    logging.info("sensor[%s].resistivity = %s", i, resistors[i])
+                    logger.info("sensor[%s].resistivity = %s", i, resistors[i])
                     self.sensors()[i].resistivity = resistors[i]
                 QtWidgets.QMessageBox.information(self, self.tr("Success"), self.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as e:

@@ -7,13 +7,13 @@ import traceback
 
 from PyQt5 import QtCore
 
-import pyvisa
-
 from comet import Process, StopRequest, Range
 from comet import DeviceMixin
 
 from .utils import make_iso
 from .writers import IVWriter, ItWriter
+
+logger = logging.getLogger(__name__)
 
 class EnvironProcess(Process, DeviceMixin):
     """Environment monitoring process. Polls for temperature, humidity and
@@ -57,7 +57,7 @@ class EnvironProcess(Process, DeviceMixin):
                         except pyvisa.errors.Error as e:
                             self.handleException(e)
                         else:
-                            logging.info("CTS reading: %s", reading)
+                            logger.info("CTS reading: %s", reading)
                             self.reading.emit(reading)
                         self.sleep(self.interval)
                         self.failedConnectionAttempts = 0
@@ -242,7 +242,7 @@ class MeasureProcess(Process, DeviceMixin):
 
     def reset(self, smu, multi):
         # Reset SMU
-        logging.info("Reset SMU...")
+        logger.info("Reset SMU...")
         smu.resource.write('*RST')
         smu.resource.query('*OPC?')
         self.sleep(.500)
@@ -253,7 +253,7 @@ class MeasureProcess(Process, DeviceMixin):
         if code:
             raise RuntimeError(f"{smu.resource.resource_name}: {code}, {message}")
         # Reset multimeter
-        logging.info("Reset Multimeter...")
+        logger.info("Reset Multimeter...")
         multi.resource.write('*RST')
         multi.resource.query('*OPC?')
         self.sleep(.500)
@@ -280,20 +280,20 @@ class MeasureProcess(Process, DeviceMixin):
         # Check SMU compliance tripped?
         compliance_tripped = int(smu.resource.query(":SENS:CURR:PROT:TRIP?"))
         if compliance_tripped:
-            logging.warning("SMU in compliance!")
+            logger.warning("SMU in compliance!")
             if not self.continueInCompliance():
                 raise ValueError(f"SMU in compliance")
 
         # Update SMU complicance
         total_compliance = self.totalCompliance()
-        logging.info("SMU total compliance: %G A", total_compliance)
+        logger.info("SMU total compliance: %G A", total_compliance)
         smu.resource.write(f'SENS:CURR:PROT:LEV {total_compliance:E}')
         smu.resource.query('*OPC?')
 
         # SMU current
-        logging.info("Read SMU current...")
+        logger.info("Read SMU current...")
         totalCurrent = smu.read()[1]
-        logging.info(f"SMU current: {totalCurrent:G} A")
+        logger.info(f"SMU current: {totalCurrent:G} A")
 
         # Read temperatures and shunt box stats
         temperature = {}
@@ -306,13 +306,13 @@ class MeasureProcess(Process, DeviceMixin):
                     temperature[index + 1] = value
 
         # start measurement
-        logging.info("Initiate measurement...")
+        logger.info("Initiate measurement...")
         multi.init()
-        logging.info("Read results buffer...")
+        logger.info("Read results buffer...")
         results = multi.fetch()
 
         for index, result in enumerate(results):
-            logging.info("[%d]: %s", index, result)
+            logger.info("[%d]: %s", index, result)
 
         channels = {}
         for sensor in self.sensors():
@@ -367,13 +367,13 @@ class MeasureProcess(Process, DeviceMixin):
 
         # Read instrument identifications
         idn = multi.identification()
-        logging.info("Multimeter: %s", idn)
+        logger.info("Multimeter: %s", idn)
         idn = smu.identification()
-        logging.info("Source Unit: %s", idn)
+        logger.info("Source Unit: %s", idn)
         if self.useShuntBox():
             with self.devices().get('shunt') as shunt:
                 idn = shunt.identification
-                logging.info("HEPHY ShuntBox: %s", idn)
+                logger.info("HEPHY ShuntBox: %s", idn)
 
         self.showMessage("Setup multimeter")
         self.showProgress(1, 3)
@@ -401,14 +401,14 @@ class MeasureProcess(Process, DeviceMixin):
         count = len(channels)
 
         # ROUTE:SCAN (@101,102,103...)
-        logging.info("channels: %s", ','.join(channels))
+        logger.info("channels: %s", ','.join(channels))
         multi.resource.write('ROUTE:SCAN (@{})'.format(','.join(channels)))
         multi.resource.query('*OPC?')
 
         multi.resource.write(':TRIG:COUN 1')
         multi.resource.query('*OPC?')
 
-        logging.info("sample count: %d", count)
+        logger.info("sample count: %d", count)
         multi.resource.write(f':SAMP:COUN {count}')
         multi.resource.query('*OPC?')
         # start scan when triggered
@@ -419,19 +419,19 @@ class MeasureProcess(Process, DeviceMixin):
         multi.resource.query('*OPC?')
 
         # Filter
-        logging.info("multimeter.filter.enable: %s", self.filterEnable())
+        logger.info("multimeter.filter.enable: %s", self.filterEnable())
         enable = int(self.filterEnable())
         multi.resource.write(f':SENS:VOLT:AVER:STAT {enable}')
         multi.resource.query('*OPC?')
         assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?')) == enable
 
-        logging.info("multimeter.filter.type: %s", self.filterType())
+        logger.info("multimeter.filter.type: %s", self.filterType())
         tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.filterType()]
         multi.resource.write(f':SENS:VOLT:AVER:TCON {tcontrol}')
         multi.resource.query('*OPC?')
         assert multi.resource.query(':SENS:VOLT:AVER:TCON?') == tcontrol
 
-        logging.info("multimeter.filter.count: %s", self.filterCount())
+        logger.info("multimeter.filter.count: %s", self.filterCount())
         count = self.filterCount()
         multi.resource.write(f':SENS:VOLT:AVER:COUN {count}')
         multi.resource.query('*OPC?')
@@ -518,7 +518,7 @@ class MeasureProcess(Process, DeviceMixin):
                     self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                     self.sleep(self.ivDelay())
                     reading = self.scan(smu, multi)
-                    logging.info("scan reading: %s", reading)
+                    logger.info("scan reading: %s", reading)
                     self.ivReading.emit(reading)
                     self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                     for sensor in self.sensors():
@@ -596,7 +596,7 @@ class MeasureProcess(Process, DeviceMixin):
                     if currentTime >= timeEnd:
                         break
                 reading = self.scan(smu, multi)
-                logging.info("scan reading: %s", reading)
+                logger.info("scan reading: %s", reading)
                 self.itReading.emit(reading)
                 self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get('I')))
                 for sensor in self.sensors():
