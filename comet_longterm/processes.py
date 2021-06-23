@@ -662,16 +662,17 @@ class MeasureProcess(Process, DeviceMixin):
 
     def run(self):
         # Open connection to instruments
-        with self.devices().get('smu') as smu:
-            with self.devices().get('multi') as multi:
-                try:
-                    self.setup(smu, multi)
-                    self.rampUp(smu, multi)
-                    self.rampBias(smu, multi)
-                    self.longterm(smu, multi)
-                except StopRequest:
-                    pass
-                finally:
-                    self.rampDown(smu, multi)
-                    self.showMessage("Stopped")
-                    self.hideProgress()
+        with contextlib.ExitStack() as stack:
+            smu = stack.enter_context(self.devices().get('smu'))
+            multi = stack.enter_context(self.devices().get('multi'))
+            try:
+                self.setup(smu, multi)
+                self.rampUp(smu, multi)
+                self.rampBias(smu, multi)
+                self.longterm(smu, multi)
+            except StopRequest:
+                pass
+            finally:
+                self.rampDown(smu, multi)
+                self.showMessage("Stopped")
+                self.hideProgress()
