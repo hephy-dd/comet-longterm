@@ -1,8 +1,12 @@
+import logging
+
 from PyQt5 import QtCore, QtWidgets
 
 from comet import UiLoaderMixin
 
 from .utils import auto_unit
+
+logger = logging.getLogger(__name__)
 
 class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
 
@@ -31,14 +35,3 @@ class StatusWidget(QtWidgets.QWidget, UiLoaderMixin):
             self.ui.statusLineEdit.setText(self.tr("{} ({})").format(status, program))
         else:
             self.ui.statusLineEdit.setText(self.tr("{}").format(status))
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    w = StatusWidget()
-    w.setVoltage(42)
-    w.setCurrent(.42)
-    w.setTemperature(4.2)
-    w.setHumidity(2.4)
-    w.setRunning(False)
-    w.show()
-    app.exec_()

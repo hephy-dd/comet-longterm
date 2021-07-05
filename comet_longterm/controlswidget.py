@@ -1,13 +1,17 @@
+import logging
 import os
 
 from PyQt5 import QtCore, QtWidgets
 
 from comet import UiLoaderMixin
 
+logger = logging.getLogger(__name__)
+
 class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
 
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
+    halted = QtCore.pyqtSignal()
 
     useShuntBoxChanged = QtCore.pyqtSignal(bool)
     ivEndVoltageChanged = QtCore.pyqtSignal(float)
@@ -281,6 +285,7 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
         self.ui.multiFilterCountSpinBox.setEnabled(True)
         self.ui.operatorGroupBox.setEnabled(True)
         self.ui.pathGroupBox.setEnabled(True)
+        self.halted.emit()
 
     @QtCore.pyqtSlot()
     def onSelectPath(self):

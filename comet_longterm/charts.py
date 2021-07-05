@@ -1,7 +1,8 @@
 import logging
 import math
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtGui
 from QCharted import Chart
 
 __all__ = [
@@ -15,9 +16,10 @@ __all__ = [
     'ItSourceChart'
 ]
 
-logger = logging.getLogger(__name__)
 
 DateTimeFormat = 'dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss'
+
+logger = logging.getLogger(__name__)
 
 class IVChart(Chart):
 

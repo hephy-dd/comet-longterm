@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from comet import UiLoaderMixin, DeviceMixin
@@ -16,6 +18,8 @@ CalibratedResistors = (
 """List of default calibrated resistors in Ohm."""
 
 SensorCount = 10
+
+logger = logging.getLogger(__name__)
 
 class HVDelegate(QtWidgets.QItemDelegate):
 
@@ -277,9 +281,3 @@ class SensorManager(object):
 
     def __iter__(self):
         return iter(self.sensors)
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication([])
-    w = SensorsWidget()
-    w.show()
-    app.exec_()

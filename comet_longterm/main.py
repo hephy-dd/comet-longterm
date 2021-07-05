@@ -4,8 +4,8 @@ import sys
 
 from PyQt5 import QtWidgets
 
-from .centralwidget import CentralWidget
-from comet import Application, MainWindow
+from .controller import Controller
+from comet import Application
 from . import __version__
 
 def parse_args():
@@ -25,14 +25,13 @@ def main():
     app = Application()
     app.setApplicationName('comet-longterm')
 
-    window = MainWindow()
-    window.setCentralWidget(CentralWidget(window))
-    window.setWindowTitle("{} {}".format(window.windowTitle(), __version__))
-    window.centralWidget().setLevel(level)
-    window.resize(1280, 700)
-    window.show()
+    controller = Controller()
+    controller.loadSettings()
+    controller.setLevel(level)
+    result = controller.eventLoop()
+    controller.storeSettings()
 
-    return app.run()
+    return result
 
 if __name__ == '__main__':
     sys.exit(main())

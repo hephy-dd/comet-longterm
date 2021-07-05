@@ -1,5 +1,6 @@
-from . import __version__
 import csv
+
+from . import __version__
 
 class Writer:
     """CSV file writer for IV and It measurements."""
@@ -36,7 +37,9 @@ class Writer:
         ])
         self.context.flush()
 
-    def write_row(self, *, timestamp, voltage, current, smu_current, pt100, cts_temperature, cts_humidity, cts_status, cts_program, hv_status):
+    def write_row(self, *, timestamp, voltage, current, smu_current, pt100,
+                  cts_temperature, cts_humidity, cts_status, cts_program,
+                  hv_status):
         self.writer.writerow([
             format(timestamp, '.3f'),
             format(voltage, 'E'),
