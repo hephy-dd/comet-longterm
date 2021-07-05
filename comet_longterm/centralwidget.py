@@ -199,7 +199,7 @@ class CentralWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin, ProcessMixin)
     @QtCore.pyqtSlot()
     def onIvStarted(self):
         self.ui.topTabWidget.setCurrentIndex(0)
-        self.ui.bottomTabWidget.setCurrentIndex(1) # switch to IV temperature
+        self.ui.bottomTabWidget.setCurrentIndex(3) # switch to IV SMU
 
     @QtCore.pyqtSlot()
     def onItStarted(self):
