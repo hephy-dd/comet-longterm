@@ -227,6 +227,9 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         meas.setContinueInCompliance(widget.controlsWidget().continueInCompliance())
         meas.setItDuration(widget.controlsWidget().itDuration())
         meas.setItInterval(widget.controlsWidget().itInterval())
+        meas.setFilterEnable(widget.controlsWidget().filterEnable())
+        meas.setFilterCount(widget.controlsWidget().filterCount())
+        meas.setFilterType(widget.controlsWidget().filterType())
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget().operator())
 
