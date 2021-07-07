@@ -140,7 +140,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.controlsWidget().filterTypeChanged.connect(meas.setFilterType)
         widget.controlsWidget().filterCountChanged.connect(meas.setFilterCount)
 
-        widget.parent().connectProcess(meas)
+        self.view.connectProcess(meas)
         self.processes().add('meas', meas)
 
     def setLevel(self, level):
@@ -189,7 +189,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         environ = self.processes().get('environ')
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
-            self.parent().showException(exc)
+            self.view.showException(exc)
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -268,7 +268,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
                     widget.sensors()[i].resistivity = resistors[i]
                 QtWidgets.QMessageBox.information(widget, widget.tr("Success"), widget.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as exc:
-                widget.parent().showException(exc)
+                self.view.showException(exc)
 
     @QtCore.pyqtSlot()
     def onShowLogWindow(self):
