@@ -32,6 +32,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         self.view = MainWindow()
         self.view.setCentralWidget(CentralWidget(self.view))
         self.view.setWindowTitle("{} {}".format(self.view.windowTitle(), __version__))
+        self.view.setProperty('contentsUrl', 'https://github.com/hephy-dd/comet-longterm')
 
         self.createLogWindow()
         self.createDevices()
