@@ -8,12 +8,10 @@ import webbrowser
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
-from .mainwindow import MainWindow
 from comet import DeviceMixin
 from comet import ProcessMixin
-from .mainwindow import ProcessDialog
+
 from comet.widgets.preferencesdialog import PreferencesDialog
-from comet.widgets.aboutdialog import AboutDialog
 
 from comet.devices.cts import ITC
 from comet.devices.keithley import K2410
@@ -23,8 +21,11 @@ from comet.devices.hephy import ShuntBox
 from . import __version__
 from .processes import EnvironProcess
 from .processes import MeasureProcess
-from .centralwidget import CentralWidget
-from .logwindow import LogWindow
+
+from .view.mainwindow import MainWindow
+from .view.mainwindow import ProcessDialog
+from .view.centralwidget import CentralWidget
+from .view.logwindow import LogWindow
 
 logger = logging.getLogger(__name__)
 
@@ -35,25 +36,31 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         self.view = MainWindow()
         self.view.setCentralWidget(CentralWidget(self.view))
         self.view.setWindowTitle(f"Longterm It {__version__}")
-        self.view.setProperty('contentsUrl', 'https://github.com/hephy-dd/comet-longterm')
+        self.view.setProperty("contentsUrl", "https://github.com/hephy-dd/comet-longterm")
+        self.view.setProperty("aboutText",
+            f"""<h3>Longterm It</h3>
+            <p>Version {__version__}</p>
+            <p>Long term sensor It measurements in CTS climate chamber.</p>
+            <p>&copy; 2019-2021 hephy.at</p>"""
+        )
 
         self.createLogWindow()
         self.createDevices()
         self.createProcesses()
 
         widget = self.view.centralWidget()
-        widget.controlsWidget().ui.ctsCheckBox.toggled.connect(self.onEnableEnviron)
-        widget.controlsWidget().ui.shuntBoxCheckBox.toggled.connect(self.onEnableShuntBox)
-        widget.controlsWidget().started.connect(self.onStart)
-        widget.controlsWidget().stopRequest.connect(self.onStopRequest)
-        widget.controlsWidget().halted.connect(self.onHalted)
+        widget.controlsWidget.ctsCheckBox.toggled.connect(self.onEnableEnviron)
+        widget.controlsWidget.shuntBoxCheckBox.toggled.connect(self.onEnableShuntBox)
+        widget.controlsWidget.started.connect(self.onStart)
+        widget.controlsWidget.stopRequest.connect(self.onStopRequest)
+        widget.controlsWidget.halted.connect(self.onHalted)
 
         # Add new menu entries
         self.view.importCalibAction.triggered.connect(self.onImportCalib)
         self.view.preferencesAction.triggered.connect(self.onShowPrefernces)
         self.view.loggingAction.triggered.connect(self.onShowLogWindow)
-        self.view.startAction.triggered.connect(self.view.centralWidget().controlsWidget().ui.startPushButton.click)
-        self.view.stopAction.triggered.connect(self.view.centralWidget().controlsWidget().ui.stopPushButton.click)
+        self.view.startAction.triggered.connect(self.view.centralWidget().controlsWidget.startPushButton.click)
+        self.view.stopAction.triggered.connect(self.view.centralWidget().controlsWidget.stopPushButton.click)
         self.view.contentsAction.triggered.connect(self.onShowContents)
         self.view.aboutQtAction.triggered.connect(self.onShowAboutQt)
         self.view.aboutAction.triggered.connect(self.onShowAbout)
@@ -70,7 +77,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
 
         widget = self.view.centralWidget()
         widget.sensors().loadSettings()
-        widget.controlsWidget().loadSettings()
+        widget.controlsWidget.loadSettings()
 
     def storeSettings(self):
         settings = QtCore.QSettings()
@@ -80,7 +87,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
 
         widget = self.view.centralWidget()
         widget.sensors().storeSettings()
-        widget.controlsWidget().storeSettings()
+        widget.controlsWidget.storeSettings()
 
     def createLogWindow(self):
         self.logWindow = LogWindow()
@@ -102,8 +109,8 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         environ.reading.connect(self.onEnvironReading)
         environ.failed.connect(self.onEnvironError)
         self.processes().add('environ', environ)
-        self.onEnableEnviron(widget.controlsWidget().isEnvironEnabled())
-        self.onEnableShuntBox(widget.controlsWidget().isShuntBoxEnabled())
+        self.onEnableEnviron(widget.controlsWidget.isEnvironEnabled())
+        self.onEnableShuntBox(widget.controlsWidget.isShuntBoxEnabled())
 
         # Measurement process
         meas = MeasureProcess(self)
@@ -115,20 +122,20 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         meas.smuReading.connect(widget.onSmuReading)
         meas.finished.connect(widget.onHalted)
 
-        widget.controlsWidget().stopRequest.connect(meas.stop)
-        widget.controlsWidget().useShuntBoxChanged.connect(meas.setUseShuntBox)
-        widget.controlsWidget().ivEndVoltageChanged.connect(meas.setIvEndVoltage)
-        widget.controlsWidget().ivStepChanged.connect(meas.setIvStep)
-        widget.controlsWidget().ivDelayChanged.connect(meas.setIvDelay)
-        widget.controlsWidget().biasVoltageChanged.connect(meas.setBiasVoltage)
-        widget.controlsWidget().totalComplianceChanged.connect(meas.setTotalCompliance)
-        widget.controlsWidget().singleComplianceChanged.connect(meas.setSingleCompliance)
-        widget.controlsWidget().continueInComplianceChanged.connect(meas.setContinueInCompliance)
-        widget.controlsWidget().itDurationChanged.connect(meas.setItDuration)
-        widget.controlsWidget().itIntervalChanged.connect(meas.setItInterval)
-        widget.controlsWidget().filterEnableChanged.connect(meas.setFilterEnable)
-        widget.controlsWidget().filterTypeChanged.connect(meas.setFilterType)
-        widget.controlsWidget().filterCountChanged.connect(meas.setFilterCount)
+        widget.controlsWidget.stopRequest.connect(meas.stop)
+        widget.controlsWidget.useShuntBoxChanged.connect(meas.setUseShuntBox)
+        widget.controlsWidget.ivEndVoltageChanged.connect(meas.setIvEndVoltage)
+        widget.controlsWidget.ivStepChanged.connect(meas.setIvStep)
+        widget.controlsWidget.ivDelayChanged.connect(meas.setIvDelay)
+        widget.controlsWidget.biasVoltageChanged.connect(meas.setBiasVoltage)
+        widget.controlsWidget.totalComplianceChanged.connect(meas.setTotalCompliance)
+        widget.controlsWidget.singleComplianceChanged.connect(meas.setSingleCompliance)
+        widget.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
+        widget.controlsWidget.itDurationChanged.connect(meas.setItDuration)
+        widget.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
+        widget.controlsWidget.filterEnableChanged.connect(meas.setFilterEnable)
+        widget.controlsWidget.filterTypeChanged.connect(meas.setFilterType)
+        widget.controlsWidget.filterCountChanged.connect(meas.setFilterCount)
 
         self.connectProcess(meas)
         self.processes().add('meas', meas)
@@ -149,13 +156,13 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         """Enable environment process."""
         widget = self.view.centralWidget()
         # Toggle environ tab
-        index = widget.ui.bottomTabWidget.indexOf(widget.ui.ctsTab)
-        widget.ui.bottomTabWidget.setTabEnabled(index, enabled)
-        widget.statusWidget().ui.ctsGroupBox.setEnabled(enabled)
-        widget.statusWidget().setTemperature(float('nan'))
-        widget.statusWidget().setHumidity(float('nan'))
-        widget.statusWidget().setStatus('N/A')
-        widget.sensorsWidget().dataChanged() # HACK keep updated
+        index = widget.bottomTabWidget.indexOf(widget.ctsTab)
+        widget.bottomTabWidget.setTabEnabled(index, enabled)
+        widget.statusWidget.setCtsEnabled(enabled)
+        widget.statusWidget.setTemperature(float('nan'))
+        widget.statusWidget.setHumidity(float('nan'))
+        widget.statusWidget.setStatus('N/A')
+        widget.sensorsWidget.dataChanged() # HACK keep updated
         # Toggle environ process
         environ = self.processes().get('environ')
         environ.stop()
@@ -172,15 +179,15 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
     def onEnvironReading(self, reading):
         widget = self.view.centralWidget()
         widget.ctsChart.append(reading)
-        widget.statusWidget().setTemperature(reading.get('temp'))
-        widget.statusWidget().setHumidity(reading.get('humid'))
-        widget.statusWidget().setStatus('{} ({})'.format(reading.get('status'), reading.get('program')))
+        widget.statusWidget.setTemperature(reading.get('temp'))
+        widget.statusWidget.setHumidity(reading.get('humid'))
+        widget.statusWidget.setStatus('{} ({})'.format(reading.get('status'), reading.get('program')))
         meas = self.processes().get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
         meas.setStatus(reading.get('status'))
         meas.setProgram(reading.get('program'))
-        widget.sensorsWidget().dataChanged() # HACK keep updated
+        widget.sensorsWidget.dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
     def onEnvironError(self, exc):
@@ -193,7 +200,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
     def onStart(self):
         widget = self.view.centralWidget()
         widget.sensors().setEditable(False)
-        widget.statusWidget().setCurrent(None)
+        widget.statusWidget.setCurrent(None)
 
         self.view.importCalibAction.setEnabled(False)
         self.view.preferencesAction.setEnabled(False)
@@ -210,7 +217,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.itSourceChart.reset()
 
         # Setup output location
-        path = os.path.normpath(widget.controlsWidget().path())
+        path = os.path.normpath(widget.controlsWidget.path())
         timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M-%S')
         path = os.path.join(path, timestamp)
         if not os.path.exists(path):
@@ -218,21 +225,21 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
 
         meas = self.processes().get('meas')
         meas.setSensors(widget.sensors())
-        meas.setUseShuntBox(widget.controlsWidget().isShuntBoxEnabled())
-        meas.setIvEndVoltage(widget.controlsWidget().ivEndVoltage())
-        meas.setIvStep(widget.controlsWidget().ivStep())
-        meas.setIvDelay(widget.controlsWidget().ivDelay())
-        meas.setBiasVoltage(widget.controlsWidget().biasVoltage())
-        meas.setTotalCompliance(widget.controlsWidget().totalCompliance())
-        meas.setSingleCompliance(widget.controlsWidget().singleCompliance())
-        meas.setContinueInCompliance(widget.controlsWidget().continueInCompliance())
-        meas.setItDuration(widget.controlsWidget().itDuration())
-        meas.setItInterval(widget.controlsWidget().itInterval())
-        meas.setFilterEnable(widget.controlsWidget().filterEnable())
-        meas.setFilterCount(widget.controlsWidget().filterCount())
-        meas.setFilterType(widget.controlsWidget().filterType())
+        meas.setUseShuntBox(widget.controlsWidget.isShuntBoxEnabled())
+        meas.setIvEndVoltage(widget.controlsWidget.ivEndVoltage())
+        meas.setIvStep(widget.controlsWidget.ivStep())
+        meas.setIvDelay(widget.controlsWidget.ivDelay())
+        meas.setBiasVoltage(widget.controlsWidget.biasVoltage())
+        meas.setTotalCompliance(widget.controlsWidget.totalCompliance())
+        meas.setSingleCompliance(widget.controlsWidget.singleCompliance())
+        meas.setContinueInCompliance(widget.controlsWidget.continueInCompliance())
+        meas.setItDuration(widget.controlsWidget.itDuration())
+        meas.setItInterval(widget.controlsWidget.itInterval())
+        meas.setFilterEnable(widget.controlsWidget.filterEnable())
+        meas.setFilterCount(widget.controlsWidget.filterCount())
+        meas.setFilterType(widget.controlsWidget.filterType())
         meas.setPath(path)
-        meas.setOperator(widget.controlsWidget().operator())
+        meas.setOperator(widget.controlsWidget.operator())
 
         meas.start()
 
@@ -299,6 +306,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
     def onShowAbout(self):
         """Show modal about dialog."""
         AboutDialog(self.view).exec()
+        QtWidgets.QMessageBox.about(self.view, "About", self.view.property('aboutText'))
 
     def closeEvent(self, event):
         dialog = QtWidgets.QMessageBox(self.view)

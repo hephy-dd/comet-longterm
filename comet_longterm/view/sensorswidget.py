@@ -1,10 +1,12 @@
 import logging
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 
-from comet import UiLoaderMixin, DeviceMixin
+from comet import DeviceMixin
 
-from .utils import auto_unit
+from ..utils import auto_unit
 
 Colors = (
     '#2a7fff', '#5fd3bc', '#ffd42a', '#ff7f2a', '#ff1f2a', '#ff40d9',
@@ -43,35 +45,56 @@ class HVDelegate(QtWidgets.QItemDelegate):
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
 
-class SensorsWidget(QtWidgets.QWidget, UiLoaderMixin, DeviceMixin):
+class SensorsWidget(QtWidgets.QWidget, DeviceMixin):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.loadUi()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
         self.sensors = SensorManager(SensorCount)
         self.model = SensorsModel(self.sensors)
-        self.ui.tableView.setModel(self.model)
-        self.ui.tableView.resizeColumnsToContents()
-        self.ui.tableView.resizeRowsToContents()
-        self.ui.tableView.setColumnWidth(0, 172)
-        self.ui.tableView.setColumnWidth(1, 64)
-        self.ui.tableView.setColumnWidth(3, 96)
-        self.ui.tableView.setColumnWidth(4, 64)
-        self.ui.tableView.setItemDelegateForColumn(2, HVDelegate())
+
+        self.setWindowTitle("Sensors")
+
+        self.tableView = QtWidgets.QTableView()
+        self.tableView.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.tableView.setProperty("showDropIndicator", False)
+        self.tableView.setDragDropOverwriteMode(False)
+        self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.tableView.setCornerButtonEnabled(False)
+        self.tableView.horizontalHeader().setHighlightSections(False)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.setModel(self.model)
+        self.tableView.resizeColumnsToContents()
+        self.tableView.resizeRowsToContents()
+        self.tableView.setColumnWidth(0, 172)
+        self.tableView.setColumnWidth(1, 64)
+        self.tableView.setColumnWidth(3, 96)
+        self.tableView.setColumnWidth(4, 64)
+        self.tableView.setItemDelegateForColumn(2, HVDelegate())
+
+        self.groupBox = QtWidgets.QGroupBox("Sensors")
+
+        self.gridLayout_2 = QtWidgets.QGridLayout(self.groupBox)
+        self.gridLayout_2.addWidget(self.tableView, 0, 0, 1, 1)
+
+        self.gridLayout = QtWidgets.QGridLayout(self)
+        self.gridLayout.addWidget(self.groupBox, 0, 0, 1, 1)
+
         self.verticalResizeTableView()
 
     def verticalResizeTableView(self):
         """Resize table view to vertical content height."""
         rowTotalHeight = 0
-        count = self.ui.tableView.verticalHeader().count()
+        count = self.tableView.verticalHeader().count()
         for i in range(count):
-            if not self.ui.tableView.verticalHeader().isSectionHidden(i):
-                rowTotalHeight += self.ui.tableView.verticalHeader().sectionSize(i)
-        # if not self.ui.tableView.horizontalScrollBar().isHidden():
-        #     rowTotalHeight += self.ui.tableView.horizontalScrollBar().height()
-        # if not self.ui.tableView.horizontalHeader().isHidden():
-        #     rowTotalHeight += self.ui.tableView.horizontalHeader().height()
-        self.ui.tableView.setMinimumHeight(rowTotalHeight)
+            if not self.tableView.verticalHeader().isSectionHidden(i):
+                rowTotalHeight += self.tableView.verticalHeader().sectionSize(i)
+        # if not self.tableView.horizontalScrollBar().isHidden():
+        #     rowTotalHeight += self.tableView.horizontalScrollBar().height()
+        # if not self.tableView.horizontalHeader().isHidden():
+        #     rowTotalHeight += self.tableView.horizontalHeader().height()
+        self.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self):
         self.model.dataChanged.emit(

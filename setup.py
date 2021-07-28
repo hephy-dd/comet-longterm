@@ -9,6 +9,8 @@ setup(
     install_requires=[
         'PyQt5==5.15.*',
         'PyQtChart==5.15.*',
+        'PyVISA',
+        'PyVISA-py',
         'comet @ https://github.com/hephy-dd/comet/archive/0.5.0.zip#egg=comet-0.5.0',
     ],
     package_data={
