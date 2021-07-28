@@ -11,7 +11,7 @@ setup(
         'PyQtChart==5.15.*',
         'PyVISA',
         'PyVISA-py',
-        'comet @ https://github.com/hephy-dd/comet/archive/0.5.0.zip#egg=comet-0.5.0',
+        'comet @ https://github.com/hephy-dd/comet/archive/0.13.1.zip#egg=comet-0.13.1',
     ],
     package_data={
         'comet_longterm': [

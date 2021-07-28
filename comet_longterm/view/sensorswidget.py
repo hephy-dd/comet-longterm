@@ -4,7 +4,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-from comet import DeviceMixin
+from comet import ResourceMixin
 
 from ..utils import auto_unit
 
@@ -45,7 +45,7 @@ class HVDelegate(QtWidgets.QItemDelegate):
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
 
-class SensorsWidget(QtWidgets.QWidget, DeviceMixin):
+class SensorsWidget(QtWidgets.QWidget, ResourceMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,7 +56,6 @@ class SensorsWidget(QtWidgets.QWidget, DeviceMixin):
         self.setWindowTitle("Sensors")
 
         self.tableView = QtWidgets.QTableView()
-        self.tableView.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.tableView.setProperty("showDropIndicator", False)
         self.tableView.setDragDropOverwriteMode(False)
         self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -72,6 +71,7 @@ class SensorsWidget(QtWidgets.QWidget, DeviceMixin):
         self.tableView.setColumnWidth(3, 96)
         self.tableView.setColumnWidth(4, 64)
         self.tableView.setItemDelegateForColumn(2, HVDelegate())
+        self.tableView.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
         self.groupBox = QtWidgets.QGroupBox("Sensors")
 
@@ -91,9 +91,9 @@ class SensorsWidget(QtWidgets.QWidget, DeviceMixin):
             if not self.tableView.verticalHeader().isSectionHidden(i):
                 rowTotalHeight += self.tableView.verticalHeader().sectionSize(i)
         # if not self.tableView.horizontalScrollBar().isHidden():
-        #     rowTotalHeight += self.tableView.horizontalScrollBar().height()
+        rowTotalHeight += self.tableView.horizontalScrollBar().height()
         # if not self.tableView.horizontalHeader().isHidden():
-        #     rowTotalHeight += self.tableView.horizontalHeader().height()
+        rowTotalHeight += self.tableView.horizontalHeader().height()
         self.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self):

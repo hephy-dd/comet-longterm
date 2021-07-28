@@ -95,7 +95,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progressBar.hide()
 
     @QtCore.pyqtSlot(object)
-    def showException(self, exc):
+    def showException(self, exc, tb=None):
         """Raise message box showing exception inforamtion."""
         details = ''.join(traceback.format_tb(exc.__traceback__))
         box = QtWidgets.QMessageBox(self)

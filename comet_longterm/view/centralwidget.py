@@ -84,8 +84,8 @@ class CentralWidget(QtWidgets.QWidget):
         self.leftVerticalLayout.addWidget(self.controlsWidget)
         self.leftVerticalLayout.addStretch()
         self.leftVerticalLayout.setStretch(0, 1)
-        self.leftVerticalLayout.setStretch(1, 1)
-        self.leftVerticalLayout.setStretch(2, 1)
+        self.leftVerticalLayout.setStretch(1, 0)
+        self.leftVerticalLayout.setStretch(2, 0)
         self.leftVerticalLayout.setStretch(3, 10)
 
         self.rightVerticalLayout = QtWidgets.QVBoxLayout()

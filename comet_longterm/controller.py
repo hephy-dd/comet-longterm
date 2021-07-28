@@ -8,15 +8,8 @@ import webbrowser
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
-from comet import DeviceMixin
+from comet import Resource, ResourceMixin
 from comet import ProcessMixin
-
-from comet.widgets.preferencesdialog import PreferencesDialog
-
-from comet.devices.cts import ITC
-from comet.devices.keithley import K2410
-from comet.devices.keithley import K2700
-from comet.devices.hephy import ShuntBox
 
 from . import __version__
 from .processes import EnvironProcess
@@ -24,12 +17,13 @@ from .processes import MeasureProcess
 
 from .view.mainwindow import MainWindow
 from .view.mainwindow import ProcessDialog
+from .view.preferencesdialog import PreferencesDialog
 from .view.centralwidget import CentralWidget
 from .view.logwindow import LogWindow
 
 logger = logging.getLogger(__name__)
 
-class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
+class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -97,30 +91,42 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
 
     def createDevices(self):
         resources = QtCore.QSettings().value('resources', {})
-        self.devices().add('shunt', ShuntBox(resources.get('shunt', 'TCPIP::10.0.0.2::10001::SOCKET')))
-        self.devices().add('smu', K2410(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET')))
-        self.devices().add('multi', K2700(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET')))
-        self.devices().add('cts', ITC(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
+        self.resources.add('shunt', Resource(
+            resources.get('shunt', 'TCPIP::10.0.0.2::10001::SOCKET'),
+            read_termination='\n',
+            write_termination='\n'
+        ))
+        self.resources.add('smu',
+            Resource(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET'),
+            read_termination='\r',
+            write_termination='\r\n'
+        ))
+        self.resources.add('multi',
+            Resource(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET'),
+            read_termination='\r',
+            write_termination='\r\n'
+        ))
+        self.resources.add('cts', Resource(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
 
     def createProcesses(self):
         widget = self.view.centralWidget()
         # Environ process
-        environ = EnvironProcess(self.view)
-        environ.reading.connect(self.onEnvironReading)
-        environ.failed.connect(self.onEnvironError)
-        self.processes().add('environ', environ)
+        environ = EnvironProcess()
+        environ.reading = self.onEnvironReading
+        environ.failed = self.onEnvironError
+        self.processes.add('environ', environ)
         self.onEnableEnviron(widget.controlsWidget.isEnvironEnabled())
         self.onEnableShuntBox(widget.controlsWidget.isShuntBoxEnabled())
 
         # Measurement process
-        meas = MeasureProcess(self)
+        meas = MeasureProcess()
 
-        meas.ivStarted.connect(widget.onIvStarted)
-        meas.itStarted.connect(widget.onItStarted)
-        meas.ivReading.connect(widget.onMeasIvReading)
-        meas.itReading.connect(widget.onMeasItReading)
-        meas.smuReading.connect(widget.onSmuReading)
-        meas.finished.connect(widget.onHalted)
+        meas.ivStarted = widget.onIvStarted
+        meas.itStarted = widget.onItStarted
+        meas.ivReading = widget.onMeasIvReading
+        meas.itReading = widget.onMeasItReading
+        meas.smuReading = widget.onSmuReading
+        meas.finished = widget.onHalted
 
         widget.controlsWidget.stopRequest.connect(meas.stop)
         widget.controlsWidget.useShuntBoxChanged.connect(meas.setUseShuntBox)
@@ -138,18 +144,18 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.controlsWidget.filterCountChanged.connect(meas.setFilterCount)
 
         self.connectProcess(meas)
-        self.processes().add('meas', meas)
+        self.processes.add('meas', meas)
 
     def setLevel(self, level):
         self.logWindow.setLevel(level)
 
     def connectProcess(self, process):
         """Connect process signals to main window slots."""
-        process.failed.connect(self.view.showException)
-        process.messageChanged.connect(self.view.showMessage)
-        process.messageCleared.connect(self.view.clearMessage)
-        process.progressChanged.connect(self.view.showProgress)
-        process.progressHidden.connect(self.view.hideProgress)
+        process.failed = self.view.showException
+        process.messageChanged = self.view.showMessage
+        process.messageCleared = self.view.clearMessage
+        process.progressChanged = self.view.showProgress
+        process.progressHidden = self.view.hideProgress
 
     @QtCore.pyqtSlot(bool)
     def onEnableEnviron(self, enabled):
@@ -164,7 +170,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.statusWidget.setStatus('N/A')
         widget.sensorsWidget.dataChanged() # HACK keep updated
         # Toggle environ process
-        environ = self.processes().get('environ')
+        environ = self.processes.get('environ')
         environ.stop()
         environ.join()
         if enabled:
@@ -182,7 +188,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.statusWidget.setTemperature(reading.get('temp'))
         widget.statusWidget.setHumidity(reading.get('humid'))
         widget.statusWidget.setStatus('{} ({})'.format(reading.get('status'), reading.get('program')))
-        meas = self.processes().get('meas')
+        meas = self.processes.get('meas')
         meas.setTemperature(reading.get('temp'))
         meas.setHumidity(reading.get('humid'))
         meas.setStatus(reading.get('status'))
@@ -190,8 +196,8 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.sensorsWidget.dataChanged() # HACK keep updated
 
     @QtCore.pyqtSlot(object)
-    def onEnvironError(self, exc):
-        environ = self.processes().get('environ')
+    def onEnvironError(self, exc, tb=None):
+        environ = self.processes.get('environ')
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
             self.view.showException(exc)
@@ -223,7 +229,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        meas = self.processes().get('meas')
+        meas = self.processes.get('meas')
         meas.setSensors(widget.sensors())
         meas.setUseShuntBox(widget.controlsWidget.isShuntBoxEnabled())
         meas.setIvEndVoltage(widget.controlsWidget.ivEndVoltage())
@@ -305,7 +311,6 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
     @QtCore.pyqtSlot()
     def onShowAbout(self):
         """Show modal about dialog."""
-        AboutDialog(self.view).exec()
         QtWidgets.QMessageBox.about(self.view, "About", self.view.property('aboutText'))
 
     def closeEvent(self, event):
@@ -317,8 +322,8 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         dialog.exec()
 
         if dialog.result() == dialog.Yes:
-            if len(self.processes()):
-                dialog = ProcessDialog(self.processes(), self.view)
+            if len(self.processes):
+                dialog = ProcessDialog(self.processes, self.view)
                 dialog.exec()
             self.logWindow.hide()
             self.logWindow.removeLogger(logging.getLogger())
