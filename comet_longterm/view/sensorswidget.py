@@ -4,8 +4,6 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-from comet import ResourceMixin
-
 from ..utils import auto_unit
 
 Colors = (
@@ -45,7 +43,7 @@ class HVDelegate(QtWidgets.QItemDelegate):
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
 
-class SensorsWidget(QtWidgets.QWidget, ResourceMixin):
+class SensorsWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)

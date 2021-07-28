@@ -313,8 +313,6 @@ class ControlsWidget(QtWidgets.QWidget):
         self.setTabOrder(self.operatorComboBox, self.pathComboBox)
         self.setTabOrder(self.pathComboBox, self.selectPathPushButton)
 
-        self.loadSettings()
-
         # Setup signals
         self.startPushButton.clicked.connect(self.onStart)
         self.stopPushButton.clicked.connect(self.onStop)
@@ -483,7 +481,7 @@ class ControlsWidget(QtWidgets.QWidget):
     def loadSettings(self):
         settings = QtCore.QSettings()
         home = os.path.join(os.path.expanduser("~"), 'longterm')
-        names = settings.value('operators', []) or [] # HACK
+        names = settings.value('operators') or []
         index = settings.value('currentOperator', 0, type=int)
         path = settings.value('path', home)
         self.operatorComboBox.addItems(names)
@@ -589,7 +587,7 @@ class ControlsWidget(QtWidgets.QWidget):
     def onOperatorChanged(self, name):
         """Store current operator name to settings."""
         settings = QtCore.QSettings()
-        operators = settings.value('operators', []) or [] # HACK
+        operators = settings.value('operators') or []
         if name not in operators:
             operators.append(name)
         settings.setValue('operators', operators)

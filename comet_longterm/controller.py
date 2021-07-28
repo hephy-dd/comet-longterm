@@ -290,7 +290,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
     @QtCore.pyqtSlot()
     def onShowPrefernces(self):
         """Show modal preferences dialog."""
-        PreferencesDialog(self.view).exec()
+        PreferencesDialog(self.resources, self.view).exec()
 
     @QtCore.pyqtSlot()
     def onShowLogWindow(self):

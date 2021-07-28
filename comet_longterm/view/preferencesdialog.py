@@ -2,15 +2,14 @@ import os
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
-from comet import ResourceMixin
-
 __all__ = ['PreferencesDialog']
 
-class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
+class PreferencesDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, resources, parent=None):
         super().__init__(parent)
 
+        self.resources = resources
         self.setModal(True)
         self.gridLayout = QtWidgets.QGridLayout(self)
         self.gridLayout.setObjectName("gridLayout")
