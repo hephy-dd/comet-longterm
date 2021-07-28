@@ -1,12 +1,15 @@
 import argparse
 import logging
+import signal
 import sys
 
+from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
-from .controller import Controller
-from comet import Application
 from . import __version__
+from .controller import Controller
+
+logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -20,15 +23,35 @@ def main():
     # Set logging level
     level = logging.DEBUG if args.verbose else logging.INFO
     logging.getLogger().setLevel(level)
-    logging.info("Longterm It version %s", __version__)
 
-    app = Application()
-    app.setApplicationName('comet-longterm')
+    app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationName("comet-longterm")
+    app.setApplicationVersion(__version__)
+    app.setApplicationDisplayName(f"Longterm It {__version__}")
+    app.setOrganizationName("HEPHY")
+    app.setOrganizationDomain("hephy.at")
 
+    # Register interupt signal handler
+    def signal_handler(signum, frame):
+        if signum == signal.SIGINT:
+            app.quit()
+    signal.signal(signal.SIGINT, signal_handler)
+
+    # Initialize settings
+    QtCore.QSettings()
+
+    # Interrupt timer
+    timer = QtCore.QTimer()
+    timer.timeout.connect(lambda: None)
+    timer.start(250)
+
+    # Controller
     controller = Controller()
     controller.loadSettings()
     controller.setLevel(level)
-    result = controller.eventLoop()
+
+    logger.info("Longterm It version %s", __version__)
+    result = app.exec()
     controller.storeSettings()
 
     return result

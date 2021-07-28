@@ -1,5 +1,3 @@
-import logging
-
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtChart
@@ -8,8 +6,6 @@ from comet import UiLoaderMixin
 
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
 from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
-
-logger = logging.getLogger(__name__)
 
 class CentralWidget(QtWidgets.QWidget, UiLoaderMixin):
 

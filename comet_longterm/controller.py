@@ -3,14 +3,17 @@ import logging
 import os
 import re
 import time
+import webbrowser
 
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
-from comet import Application
-from comet import MainWindow
+from .mainwindow import MainWindow
 from comet import DeviceMixin
 from comet import ProcessMixin
+from .mainwindow import ProcessDialog
+from comet.widgets.preferencesdialog import PreferencesDialog
+from comet.widgets.aboutdialog import AboutDialog
 
 from comet.devices.cts import ITC
 from comet.devices.keithley import K2410
@@ -31,7 +34,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         super().__init__(parent)
         self.view = MainWindow()
         self.view.setCentralWidget(CentralWidget(self.view))
-        self.view.setWindowTitle("{} {}".format(self.view.windowTitle(), __version__))
+        self.view.setWindowTitle(f"Longterm It {__version__}")
         self.view.setProperty('contentsUrl', 'https://github.com/hephy-dd/comet-longterm')
 
         self.createLogWindow()
@@ -46,34 +49,17 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.controlsWidget().halted.connect(self.onHalted)
 
         # Add new menu entries
-        self.importCalibAction = QtWidgets.QAction(self.tr("Import &Calibrations..."))
-        self.importCalibAction.triggered.connect(self.onImportCalib)
+        self.view.importCalibAction.triggered.connect(self.onImportCalib)
+        self.view.preferencesAction.triggered.connect(self.onShowPrefernces)
+        self.view.loggingAction.triggered.connect(self.onShowLogWindow)
+        self.view.startAction.triggered.connect(self.view.centralWidget().controlsWidget().ui.startPushButton.click)
+        self.view.stopAction.triggered.connect(self.view.centralWidget().controlsWidget().ui.stopPushButton.click)
+        self.view.contentsAction.triggered.connect(self.onShowContents)
+        self.view.aboutQtAction.triggered.connect(self.onShowAboutQt)
+        self.view.aboutAction.triggered.connect(self.onShowAbout)
 
-        self.view.ui.fileMenu.insertAction(self.view.ui.quitAction, self.importCalibAction)
-        self.view.ui.fileMenu.insertSeparator(self.view.ui.quitAction)
-
-        self.startAction = QtWidgets.QAction(widget.tr("Start"))
-        self.startAction.triggered.connect(widget.controlsWidget().onStart)
-
-        self.stopAction = QtWidgets.QAction(widget.tr("Stop"))
-        self.stopAction.triggered.connect(widget.controlsWidget().onStop)
-        self.stopAction.setEnabled(False)
-
-        controlMenu = QtWidgets.QMenu(self.tr("&Control"))
-        action = self.view.ui.helpMenu.menuAction()
-        self.controlMenu = self.view.menuBar().insertMenu(action, controlMenu).menu()
-        self.controlMenu.addAction(self.startAction)
-        self.controlMenu.addAction(self.stopAction)
-
-        self.showLogAction = QtWidgets.QAction(widget.tr("Logging..."))
-        self.showLogAction.triggered.connect(self.onShowLogWindow)
-
-        viewMenu = QtWidgets.QMenu(self.tr("&View"))
-        action = self.view.ui.helpMenu.menuAction()
-        self.viewMenu = self.view.menuBar().insertMenu(action, viewMenu).menu()
-        self.viewMenu.addAction(self.showLogAction)
-
-        self.view.closeRequest.connect(self.onClose)
+        self.view.closeEvent = self.closeEvent
+        self.view.show()
 
     def loadSettings(self):
         settings = QtCore.QSettings()
@@ -82,15 +68,19 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         size = settings.value("mainwindow.size", QtCore.QSize(1280, 700))
         self.view.resize(size)
 
+        widget = self.view.centralWidget()
+        widget.sensors().loadSettings()
+        widget.controlsWidget().loadSettings()
+
     def storeSettings(self):
         settings = QtCore.QSettings()
 
         # Main window
         settings.setValue("mainwindow.size", self.view.size())
 
-    def eventLoop(self):
-        self.view.show()
-        return Application.instance().run()
+        widget = self.view.centralWidget()
+        widget.sensors().storeSettings()
+        widget.controlsWidget().storeSettings()
 
     def createLogWindow(self):
         self.logWindow = LogWindow()
@@ -108,7 +98,7 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
     def createProcesses(self):
         widget = self.view.centralWidget()
         # Environ process
-        environ = EnvironProcess(self)
+        environ = EnvironProcess(self.view)
         environ.reading.connect(self.onEnvironReading)
         environ.failed.connect(self.onEnvironError)
         self.processes().add('environ', environ)
@@ -140,11 +130,19 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.controlsWidget().filterTypeChanged.connect(meas.setFilterType)
         widget.controlsWidget().filterCountChanged.connect(meas.setFilterCount)
 
-        self.view.connectProcess(meas)
+        self.connectProcess(meas)
         self.processes().add('meas', meas)
 
     def setLevel(self, level):
         self.logWindow.setLevel(level)
+
+    def connectProcess(self, process):
+        """Connect process signals to main window slots."""
+        process.failed.connect(self.view.showException)
+        process.messageChanged.connect(self.view.showMessage)
+        process.messageCleared.connect(self.view.clearMessage)
+        process.progressChanged.connect(self.view.showProgress)
+        process.progressHidden.connect(self.view.hideProgress)
 
     @QtCore.pyqtSlot(bool)
     def onEnableEnviron(self, enabled):
@@ -197,8 +195,10 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
         widget.sensors().setEditable(False)
         widget.statusWidget().setCurrent(None)
 
-        self.startAction.setEnabled(False)
-        self.stopAction.setEnabled(True)
+        self.view.importCalibAction.setEnabled(False)
+        self.view.preferencesAction.setEnabled(False)
+        self.view.startAction.setEnabled(False)
+        self.view.stopAction.setEnabled(True)
 
         # TODO
         widget.ctsChart.reset()
@@ -238,13 +238,17 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
 
     @QtCore.pyqtSlot()
     def onStopRequest(self):
-        self.startAction.setEnabled(False)
-        self.stopAction.setEnabled(False)
+        self.view.importCalibAction.setEnabled(False)
+        self.view.preferencesAction.setEnabled(False)
+        self.view.startAction.setEnabled(False)
+        self.view.stopAction.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def onHalted(self):
-        self.startAction.setEnabled(True)
-        self.stopAction.setEnabled(False)
+        self.view.importCalibAction.setEnabled(True)
+        self.view.preferencesAction.setEnabled(True)
+        self.view.startAction.setEnabled(True)
+        self.view.stopAction.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def onImportCalib(self):
@@ -271,15 +275,45 @@ class Controller(QtCore.QObject, DeviceMixin, ProcessMixin):
                 self.view.showException(exc)
 
     @QtCore.pyqtSlot()
+    def onShowPrefernces(self):
+        """Show modal preferences dialog."""
+        PreferencesDialog(self.view).exec()
+
+    @QtCore.pyqtSlot()
     def onShowLogWindow(self):
         self.logWindow.toBottom()
         self.logWindow.show()
         self.logWindow.raise_()
 
     @QtCore.pyqtSlot()
-    def onClose(self):
-        self.logWindow.hide()
-        self.logWindow.removeLogger(logging.getLogger())
-        widget = self.view.centralWidget()
-        widget.sensors().storeSettings()
-        widget.controlsWidget().storeSettings()
+    def onShowContents(self):
+        """Open local webbrowser with contets URL."""
+        webbrowser.open(self.view.property('contentsUrl'))
+
+    @QtCore.pyqtSlot()
+    def onShowAboutQt(self):
+        """Show modal about Qt dialog."""
+        QtWidgets.QMessageBox.aboutQt(self.view)
+
+    @QtCore.pyqtSlot()
+    def onShowAbout(self):
+        """Show modal about dialog."""
+        AboutDialog(self.view).exec()
+
+    def closeEvent(self, event):
+        dialog = QtWidgets.QMessageBox(self.view)
+        dialog.setIcon(QtWidgets.QMessageBox.Question)
+        dialog.setText(self.tr("Quit application?"))
+        dialog.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        dialog.setDefaultButton(QtWidgets.QMessageBox.No)
+        dialog.exec()
+
+        if dialog.result() == dialog.Yes:
+            if len(self.processes()):
+                dialog = ProcessDialog(self.processes(), self.view)
+                dialog.exec()
+            self.logWindow.hide()
+            self.logWindow.removeLogger(logging.getLogger())
+            event.accept()
+        else:
+            event.ignore()

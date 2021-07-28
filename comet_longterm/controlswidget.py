@@ -30,6 +30,8 @@ class ControlsWidget(QtWidgets.QWidget, UiLoaderMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loadUi()
+        self.ui.operatorComboBox.setDuplicatesEnabled(False)
+
         self.loadSettings()
 
         # Setup signals
