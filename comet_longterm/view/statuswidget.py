@@ -70,6 +70,7 @@ class StatusWidget(QtWidgets.QWidget):
         layout.addItem(spacerItem1, 1, 3, 1, 1)
 
         layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.smuGroupBox)
         layout.addWidget(self.ctsGroupBox)
         layout.setStretch(0, 2)

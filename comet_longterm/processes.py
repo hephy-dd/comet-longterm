@@ -91,9 +91,21 @@ class MeasureProcess(Process, ResourceMixin):
         self.setHumidity(float('nan'))
         self.setStatus('N/A')
         self.setProgram(0)
-        self.setFilterEnable(False)
-        self.setFilterType('repeat')
-        self.setFilterCount(10)
+
+        self.params = {}
+
+        self.params.update({
+            'smu.route.terminals': 'rear',
+            'smu.filter.enable': False,
+            'smu.fitler.type': 'repeat',
+            'smu.filter.count': 0
+        })
+
+        self.params.update({
+            'dmm.filter.enable': False,
+            'dmm.fitler.type': 'repeat',
+            'dmm.filter.count': 0
+        })
 
     def sensors(self):
         return self.__sensors
@@ -173,26 +185,6 @@ class MeasureProcess(Process, ResourceMixin):
 
     def setItInterval(self, value):
         self.__itInterval = value
-
-    def filterEnable(self):
-        return self.__filterEnable
-
-    def setFilterEnable(self, enabled):
-        self.__filterEnable = enabled
-
-    def filterType(self):
-        return self.__filterType
-
-    def setFilterType(self, type):
-        assert type in ('repeat', 'moving')
-        self.__filterType = type
-
-    def filterCount(self):
-        return self.__filterCount
-
-    def setFilterCount(self, count):
-        assert 0 <= count <= 100
-        self.__filterCount = count
 
     def temperature(self):
         return self.__temperature
@@ -424,32 +416,32 @@ class MeasureProcess(Process, ResourceMixin):
         multi.resource.query('*OPC?')
 
         # Filter
-        logger.info("multimeter.filter.enable: %s", self.filterEnable())
-        enable = int(self.filterEnable())
-        multi.resource.write(f':SENS:VOLT:AVER:STAT {enable}')
+        logger.info("dmm.filter.enable: %s", self.params.get('dmm.filter.enable'))
+        enable = self.params.get('dmm.filter.enable')
+        multi.resource.write(f':SENS:VOLT:AVER:STAT {enable:d}')
         multi.resource.query('*OPC?')
         assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?')) == enable
 
-        logger.info("multimeter.filter.type: %s", self.filterType())
-        tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.filterType()]
+        logger.info("dmm.filter.type: %s", self.params.get('dmm.filter.type'))
+        tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.params.get('dmm.filter.type')]
         multi.resource.write(f':SENS:VOLT:AVER:TCON {tcontrol}')
         multi.resource.query('*OPC?')
         assert multi.resource.query(':SENS:VOLT:AVER:TCON?') == tcontrol
 
-        logger.info("multimeter.filter.count: %s", self.filterCount())
-        count = self.filterCount()
-        multi.resource.write(f':SENS:VOLT:AVER:COUN {count}')
+        logger.info("dmm.filter.count: %s", self.params.get('dmm.filter.count'))
+        count = self.params.get('dmm.filter.count')
+        multi.resource.write(f':SENS:VOLT:AVER:COUN {count:d}')
         multi.resource.query('*OPC?')
         assert int(multi.resource.query(':SENS:VOLT:AVER:COUN?')) == count
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
-        smu.resource.write('SENS:AVER:TCON REP')
+
+        logger.info("smu.route.terminals: %s", self.params.get('smu.route.terminals'))
+        terminals = {'front': 'FRON', 'rear': 'REAR'}[self.params.get('smu.route.terminals')]
+        smu.resource.write(f':ROUT:TERM {terminals}')
         smu.resource.query('*OPC?')
-        smu.resource.write('SENS:AVER ON')
-        smu.resource.query('*OPC?')
-        smu.resource.write('ROUT:TERM REAR')
-        smu.resource.query('*OPC?')
+
         smu.resource.write(':SOUR:FUNC VOLT')
         smu.resource.query('*OPC?')
         # switch output OFF
@@ -464,11 +456,21 @@ class MeasureProcess(Process, ResourceMixin):
         smu.resource.query('*OPC?')
         smu.resource.write('TRIG:CLE')
         smu.resource.query('*OPC?')
-        smu.resource.write('SENS:AVER:TCON REP')
+
+        # Filter
+        logger.info("smu.filter.enable: %s", self.params.get('smu.filter.enable'))
+        enable = self.params.get('smu.filter.enable')
+        smu.resource.write(f':SENS:AVER:STAT {enable:d}')
         smu.resource.query('*OPC?')
-        smu.resource.write('SENS:AVER OFF')
+
+        logger.info("smu.filter.type: %s", self.params.get('smu.filter.type'))
+        tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.params.get('smu.filter.type')]
+        smu.resource.write(f':SENS:AVER:TCON {tcontrol}')
         smu.resource.query('*OPC?')
-        smu.resource.write('ROUT:TERM REAR')
+
+        logger.info("smu.filter.count: %s", self.params.get('smu.filter.count'))
+        count = self.params.get('smu.filter.count')
+        smu.resource.write(f':SENS:AVER:COUN {count:d}')
         smu.resource.query('*OPC?')
 
         # Set SMU complicance

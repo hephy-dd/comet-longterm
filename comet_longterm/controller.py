@@ -139,9 +139,30 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         widget.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
         widget.controlsWidget.itDurationChanged.connect(meas.setItDuration)
         widget.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
-        widget.controlsWidget.filterEnableChanged.connect(meas.setFilterEnable)
-        widget.controlsWidget.filterTypeChanged.connect(meas.setFilterType)
-        widget.controlsWidget.filterCountChanged.connect(meas.setFilterCount)
+
+        # SMU
+
+        widget.controlsWidget.smuWidget.filterEnableChanged.connect(
+            lambda enable: meas.params.update({'smu.filter.enabled': enable})
+        )
+        widget.controlsWidget.smuWidget.filterTypeChanged.connect(
+            lambda type: meas.params.update({'smu.filter.type': type})
+        )
+        widget.controlsWidget.smuWidget.filterCountChanged.connect(
+            lambda count: meas.params.update({'smu.filter.count': count})
+        )
+
+        # DMM
+
+        widget.controlsWidget.dmmWidget.filterEnableChanged.connect(
+            lambda enable: meas.params.update({'dmm.filter.enabled': enable})
+        )
+        widget.controlsWidget.dmmWidget.filterTypeChanged.connect(
+            lambda type: meas.params.update({'dmm.filter.type': type})
+        )
+        widget.controlsWidget.dmmWidget.filterCountChanged.connect(
+            lambda count: meas.params.update({'dmm.filter.count': count})
+        )
 
         self.connectProcess(meas)
         self.processes.add('meas', meas)
@@ -241,9 +262,16 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         meas.setContinueInCompliance(widget.controlsWidget.continueInCompliance())
         meas.setItDuration(widget.controlsWidget.itDuration())
         meas.setItInterval(widget.controlsWidget.itInterval())
-        meas.setFilterEnable(widget.controlsWidget.filterEnable())
-        meas.setFilterCount(widget.controlsWidget.filterCount())
-        meas.setFilterType(widget.controlsWidget.filterType())
+        meas.params.update({
+            'smu.filter.enable': widget.controlsWidget.smuWidget.filterEnable(),
+            'smu.filter.type': widget.controlsWidget.smuWidget.filterType(),
+            'smu.filter.count': widget.controlsWidget.smuWidget.filterCount()
+        })
+        meas.params.update({
+            'dmm.filter.enable': widget.controlsWidget.dmmWidget.filterEnable(),
+            'dmm.filter.type': widget.controlsWidget.dmmWidget.filterType(),
+            'dmm.filter.count': widget.controlsWidget.dmmWidget.filterCount()
+        })
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget.operator())
 

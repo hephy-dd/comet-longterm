@@ -73,11 +73,12 @@ class SensorsWidget(QtWidgets.QWidget):
 
         self.groupBox = QtWidgets.QGroupBox("Sensors")
 
-        self.gridLayout_2 = QtWidgets.QGridLayout(self.groupBox)
-        self.gridLayout_2.addWidget(self.tableView, 0, 0, 1, 1)
+        layout = QtWidgets.QGridLayout(self.groupBox)
+        layout.addWidget(self.tableView, 0, 0, 1, 1)
 
-        self.gridLayout = QtWidgets.QGridLayout(self)
-        self.gridLayout.addWidget(self.groupBox, 0, 0, 1, 1)
+        layout = QtWidgets.QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.groupBox, 0, 0, 1, 1)
 
         self.verticalResizeTableView()
 

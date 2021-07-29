@@ -19,7 +19,6 @@ class CentralWidget(QtWidgets.QWidget):
         self.sensorsWidget = SensorsWidget(self)
 
         self.statusWidget = StatusWidget(self)
-        self.statusWidget.setBaseSize(QtCore.QSize(0, 0))
 
         self.controlsWidget = ControlsWidget(self)
 
@@ -79,6 +78,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.bottomTabWidget.setCurrentIndex(0)
 
         self.leftVerticalLayout = QtWidgets.QVBoxLayout()
+        self.leftVerticalLayout.setContentsMargins(0, 0, 0, 0)
         self.leftVerticalLayout.addWidget(self.sensorsWidget)
         self.leftVerticalLayout.addWidget(self.statusWidget)
         self.leftVerticalLayout.addWidget(self.controlsWidget)
@@ -89,14 +89,15 @@ class CentralWidget(QtWidgets.QWidget):
         self.leftVerticalLayout.setStretch(3, 10)
 
         self.rightVerticalLayout = QtWidgets.QVBoxLayout()
+        self.rightVerticalLayout.setContentsMargins(0, 0, 0, 0)
         self.rightVerticalLayout.addWidget(self.topTabWidget)
         self.rightVerticalLayout.addWidget(self.bottomTabWidget)
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.addLayout(self.leftVerticalLayout)
         layout.addLayout(self.rightVerticalLayout)
-        layout.setStretch(0, 2)
-        layout.setStretch(1, 3)
+        layout.setStretch(0, 5)
+        layout.setStretch(1, 6)
 
         self.createCharts()
 

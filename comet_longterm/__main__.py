@@ -17,12 +17,23 @@ def parse_args():
     parser.add_argument('--version', action='version', version=f"%(prog)s {__version__}")
     return parser.parse_args()
 
+def create_loggers(level):
+    logger = logging.getLogger()
+    formatter = logging.Formatter(
+        "%(asctime)s::%(name)s::%(levelname)s::%(message)s",
+        "%Y-%m-%dT%H:%M:%S"
+    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(level)
+
 def main():
     args = parse_args()
 
     # Set logging level
     level = logging.DEBUG if args.verbose else logging.INFO
-    logging.getLogger().setLevel(level)
+    create_loggers(level)
 
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("comet-longterm")
