@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import time
+import traceback
 import webbrowser
 
 from PyQt5 import QtCore
@@ -51,7 +52,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
         # Add new menu entries
         self.view.importCalibAction.triggered.connect(self.onImportCalib)
-        self.view.preferencesAction.triggered.connect(self.onShowPrefernces)
+        self.view.preferencesAction.triggered.connect(self.onShowPreferences)
         self.view.loggingAction.triggered.connect(self.onShowLogWindow)
         self.view.startAction.triggered.connect(self.view.centralWidget().controlsWidget.startPushButton.click)
         self.view.stopAction.triggered.connect(self.view.centralWidget().controlsWidget.stopPushButton.click)
@@ -62,8 +63,22 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         self.view.closeEvent = self.closeEvent
         self.view.show()
 
+    def loadResources(self):
+        settings = QtCore.QSettings()
+        resources = settings.value("resources", {}, dict)
+        for name, resource in self.resources.items():
+            for key, value in resources.get(name, {}).items():
+                if key == "resource_name":
+                    resource.resource_name = value
+                elif key == "visa_library":
+                    resource.visa_library = value
+                else:
+                    resource.options[key] = value
+
     def loadSettings(self):
         settings = QtCore.QSettings()
+
+        self.loadResources()
 
         # Main window
         size = settings.value("mainwindow.size", QtCore.QSize(1280, 700))
@@ -90,23 +105,18 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         self.logWindow.hide()
 
     def createDevices(self):
-        resources = QtCore.QSettings().value('resources', {})
         self.resources.add('shunt', Resource(
-            resources.get('shunt', 'TCPIP::10.0.0.2::10001::SOCKET'),
-            read_termination='\n',
-            write_termination='\n'
+            resource_name='TCPIP::localhost::10001::SOCKET'
         ))
-        self.resources.add('smu',
-            Resource(resources.get('smu', 'TCPIP::10.0.0.3::10002::SOCKET'),
-            read_termination='\r',
-            write_termination='\r\n'
+        self.resources.add('smu', Resource(
+            resource_name='TCPIP::localhost::10002::SOCKET'
         ))
-        self.resources.add('multi',
-            Resource(resources.get('multi', 'TCPIP::10.0.0.3::10001::SOCKET'),
-            read_termination='\r',
-            write_termination='\r\n'
+        self.resources.add('multi', Resource(
+            resource_name='TCPIP::localhost::10003::SOCKET'
         ))
-        self.resources.add('cts', Resource(resources.get('cts', 'TCPIP::192.168.100.205::1080::SOCKET')))
+        self.resources.add('cts', Resource(
+            resource_name='TCPIP::localhost::10004::SOCKET'
+        ))
 
     def createProcesses(self):
         widget = self.view.centralWidget()
@@ -172,7 +182,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
     def connectProcess(self, process):
         """Connect process signals to main window slots."""
-        process.failed = self.view.showException
+        process.failed = self.onShowException
         process.messageChanged = self.view.showMessage
         process.messageCleared = self.view.clearMessage
         process.progressChanged = self.view.showProgress
@@ -221,7 +231,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         environ = self.processes.get('environ')
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
-            self.view.showException(exc)
+            self.onShowException(exc)
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -313,33 +323,42 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
                     widget.sensors()[i].resistivity = resistors[i]
                 QtWidgets.QMessageBox.information(widget, widget.tr("Success"), widget.tr("Sucessfully imported {} calibration resistor values.".format(count)))
             except Exception as exc:
-                self.view.showException(exc)
+                self.onShowException(exc)
 
-    @QtCore.pyqtSlot()
-    def onShowPrefernces(self):
+    def onShowPreferences(self):
         """Show modal preferences dialog."""
-        PreferencesDialog(self.resources, self.view).exec()
+        dialog = PreferencesDialog(self.view)
+        dialog.exec()
 
-    @QtCore.pyqtSlot()
     def onShowLogWindow(self):
         self.logWindow.toBottom()
         self.logWindow.show()
         self.logWindow.raise_()
 
-    @QtCore.pyqtSlot()
     def onShowContents(self):
         """Open local webbrowser with contets URL."""
         webbrowser.open(self.view.property('contentsUrl'))
 
-    @QtCore.pyqtSlot()
     def onShowAboutQt(self):
         """Show modal about Qt dialog."""
         QtWidgets.QMessageBox.aboutQt(self.view)
 
-    @QtCore.pyqtSlot()
     def onShowAbout(self):
         """Show modal about dialog."""
         QtWidgets.QMessageBox.about(self.view, "About", self.view.property('aboutText'))
+
+    def onShowException(self, exc, tb=None):
+        """Raise message box showing exception inforamtion."""
+        logger.exception(exc)
+        self.view.showMessage(self.tr("Exception occured."))
+        self.view.hideProgress()
+        details = ''.join(traceback.format_tb(exc.__traceback__))
+        dialog = QtWidgets.QMessageBox(self.view)
+        dialog.setIcon(dialog.Icon.Critical)
+        dialog.setWindowTitle(self.tr("Exception occured"))
+        dialog.setText(format(exc))
+        dialog.setDetailedText(details)
+        dialog.exec()
 
     def closeEvent(self, event):
         dialog = QtWidgets.QMessageBox(self.view)

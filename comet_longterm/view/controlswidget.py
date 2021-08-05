@@ -239,7 +239,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.pathGroupBox.setTitle("Output Path")
 
         layout = QtWidgets.QHBoxLayout(self.pathGroupBox)
-        layout.setContentsMargins(0, 0, 0, 0)
+
         layout.addWidget(self.pathComboBox)
         layout.addWidget(self.selectPathPushButton)
 
@@ -248,6 +248,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.horizontalLayout.addWidget(self.pathGroupBox)
 
         self.gridLayout = QtWidgets.QGridLayout(self)
+        self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.addLayout(self.controlLayout, 0, 0, 1, 1)
         self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
         self.gridLayout.addLayout(self.horizontalLayout, 1, 0, 1, 2)
@@ -416,6 +417,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.setEnvironEnabled(settings.value('useEnviron', True, type=bool))
         self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
         self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
+        self.onIvEndVoltageChanged()
         self.setIvStep(settings.value('ivStep', 5.0, type=float))
         self.setIvDelay(settings.value('ivDelay', 1.0, type=float))
         self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))

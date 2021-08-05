@@ -12,7 +12,7 @@ def uptime():
 
 class ShuntBoxHandler(socketserver.BaseRequestHandler):
 
-    write_termination = '\n'
+    write_termination = '\r\n'
 
     channels = 10
 

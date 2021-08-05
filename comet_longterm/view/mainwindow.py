@@ -1,5 +1,3 @@
-import traceback
-
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -93,19 +91,6 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def hideProgress(self):
         self.progressBar.hide()
-
-    @QtCore.pyqtSlot(object)
-    def showException(self, exc, tb=None):
-        """Raise message box showing exception inforamtion."""
-        details = ''.join(traceback.format_tb(exc.__traceback__))
-        box = QtWidgets.QMessageBox(self)
-        box.setIcon(box.Icon.Critical)
-        box.setWindowTitle(self.tr("Error"))
-        box.setText(format(exc))
-        box.setDetailedText(details)
-        box.exec()
-        self.showMessage(self.tr("Error"))
-        self.hideProgress()
 
 class ProcessDialog(QtWidgets.QProgressDialog):
 

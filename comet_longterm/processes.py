@@ -60,6 +60,7 @@ class EnvironProcess(Process, ResourceMixin):
                         try:
                             reading = self.read(cts)
                         except pyvisa.errors.Error as exc:
+                            logger.exception(exc)
                             self.emit('failed', exc)
                         else:
                             logger.info("CTS reading: %s", reading)
@@ -67,6 +68,7 @@ class EnvironProcess(Process, ResourceMixin):
                         time.sleep(self.interval)
                         self.failedConnectionAttempts = 0
             except Exception as exc:
+                logger.exception(exc)
                 self.emit('failed', exc)
                 self.failedConnectionAttempts += 1
                 time.sleep(self.timeout)
@@ -420,19 +422,21 @@ class MeasureProcess(Process, ResourceMixin):
         enable = self.params.get('dmm.filter.enable')
         multi.resource.write(f':SENS:VOLT:AVER:STAT {enable:d}')
         multi.resource.query('*OPC?')
-        assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?')) == enable
+        assert int(multi.resource.query(':SENS:VOLT:AVER:STAT?').strip()) == enable, "failed to configure dmm.filter.enabled"
 
         logger.info("dmm.filter.type: %s", self.params.get('dmm.filter.type'))
         tcontrol = {'repeat': 'REP', 'moving': 'MOV'}[self.params.get('dmm.filter.type')]
         multi.resource.write(f':SENS:VOLT:AVER:TCON {tcontrol}')
         multi.resource.query('*OPC?')
-        assert multi.resource.query(':SENS:VOLT:AVER:TCON?') == tcontrol
+        logger.warning("[1] %s", [tcontrol])
+        logger.warning("[2] %s", [multi.resource.query(':SENS:VOLT:AVER:TCON?')])
+        assert multi.resource.query(':SENS:VOLT:AVER:TCON?').strip() == tcontrol, "failed to configure dmm.filter.type"
 
         logger.info("dmm.filter.count: %s", self.params.get('dmm.filter.count'))
         count = self.params.get('dmm.filter.count')
         multi.resource.write(f':SENS:VOLT:AVER:COUN {count:d}')
         multi.resource.query('*OPC?')
-        assert int(multi.resource.query(':SENS:VOLT:AVER:COUN?')) == count
+        assert int(multi.resource.query(':SENS:VOLT:AVER:COUN?').strip()) == count, "failed to configure dmm.filter.count"
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
