@@ -4,12 +4,13 @@ from PyQt5 import QtWidgets
 from comet.resource import ResourceMixin
 from comet.utils import escape_string, unescape_string
 
+
 class ResourcesTab(QtWidgets.QWidget):
 
-    DefaultReadTermination = '\n'
-    DefaultWriteTermination = '\n'
+    DefaultReadTermination = "\n"
+    DefaultWriteTermination = "\n"
     DefaultTimeout = 2000
-    DefaultVisaLibrary = '@py'
+    DefaultVisaLibrary = "@py"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,7 +19,9 @@ class ResourcesTab(QtWidgets.QWidget):
         self.treeWidget.setColumnCount(2)
         self.treeWidget.headerItem().setText(0, self.tr("Resource"))
         self.treeWidget.headerItem().setText(1, self.tr("Value"))
-        self.treeWidget.itemDoubleClicked.connect(lambda item, column: self.editResource())
+        self.treeWidget.itemDoubleClicked.connect(
+            lambda item, column: self.editResource()
+        )
         self.treeWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.editButton = QtWidgets.QPushButton(self.tr("&Edit"))
         self.editButton.setEnabled(False)
@@ -42,10 +45,10 @@ class ResourcesTab(QtWidgets.QWidget):
                 key = child.text(0)
                 value = child.text(1)
                 # Escape special characters
-                if key in ['read_termination', 'write_termination']:
+                if key in ["read_termination", "write_termination"]:
                     value = unescape_string(value)
                 # Convert integers
-                if key in ['timeout']:
+                if key in ["timeout"]:
                     try:
                         value = int(value)
                     except ValueError:
@@ -60,26 +63,46 @@ class ResourcesTab(QtWidgets.QWidget):
         items = []
         for name, options in resources.items():
             item = QtWidgets.QTreeWidgetItem([name])
-            item.addChild(QtWidgets.QTreeWidgetItem([
-                'resource_name',
-                options.get('resource_name')
-            ]))
-            item.addChild(QtWidgets.QTreeWidgetItem([
-                'read_termination',
-                escape_string(options.get('read_termination', self.DefaultReadTermination))
-            ]))
-            item.addChild(QtWidgets.QTreeWidgetItem([
-                'write_termination',
-                escape_string(options.get('write_termination', self.DefaultWriteTermination))
-            ]))
-            item.addChild(QtWidgets.QTreeWidgetItem([
-                'timeout',
-                format(options.get('timeout', self.DefaultTimeout))
-            ]))
-            item.addChild(QtWidgets.QTreeWidgetItem([
-                'visa_library',
-                options.get('visa_library', self.DefaultVisaLibrary)
-            ]))
+            item.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    ["resource_name", options.get("resource_name")]
+                )
+            )
+            item.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    [
+                        "read_termination",
+                        escape_string(
+                            options.get("read_termination", self.DefaultReadTermination)
+                        ),
+                    ]
+                )
+            )
+            item.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    [
+                        "write_termination",
+                        escape_string(
+                            options.get(
+                                "write_termination", self.DefaultWriteTermination
+                            )
+                        ),
+                    ]
+                )
+            )
+            item.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    ["timeout", format(options.get("timeout", self.DefaultTimeout))]
+                )
+            )
+            item.addChild(
+                QtWidgets.QTreeWidgetItem(
+                    [
+                        "visa_library",
+                        options.get("visa_library", self.DefaultVisaLibrary),
+                    ]
+                )
+            )
             self.treeWidget.insertTopLevelItem(0, item)
             self.treeWidget.expandItem(item)
         self.treeWidget.resizeColumnToContents(0)
@@ -93,7 +116,7 @@ class ResourcesTab(QtWidgets.QWidget):
                 self.tr("Resource {}").format(item.parent().text(0)),
                 item.text(0),
                 QtWidgets.QLineEdit.Normal,
-                item.text(1)
+                item.text(1),
             )
             if ok:
                 item.setText(1, text)
@@ -102,6 +125,7 @@ class ResourcesTab(QtWidgets.QWidget):
     def selectionChanged(self):
         item = self.treeWidget.currentItem()
         self.editButton.setEnabled(item.parent() is not None)
+
 
 class OperatorsTab(QtWidgets.QWidget):
 
@@ -140,10 +164,7 @@ class OperatorsTab(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def addOperator(self):
         text, ok = QtWidgets.QInputDialog.getText(
-            self,
-            self.tr("Operator"),
-            self.tr("Name"),
-            QtWidgets.QLineEdit.Normal
+            self, self.tr("Operator"), self.tr("Name"), QtWidgets.QLineEdit.Normal
         )
         if ok and text:
             item = self.listWidget.addItem(text)
@@ -157,7 +178,7 @@ class OperatorsTab(QtWidgets.QWidget):
             self.tr("Operator"),
             self.tr("Name"),
             QtWidgets.QLineEdit.Normal,
-            item.text()
+            item.text(),
         )
         if ok and text:
             item.setText(text)
@@ -175,6 +196,7 @@ class OperatorsTab(QtWidgets.QWidget):
         self.editButton.setEnabled(item is not None)
         self.removeButton.setEnabled(item is not None)
 
+
 class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
 
     def __init__(self, parent=None):
@@ -189,9 +211,9 @@ class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Cancel |
-            QtWidgets.QDialogButtonBox.Apply |
-            QtWidgets.QDialogButtonBox.RestoreDefaults
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Apply
+            | QtWidgets.QDialogButtonBox.RestoreDefaults
         )
         self.buttonBox.clicked.connect(self.handleButton)
         self.buttonBox.rejected.connect(self.reject)
@@ -206,9 +228,10 @@ class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
         button = self.buttonBox.standardButton(button)
         if button == QtWidgets.QDialogButtonBox.Apply:
             self.saveSettings()
-            QtWidgets.QMessageBox.information(self,
+            QtWidgets.QMessageBox.information(
+                self,
                 self.tr("Preferences"),
-                self.tr("Application restart required for changes to take effect.")
+                self.tr("Application restart required for changes to take effect."),
             )
             self.accept()
         if button == QtWidgets.QDialogButtonBox.RestoreDefaults:
@@ -216,30 +239,36 @@ class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
 
     def saveSettings(self):
         settings = QtCore.QSettings()
-        settings.setValue('operators', self.operatorsTab.operators())
-        settings.setValue('resources', self.resourcesTab.resources())
+        settings.setValue("operators", self.operatorsTab.operators())
+        settings.setValue("resources", self.resourcesTab.resources())
 
     def loadSettings(self):
         resources = {}
         for name, resource in self.resources.items():
             options = {}
-            options['resource_name'] = resource.resource_name
-            options['read_termination'] = resource.options.get('read_termination', ResourcesTab.DefaultReadTermination)
-            options['write_termination'] = resource.options.get('write_termination', ResourcesTab.DefaultWriteTermination)
-            options['timeout'] = resource.options.get('timeout', ResourcesTab.DefaultTimeout)
-            options['visa_library'] = resource.visa_library
+            options["resource_name"] = resource.resource_name
+            options["read_termination"] = resource.options.get(
+                "read_termination", ResourcesTab.DefaultReadTermination
+            )
+            options["write_termination"] = resource.options.get(
+                "write_termination", ResourcesTab.DefaultWriteTermination
+            )
+            options["timeout"] = resource.options.get(
+                "timeout", ResourcesTab.DefaultTimeout
+            )
+            options["visa_library"] = resource.visa_library
             resources[name] = options
         # Update default resources with stored settings
         settings = QtCore.QSettings()
-        for name, options in settings.value('resources', {}, dict).items():
+        for name, options in settings.value("resources", {}, dict).items():
             # Migrate old style settings
             if isinstance(options, str):
-                options = {'resource_name': options}
+                options = {"resource_name": options}
             if name in resources:
                 for key, value in options.items():
                     resources[name][key] = value
         self.resourcesTab.setResources(resources)
-        operators = settings.value('operators', [], list)
+        operators = settings.value("operators", [], list)
         self.operatorsTab.setOperators(operators)
 
     def resetSettings(self):

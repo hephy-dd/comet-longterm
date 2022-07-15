@@ -10,11 +10,17 @@ from .statuswidget import StatusWidget
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
 from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
 
-class CentralWidget(QtWidgets.QWidget):
+__all__ = ["DashboardWidget"]
+
+
+class DashboardWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Longterm It")
+
+        self.sensorsLabel = QtWidgets.QLabel(self)
+        self.sensorsLabel.setText("Sensors")
 
         self.sensorsWidget = SensorsWidget(self)
 
@@ -36,7 +42,6 @@ class CentralWidget(QtWidgets.QWidget):
         self.topTabWidget.addTab(self.ivTab, "IV Curve")
         self.topTabWidget.addTab(self.itTab, "It Curve")
         self.topTabWidget.setCurrentIndex(0)
-
 
         self.ctsTab = QtWidgets.QWidget()
         self.ctsChartView = ChartView(self.ctsTab)
@@ -77,27 +82,36 @@ class CentralWidget(QtWidgets.QWidget):
         self.bottomTabWidget.addTab(self.shuntBoxTab, "Shunt Box")
         self.bottomTabWidget.setCurrentIndex(0)
 
-        self.leftVerticalLayout = QtWidgets.QVBoxLayout()
+        self.leftVerticalWidget = QtWidgets.QWidget(self)
+
+        self.leftVerticalLayout = QtWidgets.QVBoxLayout(self.leftVerticalWidget)
         self.leftVerticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.leftVerticalLayout.addWidget(self.sensorsLabel)
         self.leftVerticalLayout.addWidget(self.sensorsWidget)
         self.leftVerticalLayout.addWidget(self.statusWidget)
         self.leftVerticalLayout.addWidget(self.controlsWidget)
         self.leftVerticalLayout.addStretch()
-        self.leftVerticalLayout.setStretch(0, 1)
-        self.leftVerticalLayout.setStretch(1, 0)
+        self.leftVerticalLayout.setStretch(0, 0)
+        self.leftVerticalLayout.setStretch(1, 1)
         self.leftVerticalLayout.setStretch(2, 0)
-        self.leftVerticalLayout.setStretch(3, 10)
+        self.leftVerticalLayout.setStretch(3, 0)
+        self.leftVerticalLayout.setStretch(4, 10)
 
-        self.rightVerticalLayout = QtWidgets.QVBoxLayout()
+        self.rightVerticalWidget = QtWidgets.QWidget(self)
+
+        self.rightVerticalLayout = QtWidgets.QVBoxLayout(self.rightVerticalWidget)
         self.rightVerticalLayout.setContentsMargins(0, 0, 0, 0)
         self.rightVerticalLayout.addWidget(self.topTabWidget)
         self.rightVerticalLayout.addWidget(self.bottomTabWidget)
 
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.addLayout(self.leftVerticalLayout)
-        layout.addLayout(self.rightVerticalLayout)
-        layout.setStretch(0, 5)
-        layout.setStretch(1, 6)
+        self.horizontalSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.horizontalSplitter.setChildrenCollapsible(False)
+        self.horizontalSplitter.addWidget(self.leftVerticalWidget)
+        self.horizontalSplitter.addWidget(self.rightVerticalWidget)
+        self.horizontalSplitter.setSizes([400, 800])
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.horizontalSplitter)
 
         self.createCharts()
 
@@ -130,6 +144,7 @@ class CentralWidget(QtWidgets.QWidget):
             self.ivSourceChart.fit()
             self.ivSourceChart.axisX.setRange(minimum, maximum)
             self.ivTempChart.fit()
+
         self.ivChart.axisX.rangeChanged.connect(ivRangeChanged)
 
         def itRangeChanged(minimum, maximum):
@@ -137,7 +152,21 @@ class CentralWidget(QtWidgets.QWidget):
             self.itTempChart.axisX.setRange(minimum, maximum)
             self.itSourceChart.fit()
             self.itSourceChart.axisX.setRange(minimum, maximum)
+
         self.itChart.axisX.rangeChanged.connect(itRangeChanged)
+
+    def loadSettings(self):
+        settings.beginGroup("dashboard")
+        state = settings.value("splitter/state", QtCore.QByteArray(), QtCore.QByteArray)
+        settings.endGroup()
+
+        if not state.isEmpty():
+            self.horizontalSplitter.restoreState(state)
+
+    def storeSettings(self):
+        settings.beginGroup("dashboard")
+        settings.setValue("splitter/state", self.horizontalSplitter.saveState())
+        settings.endGroup()
 
     def sensors(self):
         """Returns sensors manager."""
@@ -146,20 +175,20 @@ class CentralWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onIvStarted(self):
         self.topTabWidget.setCurrentIndex(0)
-        self.bottomTabWidget.setCurrentIndex(1) # switch to IV temperature
+        self.bottomTabWidget.setCurrentIndex(1)  # switch to IV temperature
 
     @QtCore.pyqtSlot()
     def onItStarted(self):
         self.topTabWidget.setCurrentIndex(1)
-        self.bottomTabWidget.setCurrentIndex(2) # switch to It temperature
+        self.bottomTabWidget.setCurrentIndex(2)  # switch to It temperature
 
     @QtCore.pyqtSlot(object)
     def onMeasIvReading(self, reading):
         for sensor in self.sensors():
             if sensor.enabled:
-                sensor.current = reading.get('channels')[sensor.index].get('I')
-                sensor.temperature = reading.get('channels')[sensor.index].get('temp')
-        self.sensorsWidget.dataChanged() # HACK keep updated
+                sensor.current = reading.get("channels")[sensor.index].get("I")
+                sensor.temperature = reading.get("channels")[sensor.index].get("temp")
+        self.sensorsWidget.dataChanged()  # HACK keep updated
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
         self.ivSourceChart.append(reading)
@@ -169,9 +198,9 @@ class CentralWidget(QtWidgets.QWidget):
     def onMeasItReading(self, reading):
         for sensor in self.sensors():
             if sensor.enabled:
-                sensor.current = reading.get('channels')[sensor.index].get('I')
-                sensor.temperature = reading.get('channels')[sensor.index].get('temp')
-        self.sensorsWidget.dataChanged() # HACK keep updated
+                sensor.current = reading.get("channels")[sensor.index].get("I")
+                sensor.temperature = reading.get("channels")[sensor.index].get("temp")
+        self.sensorsWidget.dataChanged()  # HACK keep updated
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)
         self.itSourceChart.append(reading)
@@ -179,8 +208,8 @@ class CentralWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(object)
     def onSmuReading(self, reading):
-        self.statusWidget.setVoltage(reading.get('U'))
-        self.statusWidget.setCurrent(reading.get('I'))
+        self.statusWidget.setVoltage(reading.get("U"))
+        self.statusWidget.setCurrent(reading.get("I"))
 
     @QtCore.pyqtSlot()
     def onHalted(self):

@@ -5,17 +5,18 @@ from PyQt5 import QtGui
 from QCharted import Chart
 
 __all__ = [
-    'IVChart',
-    'ItChart',
-    'CtsChart',
-    'IVTempChart',
-    'ItTempChart',
-    'ShuntBoxChart',
-    'IVSourceChart',
-    'ItSourceChart'
+    "IVChart",
+    "ItChart",
+    "CtsChart",
+    "IVTempChart",
+    "ItTempChart",
+    "ShuntBoxChart",
+    "IVSourceChart",
+    "ItSourceChart",
 ]
 
-DateTimeFormat = 'dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss'
+DateTimeFormat = "dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss"
+
 
 class IVChart(Chart):
 
@@ -49,14 +50,15 @@ class IVChart(Chart):
         self.fit()
 
     def append(self, reading):
-        voltage = abs(reading.get('U')) # absolute (can be negative)
-        for channel in reading.get('channels').values():
-            series = self.ivSeries.get(channel.get('index'))
-            series.data().append(voltage, channel.get('I') * 1000 * 1000) # a to uA
+        voltage = abs(reading.get("U"))  # absolute (can be negative)
+        for channel in reading.get("channels").values():
+            series = self.ivSeries.get(channel.get("index"))
+            series.data().append(voltage, channel.get("I") * 1000 * 1000)  # a to uA
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
+
 
 class ItChart(Chart):
 
@@ -88,14 +90,15 @@ class ItChart(Chart):
         self.fit()
 
     def append(self, reading):
-        ts = reading.get('time')
-        for channel in reading.get('channels').values():
-            series = self.itSeries.get(channel.get('index'))
-            series.data().append(ts, channel.get('I') * 1000 * 1000) # A to uA
+        ts = reading.get("time")
+        for channel in reading.get("channels").values():
+            series = self.itSeries.get(channel.get("index"))
+            series.data().append(ts, channel.get("I") * 1000 * 1000)  # A to uA
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
+
 
 class CtsChart(Chart):
 
@@ -146,14 +149,15 @@ class CtsChart(Chart):
         self.fit()
 
     def append(self, reading):
-        ts = reading.get('time')
-        self.ctsTempSeries.data().append(ts, reading.get('temp'))
-        self.ctsHumidSeries.data().append(ts, reading.get('humid'))
-        self.ctsProgramSeries.data().append(ts, reading.get('running') != 0)
+        ts = reading.get("time")
+        self.ctsTempSeries.data().append(ts, reading.get("temp"))
+        self.ctsHumidSeries.data().append(ts, reading.get("humid"))
+        self.ctsProgramSeries.data().append(ts, reading.get("running") != 0)
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
+
 
 class IVTempChart(Chart):
 
@@ -188,21 +192,22 @@ class IVTempChart(Chart):
         self.fit()
 
     def append(self, reading):
-        ts = reading.get('time')
-        for channel in reading.get('channels').values():
-            series = self.tempSeries.get(channel.get('index'))
-            if channel.get('temp') is not None:
+        ts = reading.get("time")
+        for channel in reading.get("channels").values():
+            series = self.tempSeries.get(channel.get("index"))
+            if channel.get("temp") is not None:
                 # watch out!
-                if not math.isnan(channel.get('temp')):
-                    series.data().append(ts, channel.get('temp'))
+                if not math.isnan(channel.get("temp")):
+                    series.data().append(ts, channel.get("temp"))
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+
 
 class ItTempChart(IVTempChart):
 
     pass
 
-class ShuntBoxChart(Chart):
 
+class ShuntBoxChart(Chart):
     def __init__(self):
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
@@ -228,16 +233,16 @@ class ShuntBoxChart(Chart):
         self.memorySeries.setName("Memory")
 
     def append(self, reading):
-        ts = reading.get('time')
-        self.uptimeSeries.data().append(ts, reading.get('shuntbox').get('uptime'))
-        self.memorySeries.data().append(ts, reading.get('shuntbox').get('memory'))
+        ts = reading.get("time")
+        self.uptimeSeries.data().append(ts, reading.get("shuntbox").get("uptime"))
+        self.memorySeries.data().append(ts, reading.get("shuntbox").get("memory"))
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
 
-class IVSourceChart(Chart):
 
+class IVSourceChart(Chart):
     def __init__(self):
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
@@ -256,8 +261,8 @@ class IVSourceChart(Chart):
         self.ivSeries.setPen(QtGui.QColor("red"))
 
     def append(self, reading):
-        voltage = abs(reading.get('U')) # absolute (can be negative)
-        current = reading.get('I') * 1e6 # A to uA
+        voltage = abs(reading.get("U"))  # absolute (can be negative)
+        current = reading.get("I") * 1e6  # A to uA
         self.ivSeries.data().append(voltage, current)
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
@@ -265,8 +270,8 @@ class IVSourceChart(Chart):
         self.ivSeries.data().clear()
         self.fit()
 
-class ItSourceChart(Chart):
 
+class ItSourceChart(Chart):
     def __init__(self):
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
@@ -283,8 +288,8 @@ class ItSourceChart(Chart):
         self.itSeries.setPen(QtGui.QColor("red"))
 
     def append(self, reading):
-        ts = reading.get('time')
-        current = reading.get('I') * 1e6 # A to uA
+        ts = reading.get("time")
+        current = reading.get("I") * 1e6  # A to uA
         self.itSeries.data().append(ts, current)
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 

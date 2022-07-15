@@ -2,7 +2,8 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-from .centralwidget import CentralWidget as Dashboard
+from .dashboardwidget import DashboardWidget
+
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -11,29 +12,38 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Actions
 
-        self.importCalibAction = QtWidgets.QAction(self.tr("Import &Calibrations..."))
+        self.importCalibAction = QtWidgets.QAction(self)
+        self.importCalibAction.setText(self.tr("Import &Calibrations..."))
         self.importCalibAction.setStatusTip("Import calibrations from file.")
 
-        self.quitAction = QtWidgets.QAction("&Quit")
+        self.quitAction = QtWidgets.QAction(self)
+        self.quitAction.setText("&Quit")
         self.quitAction.setShortcut(QtGui.QKeySequence("Ctrl+Q"))
         self.quitAction.setStatusTip("Quit the application")
         self.quitAction.triggered.connect(self.close)
 
-        self.preferencesAction = QtWidgets.QAction(self.tr("Preferences..."))
+        self.preferencesAction = QtWidgets.QAction(self)
+        self.preferencesAction.setText(self.tr("Preferences..."))
 
-        self.loggingAction = QtWidgets.QAction(self.tr("Logging..."))
+        self.loggingAction = QtWidgets.QAction(self)
+        self.loggingAction.setText(self.tr("Logging..."))
 
-        self.startAction = QtWidgets.QAction(self.tr("Start"))
+        self.startAction = QtWidgets.QAction(self)
+        self.startAction.setText(self.tr("Start"))
 
-        self.stopAction = QtWidgets.QAction(self.tr("Stop"))
+        self.stopAction = QtWidgets.QAction(self)
+        self.stopAction.setText(self.tr("Stop"))
         self.stopAction.setEnabled(False)
 
-        self.contentsAction = QtWidgets.QAction("&Contents")
-        self.contentsAction.setShortcut(QtGui.QKeySequence('F1'))
+        self.contentsAction = QtWidgets.QAction(self)
+        self.contentsAction.setText(self.tr("&Contents"))
+        self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
 
-        self.aboutQtAction = QtWidgets.QAction("About &Qt")
+        self.aboutQtAction = QtWidgets.QAction(self)
+        self.aboutQtAction.setText(self.tr("About &Qt"))
 
-        self.aboutAction = QtWidgets.QAction("&About")
+        self.aboutAction = QtWidgets.QAction(self)
+        self.aboutAction.setText(self.tr("&About"))
 
         # Menus
 
@@ -59,8 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Central widget
 
-        self.dashboard = Dashboard()
-        self.setCentralWidget(self.dashboard)
+        self.setCentralWidget(DashboardWidget(self))
 
         # Status bar
 
@@ -71,6 +80,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progressBar = QtWidgets.QProgressBar(self)
         self.progressBar.hide()
         self.statusBar().addPermanentWidget(self.progressBar)
+
+    def loadSettings(self):
+        settings = QtCore.QSettings()
+        settings.beginGroup("mainwindow")
+        geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
+        state = settings.value("state", QtCore.QByteArray(), QtCore.QByteArray)
+        settings.endGroup()
+
+        if not geometry.isEmpty():
+            self.restoreGeometry(geometry)
+
+        if not state.isEmpty():
+            self.restoreState(state)
+
+    def storeSettings(self):
+        settings = QtCore.QSettings()
+        settings.beginGroup("mainwindow")
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("state", self.saveState())
+        settings.endGroup()
 
     @QtCore.pyqtSlot(str)
     def showMessage(self, message):
@@ -91,6 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def hideProgress(self):
         self.progressBar.hide()
+
 
 class ProcessDialog(QtWidgets.QProgressDialog):
 

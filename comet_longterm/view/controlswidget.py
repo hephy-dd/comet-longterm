@@ -3,6 +3,7 @@ import os
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 
+
 class ControlsWidget(QtWidgets.QWidget):
 
     started = QtCore.pyqtSignal()
@@ -83,8 +84,12 @@ class ControlsWidget(QtWidgets.QWidget):
 
         self.continueInComplianceCheckBox = QtWidgets.QCheckBox()
         self.continueInComplianceCheckBox.setText("&Continue in Compl.")
-        self.continueInComplianceCheckBox.setToolTip("Continue measurement when SMU in compliance.")
-        self.continueInComplianceCheckBox.setStatusTip("Continue measurement when SMU in compliance.")
+        self.continueInComplianceCheckBox.setToolTip(
+            "Continue measurement when SMU in compliance."
+        )
+        self.continueInComplianceCheckBox.setStatusTip(
+            "Continue measurement when SMU in compliance."
+        )
         self.continueInComplianceCheckBox.setChecked(True)
 
         self.complGroupBox = QtWidgets.QGroupBox()
@@ -104,7 +109,9 @@ class ControlsWidget(QtWidgets.QWidget):
         layout.addWidget(self.singleComplianceSpinBox, 5, 0, 1, 1)
         layout.addWidget(self.continueInComplianceCheckBox, 6, 0, 1, 1)
 
-        spacerItem1 = QtWidgets.QSpacerItem(20, 12, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 12, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         layout.addItem(spacerItem1, 7, 0, 1, 1)
 
         self.ivEndVoltageLabel = QtWidgets.QLabel()
@@ -148,7 +155,9 @@ class ControlsWidget(QtWidgets.QWidget):
         layout.addWidget(self.ivStepSpinBox, 3, 0, 1, 1)
         layout.addWidget(self.ivDelayLabel, 4, 0, 1, 1)
         layout.addWidget(self.ivDelaySpinBox, 5, 0, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         layout.addItem(spacerItem, 6, 0, 1, 1)
 
         self.biasVoltageSpinBox = QtWidgets.QDoubleSpinBox()
@@ -189,7 +198,9 @@ class ControlsWidget(QtWidgets.QWidget):
         layout.addWidget(self.itDurationSpinBox, 3, 0, 1, 1)
         layout.addWidget(self.itIntervalLabel, 4, 0, 1, 1)
         layout.addWidget(self.itIntervalSpinBox, 5, 0, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 89, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 89, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         layout.addItem(spacerItem, 6, 0, 1, 1)
 
         self.generalWidget = QtWidgets.QWidget()
@@ -256,7 +267,9 @@ class ControlsWidget(QtWidgets.QWidget):
         self.setTabOrder(self.startPushButton, self.stopPushButton)
         self.setTabOrder(self.stopPushButton, self.totalComplianceSpinBox)
         self.setTabOrder(self.totalComplianceSpinBox, self.singleComplianceSpinBox)
-        self.setTabOrder(self.singleComplianceSpinBox, self.continueInComplianceCheckBox)
+        self.setTabOrder(
+            self.singleComplianceSpinBox, self.continueInComplianceCheckBox
+        )
         self.setTabOrder(self.continueInComplianceCheckBox, self.ivEndVoltageSpinBox)
         self.setTabOrder(self.ivEndVoltageSpinBox, self.ivStepSpinBox)
         self.setTabOrder(self.ivStepSpinBox, self.ivDelaySpinBox)
@@ -270,18 +283,40 @@ class ControlsWidget(QtWidgets.QWidget):
         # Setup signals
         self.startPushButton.clicked.connect(self.onStart)
         self.stopPushButton.clicked.connect(self.onStop)
-        self.shuntBoxCheckBox.toggled.connect(lambda: self.useShuntBoxChanged.emit(self.isShuntBoxEnabled()))
-        self.ivEndVoltageSpinBox.editingFinished.connect(lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage()))
+        self.shuntBoxCheckBox.toggled.connect(
+            lambda: self.useShuntBoxChanged.emit(self.isShuntBoxEnabled())
+        )
+        self.ivEndVoltageSpinBox.editingFinished.connect(
+            lambda: self.ivEndVoltageChanged.emit(self.ivEndVoltage())
+        )
         self.ivEndVoltageSpinBox.editingFinished.connect(self.onIvEndVoltageChanged)
-        self.ivStepSpinBox.editingFinished.connect(lambda: self.ivStepChanged.emit(self.ivStep()))
-        self.ivDelaySpinBox.editingFinished.connect(lambda: self.ivDelayChanged.emit(self.ivDelay()))
-        self.biasVoltageSpinBox.editingFinished.connect(lambda: self.biasVoltageChanged.emit(self.biasVoltage()))
-        self.totalComplianceSpinBox.editingFinished.connect(lambda: self.totalComplianceChanged.emit(self.totalCompliance()))
-        self.totalComplianceSpinBox.editingFinished.connect(self.onTotalComplianceChanged)
-        self.singleComplianceSpinBox.editingFinished.connect(lambda: self.singleComplianceChanged.emit(self.singleCompliance()))
-        self.continueInComplianceCheckBox.toggled.connect(lambda: self.continueInComplianceChanged.emit(self.continueInCompliance()))
-        self.itDurationSpinBox.editingFinished.connect(lambda: self.itDurationChanged.emit(self.itDuration()))
-        self.itIntervalSpinBox.editingFinished.connect(lambda: self.itIntervalChanged.emit(self.itInterval()))
+        self.ivStepSpinBox.editingFinished.connect(
+            lambda: self.ivStepChanged.emit(self.ivStep())
+        )
+        self.ivDelaySpinBox.editingFinished.connect(
+            lambda: self.ivDelayChanged.emit(self.ivDelay())
+        )
+        self.biasVoltageSpinBox.editingFinished.connect(
+            lambda: self.biasVoltageChanged.emit(self.biasVoltage())
+        )
+        self.totalComplianceSpinBox.editingFinished.connect(
+            lambda: self.totalComplianceChanged.emit(self.totalCompliance())
+        )
+        self.totalComplianceSpinBox.editingFinished.connect(
+            self.onTotalComplianceChanged
+        )
+        self.singleComplianceSpinBox.editingFinished.connect(
+            lambda: self.singleComplianceChanged.emit(self.singleCompliance())
+        )
+        self.continueInComplianceCheckBox.toggled.connect(
+            lambda: self.continueInComplianceChanged.emit(self.continueInCompliance())
+        )
+        self.itDurationSpinBox.editingFinished.connect(
+            lambda: self.itDurationChanged.emit(self.itDuration())
+        )
+        self.itIntervalSpinBox.editingFinished.connect(
+            lambda: self.itIntervalChanged.emit(self.itInterval())
+        )
         self.selectPathPushButton.clicked.connect(self.onSelectPath)
 
         # Syncronize limits
@@ -303,7 +338,9 @@ class ControlsWidget(QtWidgets.QWidget):
 
     def onTotalComplianceChanged(self):
         """Syncronize total/single compliance limit."""
-        self.singleComplianceSpinBox.setMaximum(self.totalCompliance() * 1000 * 1000) # in uA
+        self.singleComplianceSpinBox.setMaximum(
+            self.totalCompliance() * 1000 * 1000
+        )  # in uA
 
     def isEnvironEnabled(self):
         """Returns True if use CTS is checked."""
@@ -339,11 +376,11 @@ class ControlsWidget(QtWidgets.QWidget):
 
     def ivDelay(self):
         """Returns IV measurement interval in seconds."""
-        return self.ivDelaySpinBox.value() / 1000.
+        return self.ivDelaySpinBox.value() / 1000.0
 
     def setIvDelay(self, value):
         """Set IV measurement interval in seconds."""
-        self.ivDelaySpinBox.setValue(value * 1000.)
+        self.ivDelaySpinBox.setValue(value * 1000.0)
 
     def biasVoltage(self):
         """Returns It bias voltage in volts."""
@@ -403,10 +440,10 @@ class ControlsWidget(QtWidgets.QWidget):
 
     def loadSettings(self):
         settings = QtCore.QSettings()
-        home = os.path.join(os.path.expanduser("~"), 'longterm')
-        names = settings.value('operators') or []
-        index = settings.value('currentOperator', 0, type=int)
-        path = settings.value('path', home)
+        home = os.path.join(os.path.expanduser("~"), "longterm")
+        names = settings.value("operators") or []
+        index = settings.value("currentOperator", 0, type=int)
+        path = settings.value("path", home)
         self.operatorComboBox.addItems(names)
         self.operatorComboBox.setCurrentIndex(min(index, len(names) - 1))
         self.operatorComboBox.currentIndexChanged[str].connect(self.onOperatorChanged)
@@ -414,44 +451,58 @@ class ControlsWidget(QtWidgets.QWidget):
         self.pathComboBox.setCurrentText(path)
         if home != path:
             self.pathComboBox.addItem(home)
-        self.setEnvironEnabled(settings.value('useEnviron', True, type=bool))
-        self.setShuntBoxEnabled(settings.value('useShuntBox', True, type=bool))
-        self.setIvEndVoltage(settings.value('ivEndVoltage', 800.0, type=float))
+        self.setEnvironEnabled(settings.value("useEnviron", True, type=bool))
+        self.setShuntBoxEnabled(settings.value("useShuntBox", True, type=bool))
+        self.setIvEndVoltage(settings.value("ivEndVoltage", 800.0, type=float))
         self.onIvEndVoltageChanged()
-        self.setIvStep(settings.value('ivStep', 5.0, type=float))
-        self.setIvDelay(settings.value('ivDelay', 1.0, type=float))
-        self.setBiasVoltage(settings.value('biasVoltage', 600.0, type=float))
-        self.setTotalCompliance(settings.value('totalCompliance', 80.0 / 1000 / 1000, type=float))
-        self.setSingleCompliance(settings.value('singleCompliance', 25.0 / 1000 / 1000, type=float))
-        self.setContinueInCompliance(settings.value('continueInCompliance', True, type=bool))
-        self.setItDuration(settings.value('itDuration', 0.0, type=float))
-        self.setItInterval(settings.value('itInterval', 60.0, type=float))
-        self.smuWidget.setFilterEnable(settings.value('smu/filter/enable', False, type=bool))
-        self.smuWidget.setFilterType(settings.value('smu/filter/type', 'repeat', type=str))
-        self.smuWidget.setFilterCount(settings.value('smu/filter/count', 10, type=int))
-        self.dmmWidget.setFilterEnable(settings.value('dmm/filter/enable', False, type=bool))
-        self.dmmWidget.setFilterType(settings.value('dmm/filter/type', 'repeat', type=str))
-        self.dmmWidget.setFilterCount(settings.value('dmm/filter/count', 10, type=int))
+        self.setIvStep(settings.value("ivStep", 5.0, type=float))
+        self.setIvDelay(settings.value("ivDelay", 1.0, type=float))
+        self.setBiasVoltage(settings.value("biasVoltage", 600.0, type=float))
+        self.setTotalCompliance(
+            settings.value("totalCompliance", 80.0 / 1000 / 1000, type=float)
+        )
+        self.setSingleCompliance(
+            settings.value("singleCompliance", 25.0 / 1000 / 1000, type=float)
+        )
+        self.setContinueInCompliance(
+            settings.value("continueInCompliance", True, type=bool)
+        )
+        self.setItDuration(settings.value("itDuration", 0.0, type=float))
+        self.setItInterval(settings.value("itInterval", 60.0, type=float))
+        self.smuWidget.setFilterEnable(
+            settings.value("smu/filter/enable", False, type=bool)
+        )
+        self.smuWidget.setFilterType(
+            settings.value("smu/filter/type", "repeat", type=str)
+        )
+        self.smuWidget.setFilterCount(settings.value("smu/filter/count", 10, type=int))
+        self.dmmWidget.setFilterEnable(
+            settings.value("dmm/filter/enable", False, type=bool)
+        )
+        self.dmmWidget.setFilterType(
+            settings.value("dmm/filter/type", "repeat", type=str)
+        )
+        self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
 
     def storeSettings(self):
         settings = QtCore.QSettings()
-        settings.setValue('useEnviron', self.isEnvironEnabled())
-        settings.setValue('useShuntBox', self.isShuntBoxEnabled())
-        settings.setValue('ivEndVoltage', self.ivEndVoltage())
-        settings.setValue('ivStep', self.ivStep())
-        settings.setValue('ivDelay', self.ivDelay())
-        settings.setValue('biasVoltage', self.biasVoltage())
-        settings.setValue('totalCompliance', self.totalCompliance())
-        settings.setValue('singleCompliance', self.singleCompliance())
-        settings.setValue('continueInCompliance', self.continueInCompliance())
-        settings.setValue('itDuration', self.itDuration())
-        settings.setValue('itInterval', self.itInterval())
-        settings.setValue('smu/filter/enable', self.smuWidget.filterEnable())
-        settings.setValue('smu/filter/type', self.smuWidget.filterType())
-        settings.setValue('smu/filter/count', self.smuWidget.filterCount())
-        settings.setValue('dmm/filter/enable', self.dmmWidget.filterEnable())
-        settings.setValue('dmm/filter/type', self.dmmWidget.filterType())
-        settings.setValue('dmm/filter/count', self.dmmWidget.filterCount())
+        settings.setValue("useEnviron", self.isEnvironEnabled())
+        settings.setValue("useShuntBox", self.isShuntBoxEnabled())
+        settings.setValue("ivEndVoltage", self.ivEndVoltage())
+        settings.setValue("ivStep", self.ivStep())
+        settings.setValue("ivDelay", self.ivDelay())
+        settings.setValue("biasVoltage", self.biasVoltage())
+        settings.setValue("totalCompliance", self.totalCompliance())
+        settings.setValue("singleCompliance", self.singleCompliance())
+        settings.setValue("continueInCompliance", self.continueInCompliance())
+        settings.setValue("itDuration", self.itDuration())
+        settings.setValue("itInterval", self.itInterval())
+        settings.setValue("smu/filter/enable", self.smuWidget.filterEnable())
+        settings.setValue("smu/filter/type", self.smuWidget.filterType())
+        settings.setValue("smu/filter/count", self.smuWidget.filterCount())
+        settings.setValue("dmm/filter/enable", self.dmmWidget.filterEnable())
+        settings.setValue("dmm/filter/type", self.dmmWidget.filterType())
+        settings.setValue("dmm/filter/count", self.dmmWidget.filterCount())
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -505,22 +556,25 @@ class ControlsWidget(QtWidgets.QWidget):
     def onSelectPath(self):
         """Select output directory using a file dialog."""
         path = self.pathComboBox.currentText() or QtCore.QDir.home().path()
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, self.tr("Select Output Directory"), path)
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, self.tr("Select Output Directory"), path
+        )
         if path:
             self.pathComboBox.addItem(path)
             self.pathComboBox.setCurrentText(path)
             settings = QtCore.QSettings()
-            settings.setValue('path', path)
+            settings.setValue("path", path)
 
     @QtCore.pyqtSlot(str)
     def onOperatorChanged(self, name):
         """Store current operator name to settings."""
         settings = QtCore.QSettings()
-        operators = settings.value('operators') or []
+        operators = settings.value("operators") or []
         if name not in operators:
             operators.append(name)
-        settings.setValue('operators', operators)
-        settings.setValue('currentOperator', operators.index(name))
+        settings.setValue("operators", operators)
+        settings.setValue("currentOperator", operators.index(name))
+
 
 class SMUWidget(QtWidgets.QWidget):
 
@@ -572,7 +626,9 @@ class SMUWidget(QtWidgets.QWidget):
         layout.setStretch(0, 1)
         layout.setStretch(1, 2)
 
-        self.filterEnableComboBox.currentIndexChanged.connect(self.onFilterEnableChanged)
+        self.filterEnableComboBox.currentIndexChanged.connect(
+            self.onFilterEnableChanged
+        )
         self.filterTypeComboBox.currentIndexChanged.connect(self.onFilterTypeChanged)
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
 
@@ -619,6 +675,7 @@ class SMUWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onFilterCountChanged(self):
         self.filterCountChanged.emit(self.filterCount())
+
 
 class DMMWidget(QtWidgets.QWidget):
 
@@ -670,7 +727,9 @@ class DMMWidget(QtWidgets.QWidget):
         layout.setStretch(0, 1)
         layout.setStretch(1, 2)
 
-        self.filterEnableComboBox.currentIndexChanged.connect(self.onFilterEnableChanged)
+        self.filterEnableComboBox.currentIndexChanged.connect(
+            self.onFilterEnableChanged
+        )
         self.filterTypeComboBox.currentIndexChanged.connect(self.onFilterTypeChanged)
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
 

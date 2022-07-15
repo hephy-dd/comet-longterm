@@ -3,8 +3,9 @@ from PyQt5 import QtWidgets
 
 from ..utils import auto_unit
 
-class StatusWidget(QtWidgets.QWidget):
 
+class StatusWidget(QtWidgets.QWidget):
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Status")
@@ -31,7 +32,9 @@ class StatusWidget(QtWidgets.QWidget):
         layout.addWidget(self.voltageLineEdit, 1, 0, 1, 1)
         layout.addWidget(self.currentLabel, 0, 1, 1, 1)
         layout.addWidget(self.currentLineEdit, 1, 1, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         layout.addItem(spacerItem, 1, 2, 1, 1)
 
         self.humidLabel = QtWidgets.QLabel()
@@ -66,7 +69,9 @@ class StatusWidget(QtWidgets.QWidget):
         layout.addWidget(self.statusLabel, 0, 2, 1, 1)
         layout.addWidget(self.statusLineEdit, 1, 2, 1, 1)
 
-        spacerItem1 = QtWidgets.QSpacerItem(0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         layout.addItem(spacerItem1, 1, 3, 1, 1)
 
         layout = QtWidgets.QHBoxLayout(self)
@@ -78,11 +83,11 @@ class StatusWidget(QtWidgets.QWidget):
 
     def setVoltage(self, voltage):
         """Set current in Volts."""
-        self.voltageLineEdit.setText(auto_unit(voltage, 'V', decimals=3))
+        self.voltageLineEdit.setText(auto_unit(voltage, "V", decimals=3))
 
     def setCurrent(self, current):
         """Set current in Ampere."""
-        self.currentLineEdit.setText(auto_unit(current, 'A', decimals=3))
+        self.currentLineEdit.setText(auto_unit(current, "A", decimals=3))
 
     def setCtsEnabled(self, enabled):
         """Set CTS group box enabled."""

@@ -1,6 +1,7 @@
 import datetime
 
-__all__ = ['auto_unit', 'make_iso']
+__all__ = ["auto_unit", "make_iso"]
+
 
 def make_iso(dt=None):
     """Returns filesystem safe ISO date time.
@@ -13,7 +14,8 @@ def make_iso(dt=None):
         dt = datetime.datetime.now()
     if not isinstance(dt, datetime.datetime):
         dt = datetime.datetime.fromtimestamp(dt)
-    return dt.replace(microsecond=0).isoformat().replace(':', '-')
+    return dt.replace(microsecond=0).isoformat().replace(":", "-")
+
 
 def auto_unit(value, unit, decimals=3):
     """Auto format value to proper unit.
@@ -22,8 +24,15 @@ def auto_unit(value, unit, decimals=3):
     '4.200 mA'
     """
     scales = (
-        (1e12, 'T'), (1e9, 'G'), (1e6, 'M'), (1e3, 'k'), (1e0, ''),
-        (1e-3, 'm'), (1e-6, 'u'), (1e-9, 'n'), (1e-12, 'p')
+        (1e12, "T"),
+        (1e9, "G"),
+        (1e6, "M"),
+        (1e3, "k"),
+        (1e0, ""),
+        (1e-3, "m"),
+        (1e-6, "u"),
+        (1e-9, "n"),
+        (1e-12, "p"),
     )
     if value is None:
         return "n/a"

@@ -2,6 +2,7 @@ import csv
 
 from . import __version__
 
+
 class Writer:
     """CSV file writer for IV and It measurements."""
 
@@ -18,7 +19,7 @@ class Writer:
             [f"datetime: {timestamp}"],
             [f"calibration [Ohm]: {sensor.resistivity}"],
             [f"Voltage [V]: {voltage}"],
-            []
+            [],
         ])
         self.context.flush()
 
@@ -33,30 +34,43 @@ class Writer:
             "cts_humidity [%rH]",
             "cts_status",
             "cts_program",
-            "hv_status"
+            "hv_status",
         ])
         self.context.flush()
 
-    def write_row(self, *, timestamp, voltage, current, smu_current, pt100,
-                  cts_temperature, cts_humidity, cts_status, cts_program,
-                  hv_status):
+    def write_row(
+        self,
+        *,
+        timestamp,
+        voltage,
+        current,
+        smu_current,
+        pt100,
+        cts_temperature,
+        cts_humidity,
+        cts_status,
+        cts_program,
+        hv_status,
+    ):
         self.writer.writerow([
-            format(timestamp, '.3f'),
-            format(voltage, 'E'),
-            format(current, 'E'),
-            format(smu_current, 'E'),
-            format(pt100, '.2f'),
-            format(cts_temperature, '.2f'),
-            format(cts_humidity, '.2f'),
+            format(timestamp, ".3f"),
+            format(voltage, "E"),
+            format(current, "E"),
+            format(smu_current, "E"),
+            format(pt100, ".2f"),
+            format(cts_temperature, ".2f"),
+            format(cts_humidity, ".2f"),
             format(cts_status),
             format(cts_program),
-            {False: 'OFF', True: 'ON'}.get(hv_status, 'N/A')
+            {False: "OFF", True: "ON"}.get(hv_status, "N/A"),
         ])
         self.context.flush()
+
 
 class IVWriter(Writer):
 
     pass
+
 
 class ItWriter(Writer):
 

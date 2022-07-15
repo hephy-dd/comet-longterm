@@ -22,21 +22,28 @@ from .view.preferencesdialog import PreferencesDialog
 from .view.centralwidget import CentralWidget
 from .view.logwindow import LogWindow
 
+__all__ = ["Controller"]
+
 logger = logging.getLogger(__name__)
 
+
 class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
+    """Main window controller."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.view = MainWindow()
         self.view.setCentralWidget(CentralWidget(self.view))
         self.view.setWindowTitle(f"Longterm It {__version__}")
-        self.view.setProperty("contentsUrl", "https://github.com/hephy-dd/comet-longterm")
-        self.view.setProperty("aboutText",
+        self.view.setProperty(
+            "contentsUrl", "https://github.com/hephy-dd/comet-longterm"
+        )
+        self.view.setProperty(
+            "aboutText",
             f"""<h3>Longterm It</h3>
             <p>Version {__version__}</p>
             <p>Long term sensor It measurements in CTS climate chamber.</p>
-            <p>&copy; 2019-2021 hephy.at</p>"""
+            <p>&copy; 2019-2021 hephy.at</p>""",
         )
 
         self.createLogWindow()
@@ -61,13 +68,17 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         self.view.aboutAction.triggered.connect(self.onShowAbout)
 
         self.view.closeEvent = self.closeEvent
+        self.view.resize(1200, 800)
         self.view.show()
 
     def loadResources(self):
         settings = QtCore.QSettings()
         resources = settings.value("resources", {}, dict)
+        tr = {"timeout": int}
         for name, resource in self.resources.items():
             for key, value in resources.get(name, {}).items():
+                # convert types
+                value = tr.get(key, str)(value)
                 if key == "resource_name":
                     resource.resource_name = value
                 elif key == "visa_library":
@@ -76,24 +87,14 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
                     resource.options[key] = value
 
     def loadSettings(self):
-        settings = QtCore.QSettings()
-
         self.loadResources()
-
-        # Main window
-        size = settings.value("mainwindow.size", QtCore.QSize(1280, 700))
-        self.view.resize(size)
-
+        self.view.loadSettings()
         widget = self.view.centralWidget()
         widget.sensors().loadSettings()
         widget.controlsWidget.loadSettings()
 
     def storeSettings(self):
-        settings = QtCore.QSettings()
-
-        # Main window
-        settings.setValue("mainwindow.size", self.view.size())
-
+        self.view.storeSettings()
         widget = self.view.centralWidget()
         widget.sensors().storeSettings()
         widget.controlsWidget.storeSettings()
@@ -105,18 +106,10 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         self.logWindow.hide()
 
     def createDevices(self):
-        self.resources.add('shunt', Resource(
-            resource_name='TCPIP::localhost::10001::SOCKET'
-        ))
-        self.resources.add('smu', Resource(
-            resource_name='TCPIP::localhost::10002::SOCKET'
-        ))
-        self.resources.add('multi', Resource(
-            resource_name='TCPIP::localhost::10003::SOCKET'
-        ))
-        self.resources.add('cts', Resource(
-            resource_name='TCPIP::localhost::10004::SOCKET'
-        ))
+        self.resources.add("shunt", Resource(resource_name="TCPIP::localhost::10001::SOCKET"))
+        self.resources.add("smu", Resource(resource_name="TCPIP::localhost::10002::SOCKET"))
+        self.resources.add("multi", Resource(resource_name="TCPIP::localhost::10003::SOCKET"))
+        self.resources.add("cts", Resource(resource_name="TCPIP::localhost::1080::SOCKET"))
 
     def createProcesses(self):
         widget = self.view.centralWidget()
@@ -124,7 +117,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         environ = EnvironProcess()
         environ.reading = self.onEnvironReading
         environ.failed = self.onEnvironError
-        self.processes.add('environ', environ)
+        self.processes.add("environ", environ)
         self.onEnableEnviron(widget.controlsWidget.isEnvironEnabled())
         self.onEnableShuntBox(widget.controlsWidget.isShuntBoxEnabled())
 
@@ -153,29 +146,29 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         # SMU
 
         widget.controlsWidget.smuWidget.filterEnableChanged.connect(
-            lambda enable: meas.params.update({'smu.filter.enabled': enable})
+            lambda enable: meas.params.update({"smu.filter.enabled": enable})
         )
         widget.controlsWidget.smuWidget.filterTypeChanged.connect(
-            lambda type: meas.params.update({'smu.filter.type': type})
+            lambda type: meas.params.update({"smu.filter.type": type})
         )
         widget.controlsWidget.smuWidget.filterCountChanged.connect(
-            lambda count: meas.params.update({'smu.filter.count': count})
+            lambda count: meas.params.update({"smu.filter.count": count})
         )
 
         # DMM
 
         widget.controlsWidget.dmmWidget.filterEnableChanged.connect(
-            lambda enable: meas.params.update({'dmm.filter.enabled': enable})
+            lambda enable: meas.params.update({"dmm.filter.enabled": enable})
         )
         widget.controlsWidget.dmmWidget.filterTypeChanged.connect(
-            lambda type: meas.params.update({'dmm.filter.type': type})
+            lambda type: meas.params.update({"dmm.filter.type": type})
         )
         widget.controlsWidget.dmmWidget.filterCountChanged.connect(
-            lambda count: meas.params.update({'dmm.filter.count': count})
+            lambda count: meas.params.update({"dmm.filter.count": count})
         )
 
         self.connectProcess(meas)
-        self.processes.add('meas', meas)
+        self.processes.add("meas", meas)
 
     def setLevel(self, level):
         self.logWindow.setLevel(level)
@@ -196,12 +189,12 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         index = widget.bottomTabWidget.indexOf(widget.ctsTab)
         widget.bottomTabWidget.setTabEnabled(index, enabled)
         widget.statusWidget.setCtsEnabled(enabled)
-        widget.statusWidget.setTemperature(float('nan'))
-        widget.statusWidget.setHumidity(float('nan'))
-        widget.statusWidget.setStatus('N/A')
-        widget.sensorsWidget.dataChanged() # HACK keep updated
+        widget.statusWidget.setTemperature(float("nan"))
+        widget.statusWidget.setHumidity(float("nan"))
+        widget.statusWidget.setStatus("N/A")
+        widget.sensorsWidget.dataChanged()  # HACK keep updated
         # Toggle environ process
-        environ = self.processes.get('environ')
+        environ = self.processes.get("environ")
         environ.stop()
         environ.join()
         if enabled:
@@ -216,19 +209,21 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
     def onEnvironReading(self, reading):
         widget = self.view.centralWidget()
         widget.ctsChart.append(reading)
-        widget.statusWidget.setTemperature(reading.get('temp'))
-        widget.statusWidget.setHumidity(reading.get('humid'))
-        widget.statusWidget.setStatus('{} ({})'.format(reading.get('status'), reading.get('program')))
-        meas = self.processes.get('meas')
-        meas.setTemperature(reading.get('temp'))
-        meas.setHumidity(reading.get('humid'))
-        meas.setStatus(reading.get('status'))
-        meas.setProgram(reading.get('program'))
-        widget.sensorsWidget.dataChanged() # HACK keep updated
+        widget.statusWidget.setTemperature(reading.get("temp"))
+        widget.statusWidget.setHumidity(reading.get("humid"))
+        widget.statusWidget.setStatus(
+            "{} ({})".format(reading.get("status"), reading.get("program"))
+        )
+        meas = self.processes.get("meas")
+        meas.setTemperature(reading.get("temp"))
+        meas.setHumidity(reading.get("humid"))
+        meas.setStatus(reading.get("status"))
+        meas.setProgram(reading.get("program"))
+        widget.sensorsWidget.dataChanged()  # HACK keep updated
 
     @QtCore.pyqtSlot(object)
     def onEnvironError(self, exc, tb=None):
-        environ = self.processes.get('environ')
+        environ = self.processes.get("environ")
         # Show error only once!
         if environ.failedConnectionAttempts <= 1:
             self.onShowException(exc)
@@ -255,12 +250,14 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
         # Setup output location
         path = os.path.normpath(widget.controlsWidget.path())
-        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime('%Y-%m-%dT%H-%M-%S')
+        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime(
+            "%Y-%m-%dT%H-%M-%S"
+        )
         path = os.path.join(path, timestamp)
         if not os.path.exists(path):
             os.makedirs(path)
 
-        meas = self.processes.get('meas')
+        meas = self.processes.get("meas")
         meas.setSensors(widget.sensors())
         meas.setUseShuntBox(widget.controlsWidget.isShuntBoxEnabled())
         meas.setIvEndVoltage(widget.controlsWidget.ivEndVoltage())
@@ -273,14 +270,14 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
         meas.setItDuration(widget.controlsWidget.itDuration())
         meas.setItInterval(widget.controlsWidget.itInterval())
         meas.params.update({
-            'smu.filter.enable': widget.controlsWidget.smuWidget.filterEnable(),
-            'smu.filter.type': widget.controlsWidget.smuWidget.filterType(),
-            'smu.filter.count': widget.controlsWidget.smuWidget.filterCount()
+            "smu.filter.enable": widget.controlsWidget.smuWidget.filterEnable(),
+            "smu.filter.type": widget.controlsWidget.smuWidget.filterType(),
+            "smu.filter.count": widget.controlsWidget.smuWidget.filterCount(),
         })
         meas.params.update({
-            'dmm.filter.enable': widget.controlsWidget.dmmWidget.filterEnable(),
-            'dmm.filter.type': widget.controlsWidget.dmmWidget.filterType(),
-            'dmm.filter.count': widget.controlsWidget.dmmWidget.filterCount()
+            "dmm.filter.enable": widget.controlsWidget.dmmWidget.filterEnable(),
+            "dmm.filter.type": widget.controlsWidget.dmmWidget.filterType(),
+            "dmm.filter.count": widget.controlsWidget.dmmWidget.filterCount(),
         })
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget.operator())
@@ -304,9 +301,10 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
     @QtCore.pyqtSlot()
     def onImportCalib(self):
         widget = self.view.centralWidget()
-        filename, filter_ = QtWidgets.QFileDialog.getOpenFileName(widget,
+        filename, filter_ = QtWidgets.QFileDialog.getOpenFileName(
+            widget,
             widget.tr("Open calibration resistors file..."),
-            os.path.expanduser("~")
+            os.path.expanduser("~"),
         )
         if filename:
             # Yuck, quick'n dirty file parsing...
@@ -314,14 +312,24 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
                 resistors = []
                 count = len(widget.sensors())
                 with open(filename) as f:
-                    for token in re.findall(r'\d+\s+', f.read()):
+                    for token in re.findall(r"\d+\s+", f.read()):
                         resistors.append(int(token))
                 if len(resistors) < count:
-                    raise RuntimeError("Missing calibration values, expected at least {}".format(count))
+                    raise RuntimeError(
+                        "Missing calibration values, expected at least {}".format(count)
+                    )
                 for i in range(count):
                     logger.info("sensor[%s].resistivity = %s", i, resistors[i])
                     widget.sensors()[i].resistivity = resistors[i]
-                QtWidgets.QMessageBox.information(widget, widget.tr("Success"), widget.tr("Sucessfully imported {} calibration resistor values.".format(count)))
+                QtWidgets.QMessageBox.information(
+                    widget,
+                    widget.tr("Success"),
+                    widget.tr(
+                        "Sucessfully imported {} calibration resistor values.".format(
+                            count
+                        )
+                    ),
+                )
             except Exception as exc:
                 self.onShowException(exc)
 
@@ -337,7 +345,7 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
     def onShowContents(self):
         """Open local webbrowser with contets URL."""
-        webbrowser.open(self.view.property('contentsUrl'))
+        webbrowser.open(self.view.property("contentsUrl"))
 
     def onShowAboutQt(self):
         """Show modal about Qt dialog."""
@@ -345,14 +353,14 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
 
     def onShowAbout(self):
         """Show modal about dialog."""
-        QtWidgets.QMessageBox.about(self.view, "About", self.view.property('aboutText'))
+        QtWidgets.QMessageBox.about(self.view, "About", self.view.property("aboutText"))
 
     def onShowException(self, exc, tb=None):
         """Raise message box showing exception inforamtion."""
         logger.exception(exc)
         self.view.showMessage(self.tr("Exception occured."))
         self.view.hideProgress()
-        details = ''.join(traceback.format_tb(exc.__traceback__))
+        details = "".join(traceback.format_tb(exc.__traceback__))
         dialog = QtWidgets.QMessageBox(self.view)
         dialog.setIcon(dialog.Icon.Critical)
         dialog.setWindowTitle(self.tr("Exception occured"))

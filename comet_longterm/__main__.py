@@ -11,22 +11,28 @@ from .controller import Controller
 
 logger = logging.getLogger(__name__)
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', dest='verbose', action='store_true', help="show verbose information")
-    parser.add_argument('--version', action='version', version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "-v", dest="verbose", action="store_true", help="show verbose information"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
     return parser.parse_args()
+
 
 def create_loggers(level):
     logger = logging.getLogger()
     formatter = logging.Formatter(
-        "%(asctime)s::%(name)s::%(levelname)s::%(message)s",
-        "%Y-%m-%dT%H:%M:%S"
+        "%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S"
     )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)
+
 
 def main():
     args = parse_args()
@@ -46,6 +52,7 @@ def main():
     def signal_handler(signum, frame):
         if signum == signal.SIGINT:
             app.quit()
+
     signal.signal(signal.SIGINT, signal_handler)
 
     # Initialize settings
@@ -62,10 +69,9 @@ def main():
     controller.setLevel(level)
 
     logger.info("Longterm It version %s", __version__)
-    result = app.exec()
+    app.exec()
     controller.storeSettings()
 
-    return result
 
-if __name__ == '__main__':
-    sys.exit(main())
+if __name__ == "__main__":
+    main()

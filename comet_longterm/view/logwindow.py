@@ -6,14 +6,16 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-__all__ = ['LogWindow', 'LogWidget']
+__all__ = ["LogWindow", "LogWidget"]
+
 
 class LogHandlerObject(QtCore.QObject):
 
-    message =  QtCore.pyqtSignal(object)
+    message = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
 
 class LogHandler(logging.Handler):
 
@@ -23,6 +25,7 @@ class LogHandler(logging.Handler):
 
     def emit(self, record):
         self.object.message.emit(record)
+
 
 class LogWidget(QtWidgets.QTextEdit):
 
@@ -60,7 +63,7 @@ class LogWidget(QtWidgets.QTextEdit):
         with self.mutex:
             # Clear when exceeding maximum allowed entries...
             if self.entries > self.MaximumEntries:
-                self.clear() # TODO
+                self.clear()  # TODO
             # Get current scrollbar position
             scrollbar = self.verticalScrollBar()
             current_pos = scrollbar.value()
@@ -89,17 +92,18 @@ class LogWidget(QtWidgets.QTextEdit):
     @classmethod
     def formatRecord(cls, record):
         if record.levelno >= logging.ERROR:
-            color = 'red'
+            color = "red"
         elif record.levelno >= logging.WARNING:
-            color = 'orange'
+            color = "orange"
         else:
-            color = 'inherit'
+            color = "inherit"
         style = f"white-space:pre;color:{color};margin:0"
         timestamp = cls.formatTime(record.created)
         message = "{}\t{}\t{}".format(timestamp, record.levelname, record.getMessage())
         # Escape to HTML
         message = html.escape(message)
-        return f"<span style=\"{style}\">{message}</span>"
+        return f'<span style="{style}">{message}</span>'
+
 
 class LogWindow(QtWidgets.QWidget):
 
@@ -108,7 +112,9 @@ class LogWindow(QtWidgets.QWidget):
         self.setWindowTitle(self.tr("Logging"))
         self.logHeader = QtWidgets.QLabel()
         self.logHeader.setTextFormat(QtCore.Qt.RichText)
-        self.logHeader.setText("<span style=\"white-space:pre\">Time\t\tLevel\tMessage</span>")
+        self.logHeader.setText(
+            '<span style="white-space:pre">Time\t\tLevel\tMessage</span>'
+        )
         self.logWidget = LogWidget()
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setStandardButtons(self.buttonBox.Close)
