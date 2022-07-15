@@ -1,11 +1,10 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from ..utils import auto_unit
 
 
 class StatusWidget(QtWidgets.QWidget):
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Status")

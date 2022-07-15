@@ -1,7 +1,6 @@
 import os
 
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 
 class ControlsWidget(QtWidgets.QWidget):

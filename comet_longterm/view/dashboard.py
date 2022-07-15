@@ -1,6 +1,4 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtChart
+from PyQt5 import QtCore, QtWidgets, QtChart
 
 from QCharted import ChartView
 
@@ -156,6 +154,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.itChart.axisX.rangeChanged.connect(itRangeChanged)
 
     def loadSettings(self):
+        settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         state = settings.value("splitter/state", QtCore.QByteArray(), QtCore.QByteArray)
         settings.endGroup()
@@ -164,6 +163,7 @@ class DashboardWidget(QtWidgets.QWidget):
             self.horizontalSplitter.restoreState(state)
 
     def storeSettings(self):
+        settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         settings.setValue("splitter/state", self.horizontalSplitter.saveState())
         settings.endGroup()

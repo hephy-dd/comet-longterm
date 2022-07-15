@@ -1,5 +1,4 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from comet.resource import ResourceMixin
 from comet.utils import escape_string, unescape_string

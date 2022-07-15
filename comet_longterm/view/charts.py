@@ -1,7 +1,6 @@
 import math
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtGui
 from QCharted import Chart
 
 __all__ = [
