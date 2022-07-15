@@ -1,4 +1,6 @@
-include README.md
 include LICENSE
+include README.md
 
-include comet_longterm/*.ui
+include changelog
+include pyinstaller.spec
+include requirements.txt
