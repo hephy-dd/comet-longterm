@@ -1,96 +1,52 @@
 import os
+from pyinstaller_versionfile import create_versionfile
+
 import comet
 import comet_longterm
 
-# Application name
-name = 'comet-longterm'
-
-# Application organization
-organization = 'HEPHY'
-
-# Application version
+name = "longterm-it"
 version = comet_longterm.__version__
-
-# Application license
-license = 'GPLv3'
+filename = f"{name}-{version}.exe"
 
 # Paths
 comet_root = os.path.join(os.path.dirname(comet.__file__))
-comet_icon = os.path.join(comet_root, 'assets', 'icons', 'comet.ico')
-
-# Windows version info template
-version_info = """
-VSVersionInfo(
-    ffi=FixedFileInfo(
-        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
-        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
-        mask=0x3f,
-        flags=0x0,
-        OS=0x4,
-        fileType=0x1,
-        subtype=0x0,
-        date=(0, 0)
-    ),
-    kids=[
-        StringFileInfo(
-            [
-            StringTable(
-                u'000004b0',
-                [StringStruct(u'CompanyName', u'{organization}'),
-                StringStruct(u'FileDescription', u'{name}'),
-                StringStruct(u'FileVersion', u'{version[0]}.{version[1]}.{version[2]}.0'),
-                StringStruct(u'InternalName', u'{name}'),
-                StringStruct(u'LegalCopyright', u'{license}'),
-                StringStruct(u'OriginalFilename', u'{name}.exe'),
-                StringStruct(u'ProductName', u'{name}'),
-                StringStruct(u'ProductVersion', u'{version[0]}.{version[1]}.{version[2]}.0'),
-                ])
-            ]),
-        VarFileInfo([VarStruct(u'Translation', [0, 1200])])
-    ]
-)
-"""
+comet_icon = os.path.join(comet_root, "assets", "icons", "comet.ico")
 
 # Pyinstaller entry point template
 entry_point = """
-import sys
-from comet_longterm import main
-if __name__ == '__main__':
-    sys.exit(main.main())
+from comet_longterm.__main__ import main; main()
 """
 
 # Create pyinstaller entry point
-with open('entry_point.pyw', 'w') as f:
+with open("entry_point.pyw", "wt") as f:
     f.write(entry_point)
 
 # Create windows version info
-with open('version_info.txt', 'w') as f:
-    f.write(version_info.format(
-        name=name,
-        organization=organization,
-        version=version.split('.'),
-        license=license
-    ))
+create_versionfile(
+    output_file="version_info.txt",
+    version=f"{version}.0",
+    company_name="HEPHY",
+    file_description="Longterm sensor It measurements in climate chamber",
+    internal_name="Longterm-It",
+    legal_copyright="Copyright 2019-2022 HEPHY. All rights reserved.",
+    original_filename=filename,
+    product_name="Longterm-It",
+)
 
-a = Analysis(['entry_point.pyw'],
-    pathex=[
-      os.getcwd()
-    ],
+a = Analysis(
+    ["entry_point.pyw"],
+    pathex=[os.getcwd()],
     binaries=[],
     datas=[
-        (os.path.join(comet_root, 'widgets', '*.ui'), os.path.join('comet', 'widgets')),
-        (os.path.join(comet_root, 'assets', 'icons', '*.svg'), os.path.join('comet', 'assets', 'icons')),
-        (os.path.join(comet_root, 'assets', 'icons', '*.ico'), os.path.join('comet', 'assets', 'icons')),
-        (os.path.join('comet_longterm', '*.ui'), 'comet_longterm')
+        (os.path.join(comet_root, "assets", "icons", "*.svg"), os.path.join("comet", "assets", "icons")),
+        (os.path.join(comet_root, "assets", "icons", "*.ico"), os.path.join("comet", "assets", "icons")),
     ],
     hiddenimports=[
-        'pyvisa-sim',
-        'pyvisa-py',
-        'PyQt5.sip',
-        'comet_longterm.controlswidget',
-        'comet_longterm.sensorswidget',
-        'comet_longterm.statuswidget',
-        'comet_longterm.calibrationdialog'
+        "pyvisa",
+        "pyvisa_py",
+        "pyserial",
+        "pyusb",
+        "PyQt5.sip",
     ],
     hookspath=[],
     runtime_hooks=[],
@@ -98,13 +54,15 @@ a = Analysis(['entry_point.pyw'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
-    noarchive=False
+    noarchive=False,
 )
+
 pyz = PYZ(
     a.pure,
     a.zipped_data,
-    cipher=None
+    cipher=None,
 )
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -112,8 +70,8 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name=name,
-    version='version_info.txt',
+    name=filename,
+    version="version_info.txt",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

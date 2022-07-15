@@ -19,7 +19,6 @@ from .processes import MeasureProcess
 from .view.mainwindow import MainWindow
 from .view.mainwindow import ProcessDialog
 from .view.preferencesdialog import PreferencesDialog
-from .view.centralwidget import CentralWidget
 from .view.logwindow import LogWindow
 
 __all__ = ["Controller"]
@@ -33,8 +32,6 @@ class Controller(QtCore.QObject, ResourceMixin, ProcessMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.view = MainWindow()
-        self.view.setCentralWidget(CentralWidget(self.view))
-        self.view.setWindowTitle(f"Longterm It {__version__}")
         self.view.setProperty(
             "contentsUrl", "https://github.com/hephy-dd/comet-longterm"
         )
