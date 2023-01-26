@@ -4,3 +4,5 @@ include README.md
 include changelog
 include pyinstaller.spec
 include requirements.txt
+
+recursive-include comet_longterm/assets/icons *.svg *.ico
