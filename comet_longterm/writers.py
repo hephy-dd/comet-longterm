@@ -1,16 +1,18 @@
 import csv
 
 from . import __version__
+from .sensor import Sensor
+from .utils import make_iso
 
 
 class Writer:
     """CSV file writer for IV and It measurements."""
 
-    def __init__(self, context):
-        self.context = context
-        self.writer = csv.writer(context)
+    def __init__(self, fp):
+        self.fp = fp
+        self.writer = csv.writer(fp)
 
-    def write_meta(self, sensor, operator, timestamp, voltage):
+    def write_meta(self, sensor: Sensor, operator: str, timestamp: str, voltage: float) -> None:
         self.writer.writerows([
             [f"HEPHY Vienna longtime It measurement version {__version__}"],
             [f"sensor name: {sensor.name}"],
@@ -21,9 +23,9 @@ class Writer:
             [f"Voltage [V]: {voltage}"],
             [],
         ])
-        self.context.flush()
+        self.fp.flush()
 
-    def write_header(self):
+    def write_header(self) -> None:
         self.writer.writerow([
             "timestamp [s]",
             "voltage [V]",
@@ -36,22 +38,22 @@ class Writer:
             "cts_program",
             "hv_status",
         ])
-        self.context.flush()
+        self.fp.flush()
 
     def write_row(
         self,
         *,
-        timestamp,
-        voltage,
-        current,
-        smu_current,
-        pt100,
-        cts_temperature,
-        cts_humidity,
-        cts_status,
-        cts_program,
-        hv_status,
-    ):
+        timestamp: float,
+        voltage: float,
+        current: float,
+        smu_current: float,
+        pt100: float,
+        cts_temperature: float,
+        cts_humidity: float,
+        cts_status: int,
+        cts_program: int,
+        hv_status: bool,
+    ) -> None:
         self.writer.writerow([
             format(timestamp, ".3f"),
             format(voltage, "E"),
@@ -64,14 +66,14 @@ class Writer:
             format(cts_program),
             {False: "OFF", True: "ON"}.get(hv_status, "N/A"),
         ])
-        self.context.flush()
+        self.fp.flush()
 
 
 class IVWriter(Writer):
 
-    pass
+    ...
 
 
 class ItWriter(Writer):
 
-    pass
+    ...

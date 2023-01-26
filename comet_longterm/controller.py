@@ -6,8 +6,7 @@ import time
 import traceback
 import webbrowser
 
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from comet import Resource, ResourceMixin
 from comet import ProcessMixin
