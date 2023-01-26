@@ -2,6 +2,7 @@ import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..sensor import Sensor
 from ..utils import auto_unit
 
 Colors = [
@@ -256,25 +257,6 @@ class SensorsModel(QtCore.QAbstractTableModel):
             # if index.column() == self.Column.Resistivity:
             #     return flags | QtCore.Qt.ItemIsEditable
         return flags
-
-
-class Sensor(object):
-    """Represents state of a sensor."""
-
-    class State:
-        OK = "OK"
-        COMPL_ERR = "COMPL"
-
-    def __init__(self, index):
-        self.index = index
-        self.enabled = False
-        self.color = "#000000"
-        self.name = "Unnamed{}".format(index)
-        self.status = None
-        self.hv = None  # valid: None, True, False
-        self.current = None
-        self.temperature = None
-        self.resistivity = None
 
 
 class SensorManager(object):
