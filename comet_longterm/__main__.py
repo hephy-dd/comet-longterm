@@ -1,10 +1,10 @@
 import argparse
 import logging
+import os
 import signal
 import sys
 
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from . import __version__
 from .controller import Controller
@@ -14,20 +14,14 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-v", dest="verbose", action="store_true", help="show verbose information"
-    )
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    parser.add_argument("-v", dest="verbose", action="store_true", help="show verbose information")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args()
 
 
 def create_loggers(level):
     logger = logging.getLogger()
-    formatter = logging.Formatter(
-        "%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S"
-    )
+    formatter = logging.Formatter("%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -45,6 +39,7 @@ def main():
     app.setApplicationName("comet-longterm")
     app.setApplicationVersion(__version__)
     app.setApplicationDisplayName(f"Longterm It {__version__}")
+    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "assets", "icons", "longterm.ico")))
     app.setOrganizationName("HEPHY")
     app.setOrganizationDomain("hephy.at")
 

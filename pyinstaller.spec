@@ -9,8 +9,8 @@ version = comet_longterm.__version__
 filename = f"{name}-{version}.exe"
 
 # Paths
-comet_root = os.path.join(os.path.dirname(comet.__file__))
-comet_icon = os.path.join(comet_root, "assets", "icons", "comet.ico")
+comet_root = os.path.join(os.path.dirname(import comet_longterm.__file__))
+comet_icon = os.path.join(comet_root, "assets", "icons", "longterm.ico")
 
 # Pyinstaller entry point template
 entry_point = """
