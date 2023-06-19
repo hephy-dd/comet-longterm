@@ -26,7 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel flake8 pytest pyusb pyserial gpib-ctypes
         pip install pyinstaller==4.10.* pyinstaller-versionfile==2.0.*
-        pip install -r requirements.txt
+        pip install -e .
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
