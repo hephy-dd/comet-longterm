@@ -473,6 +473,10 @@ class MeasureProcess(Process, DeviceMixin):
         smu.resource.write(f'SENS:CURR:PROT:LEV {total_compliance:E}')
         smu.resource.query('*OPC?')
 
+        # Force output enable line (connected with chamber door)
+        smu.resource.write(':OUTP:ENAB ON')
+        smu.resource.query('*OPC?')
+
         # clear voltage
         self.setCurrentVoltage(0.0)
         smu.source.voltage.level = self.currentVoltage()
