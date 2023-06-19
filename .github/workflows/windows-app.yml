@@ -26,12 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel flake8 pytest pyusb pyserial gpib-ctypes
         pip install pyinstaller==4.10.* pyinstaller-versionfile==2.0.*
-        curl -LO https://github.com/hephy-dd/comet/archive/0.5.0.zip
-        unzip 0.5.0.zip
-        cd comet-0.5.0
-        echo "include comet/assets/icons/*.ico" > MANIFEST.in
-        pip install -e .
-        cd ..
+        pip install git+https://github.com/hephy-dd/comet.git@devel-0.5.x
         pip install -e .
     - name: Lint with flake8
       run: |
