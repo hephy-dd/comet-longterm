@@ -8,6 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from . import __version__
 from .controller import Controller
+from .view.mainwindow import MainWindow
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,8 @@ def main():
     level = logging.DEBUG if args.verbose else logging.INFO
     create_loggers(level)
 
+    logger.info("Longterm It version %s", __version__)
+
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("comet-longterm")
     app.setApplicationVersion(__version__)
@@ -45,13 +48,10 @@ def main():
 
     # Register interupt signal handler
     def signal_handler(signum, frame):
-        if signum == signal.SIGINT:
-            app.quit()
+        app.quit()
 
     signal.signal(signal.SIGINT, signal_handler)
-
-    # Initialize settings
-    QtCore.QSettings()
+    signal.signal(signal.SIGTERM, signal_handler)
 
     # Interrupt timer
     timer = QtCore.QTimer()
@@ -59,13 +59,22 @@ def main():
     timer.start(250)
 
     # Controller
-    controller = Controller()
+    window = MainWindow()
+    window.setProperty("contentsUrl", "https://github.com/hephy-dd/comet-longterm")
+    window.setProperty("aboutText",
+        f"""<h3>Longterm It</h3>
+        <p>Version {__version__}</p>
+        <p>Long term sensor It measurements in CTS climate chamber.</p>
+        <p>&copy; 2019-2023 hephy.at</p>""",
+    )
+    window.logWindow.addLogger(logging.getLogger())
+    window.logWindow.setLevel(level)
+    controller = Controller(window)
     controller.loadSettings()
-    controller.setLevel(level)
+    window.show()
 
-    logger.info("Longterm It version %s", __version__)
+    app.aboutToQuit.connect(controller.storeSettings)
     app.exec()
-    controller.storeSettings()
 
 
 if __name__ == "__main__":

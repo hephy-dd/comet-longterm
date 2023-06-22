@@ -1,7 +1,6 @@
 import os
 from pyinstaller_versionfile import create_versionfile
 
-import comet
 import comet_longterm
 
 name = "longterm-it"
@@ -9,8 +8,8 @@ version = comet_longterm.__version__
 filename = f"{name}-{version}.exe"
 
 # Paths
-comet_root = os.path.join(os.path.dirname(import comet_longterm.__file__))
-comet_icon = os.path.join(comet_root, "assets", "icons", "longterm.ico")
+root = os.path.join(os.path.dirname(comet_longterm.__file__))
+icon = os.path.join(root, "assets", "icons", "longterm.ico")
 
 # Pyinstaller entry point template
 entry_point = """
@@ -28,7 +27,7 @@ create_versionfile(
     company_name="HEPHY",
     file_description="Longterm sensor It measurements in climate chamber",
     internal_name="Longterm-It",
-    legal_copyright="Copyright 2019-2022 HEPHY. All rights reserved.",
+    legal_copyright="Copyright 2019-2023 HEPHY. All rights reserved.",
     original_filename=filename,
     product_name="Longterm-It",
 )
@@ -38,8 +37,8 @@ a = Analysis(
     pathex=[os.getcwd()],
     binaries=[],
     datas=[
-        (os.path.join(comet_root, "assets", "icons", "*.svg"), os.path.join("comet", "assets", "icons")),
-        (os.path.join(comet_root, "assets", "icons", "*.ico"), os.path.join("comet", "assets", "icons")),
+        (os.path.join(root, "assets", "icons", "*.svg"), os.path.join("comet_longterm", "assets", "icons")),
+        (os.path.join(root, "assets", "icons", "*.ico"), os.path.join("comet_longterm", "assets", "icons")),
     ],
     hiddenimports=[
         "pyvisa",
@@ -79,5 +78,5 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
-    icon=comet_icon,
+    icon=icon,
 )

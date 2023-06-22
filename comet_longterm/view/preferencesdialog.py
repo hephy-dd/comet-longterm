@@ -1,7 +1,6 @@
 from PyQt5 import QtCore, QtWidgets
 
-from comet.resource import ResourceMixin
-from comet.utils import escape_string, unescape_string
+from ..utils import escape_string, unescape_string
 
 
 class ResourcesTab(QtWidgets.QWidget):
@@ -196,10 +195,11 @@ class OperatorsTab(QtWidgets.QWidget):
         self.removeButton.setEnabled(item is not None)
 
 
-class PreferencesDialog(QtWidgets.QDialog, ResourceMixin):
+class PreferencesDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, resources, parent=None):
         super().__init__(parent)
+        self.resources = resources
         self.setWindowTitle(self.tr("Preferences"))
         self.resize(480, 320)
         self.tabWidget = QtWidgets.QTabWidget()

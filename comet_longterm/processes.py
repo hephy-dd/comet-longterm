@@ -25,7 +25,7 @@ __all__ = ["EnvironProcess", "MeasureProcess"]
 logger = logging.getLogger(__name__)
 
 
-class EnvironProcess(Process, ResourceMixin):
+class EnvironProcess(QtCore.QObject):
     """Environment monitoring process. Polls for temperature, humidity and
     climate chamber running state in intervals.
     """
@@ -34,7 +34,22 @@ class EnvironProcess(Process, ResourceMixin):
 
     timeout = 5.0
 
-    failedConnectionAttempts = 0  # HACK
+    failedConnectionAttempts = 0
+
+    failed = QtCore.pyqtSignal(Exception)
+    reading = QtCore.pyqtSignal(dict)
+
+    def __init__(self, resources, parent=None):
+        super().__init__(parent)
+        self.resources = resources
+        self.stopRequested = False
+        self.isEnabled = False
+
+    def requestAbort(self):
+        self.stopRequested = True
+
+    def setEnabled(self, enabled):
+        self.isEnabled = enabled
 
     def read(self, device):
         """Read environment data from device."""
@@ -51,35 +66,37 @@ class EnvironProcess(Process, ResourceMixin):
             else:
                 status = "OFF"
         program = device.program
-        return dict(
-            time=time.time(), temp=temp, humid=humid, status=status, program=program
-        )
+        return {
+            "time": time.time(),
+            "temp": temp,
+            "humid": humid,
+            "status": status,
+            "program": program,
+        }
 
-    def run(self):
-        while not self.stopping:
+    def __call__(self):
+        while not self.stopRequested:
             try:
-                # Open connection to instrument
-                with self.resources.get("cts") as res:
-                    cts = ITC(res)
-                    while not self.stopping:
-                        try:
+                if self.isEnabled:
+                    # Open connection to instrument
+                    with self.resources.get("cts") as res:
+                        cts = ITC(res)
+                        while not self.stopRequested and self.isEnabled:
                             reading = self.read(cts)
-                        except pyvisa.errors.Error as exc:
-                            logger.exception(exc)
-                            self.emit("failed", exc)
-                        else:
                             logger.info("CTS reading: %s", reading)
-                            self.emit("reading", reading)
-                        time.sleep(self.interval)
-                        self.failedConnectionAttempts = 0
+                            self.reading.emit(reading)
+                            self.failedConnectionAttempts = 0
+                            time.sleep(self.interval)
             except Exception as exc:
                 logger.exception(exc)
-                #self.emit("failed", exc)
+                if not self.failedConnectionAttempts:
+                    self.failed.emit(exc)
                 self.failedConnectionAttempts += 1
                 time.sleep(self.timeout)
+            else:
+                time.sleep(1)
 
-
-class MeasureProcess(Process, ResourceMixin):
+class MeasureProcess(Process):
     """Long term measurement process, consisting of five stages:
 
     - ramp down, reset and setup instruments
@@ -91,8 +108,9 @@ class MeasureProcess(Process, ResourceMixin):
     If any of the first four stages fails, a ramp down will be executed.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, resources):
+        super().__init__()
+        # self.resources = resources
         self.setUseShuntBox(True)
         self.setCurrentVoltage(0.0)
         self.setTemperature(float("nan"))

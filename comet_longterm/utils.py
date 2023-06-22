@@ -1,6 +1,29 @@
 import datetime
 
-__all__ = ["auto_unit", "make_iso"]
+__all__ = [
+    "escape_string",
+    "unescape_string",
+    "auto_unit",
+    "make_iso",
+]
+
+
+def escape_string(s):
+    """Return string with encoded escaped special characters.
+
+    >>> escape_string("\r\n")
+    '\\r\\n'
+    """
+    return s.encode('unicode-escape').decode()
+
+
+def unescape_string(s):
+    """Return string with decoded escaped special characters.
+
+    >>> unescape_string("\\r\\n")
+    '\r\n'
+    """
+    return bytes(s, encoding='ascii').decode('unicode-escape')
 
 
 def make_iso(dt=None):
