@@ -28,7 +28,7 @@ create_versionfile(
     company_name="HEPHY",
     file_description="Long term sensor It measurements in CTS climate chamber.",
     internal_name="Longterm-It",
-    legal_copyright="Copyright 2019-2023 HEPHY. This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see the 'LICENSE' file for details.",
+    legal_copyright="Copyright 2019-2023 HEPHY. This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see the LICENSE file for details.",
     original_filename=filename,
     product_name="Longterm-It",
 )
