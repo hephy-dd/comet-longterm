@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2023-07-06
+### Fixed
+- broken pyinstaller.spec for Windows.
+
 ## [0.11.1] - 2023-06-19
 ### Added
 - Output enable for 2410 SMU (#26).
@@ -77,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - ShuntBox PT100 channels.
 
-[Unreleased]: https://github.com/hephy-dd/comet-pqc/compare/0.11.1...HEAD
+[Unreleased]: https://github.com/hephy-dd/comet-pqc/compare/0.11.2...HEAD
+[0.11.2]: https://github.com/hephy-dd/comet-pqc/compare/0.11.1...0.11.2
 [0.11.1]: https://github.com/hephy-dd/comet-pqc/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/hephy-dd/comet-pqc/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/hephy-dd/comet-pqc/compare/0.9.0...0.10.0

@@ -1,96 +1,57 @@
 import os
 import comet
 import comet_longterm
+from pyinstaller_versionfile import create_versionfile
 
-# Application name
-name = 'comet-longterm'
-
-# Application organization
-organization = 'HEPHY'
-
-# Application version
 version = comet_longterm.__version__
+filename = f"comet-longterm-{version}.exe"
+console = False
 
-# Application license
-license = 'GPLv3'
+entry_point = "entry_point.pyw"
+version_info = "version_info.txt"
 
 # Paths
 comet_root = os.path.join(os.path.dirname(comet.__file__))
-comet_icon = os.path.join(comet_root, 'assets', 'icons', 'comet.ico')
+comet_icon = os.path.join(comet_root, "assets", "icons", "comet.ico")
 
-# Windows version info template
-version_info = """
-VSVersionInfo(
-    ffi=FixedFileInfo(
-        filevers=({version[0]}, {version[1]}, {version[2]}, 0),
-        prodvers=({version[0]}, {version[1]}, {version[2]}, 0),
-        mask=0x3f,
-        flags=0x0,
-        OS=0x4,
-        fileType=0x1,
-        subtype=0x0,
-        date=(0, 0)
-    ),
-    kids=[
-        StringFileInfo(
-            [
-            StringTable(
-                u'000004b0',
-                [StringStruct(u'CompanyName', u'{organization}'),
-                StringStruct(u'FileDescription', u'{name}'),
-                StringStruct(u'FileVersion', u'{version[0]}.{version[1]}.{version[2]}.0'),
-                StringStruct(u'InternalName', u'{name}'),
-                StringStruct(u'LegalCopyright', u'{license}'),
-                StringStruct(u'OriginalFilename', u'{name}.exe'),
-                StringStruct(u'ProductName', u'{name}'),
-                StringStruct(u'ProductVersion', u'{version[0]}.{version[1]}.{version[2]}.0'),
-                ])
-            ]),
-        VarFileInfo([VarStruct(u'Translation', [0, 1200])])
-    ]
-)
-"""
+# Create entry point
+def create_entrypoint(output_file):
+  with open(output_file, "wt") as fp:
+      fp.write("from comet_longterm.__main__ import main; main()")
 
-# Pyinstaller entry point template
-entry_point = """
-import sys
-from comet_longterm import main
-if __name__ == '__main__':
-    sys.exit(main.main())
-"""
-
-# Create pyinstaller entry point
-with open('entry_point.pyw', 'w') as f:
-    f.write(entry_point)
+create_entrypoint(output_file=entry_point)
 
 # Create windows version info
-with open('version_info.txt', 'w') as f:
-    f.write(version_info.format(
-        name=name,
-        organization=organization,
-        version=version.split('.'),
-        license=license
-    ))
+create_versionfile(
+    output_file=version_info,
+    version=f"{version}.0",
+    company_name="HEPHY",
+    file_description="Long term sensor It measurements in CTS climate chamber.",
+    internal_name="Longterm-It",
+    legal_copyright="Copyright 2019-2023 HEPHY. This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; see the LICENSE file for details.",
+    original_filename=filename,
+    product_name="Longterm-It",
+)
 
-a = Analysis(['entry_point.pyw'],
-    pathex=[
-      os.getcwd()
-    ],
+a = Analysis(
+    [entry_point],
+    pathex=[os.getcwd()],
     binaries=[],
     datas=[
-        (os.path.join(comet_root, 'widgets', '*.ui'), os.path.join('comet', 'widgets')),
-        (os.path.join(comet_root, 'assets', 'icons', '*.svg'), os.path.join('comet', 'assets', 'icons')),
-        (os.path.join(comet_root, 'assets', 'icons', '*.ico'), os.path.join('comet', 'assets', 'icons')),
-        (os.path.join('comet_longterm', '*.ui'), 'comet_longterm')
+        (os.path.join(comet_root, "widgets", "*.ui"), os.path.join("comet", "widgets")),
+        (os.path.join(comet_root, "assets", "icons", "*.svg"), os.path.join("comet", "assets", "icons")),
+        (os.path.join(comet_root, "assets", "icons", "*.ico"), os.path.join("comet", "assets", "icons")),
+        (os.path.join("comet_longterm", "*.ui"), "comet_longterm"),
     ],
     hiddenimports=[
-        'pyvisa-sim',
-        'pyvisa-py',
-        'PyQt5.sip',
-        'comet_longterm.controlswidget',
-        'comet_longterm.sensorswidget',
-        'comet_longterm.statuswidget',
-        'comet_longterm.calibrationdialog'
+        "pyvisa",
+        "pyvisa_py",
+        "pyserial",
+        "pyusb",
+        "comet_longterm.controlswidget",
+        "comet_longterm.sensorswidget",
+        "comet_longterm.statuswidget",
+        "comet_longterm.calibrationdialog",
     ],
     hookspath=[],
     runtime_hooks=[],
@@ -112,14 +73,14 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name=name,
-    version='version_info.txt',
+    name=filename,
+    version=version_info,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
+    upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=console,
     icon=comet_icon,
 )
