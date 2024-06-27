@@ -121,6 +121,10 @@ class ClimateHandler(socketserver.BaseRequestHandler):
                 self.send("a")
 
 
+class TCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="localhost")
@@ -130,7 +134,7 @@ def main():
     print("CTS simulation...")
     print("serving on port", args.port)
 
-    server = socketserver.ThreadingTCPServer((args.host, args.port), ClimateHandler)
+    server = TCPServer((args.host, args.port), ClimateHandler)
 
     try:
         server.serve_forever()

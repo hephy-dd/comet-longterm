@@ -65,7 +65,7 @@ def main():
         f"""<h3>Longterm It</h3>
         <p>Version {__version__}</p>
         <p>Long term sensor It measurements in CTS climate chamber.</p>
-        <p>&copy; 2019-2023 hephy.at</p>""",
+        <p>&copy; 2019-2024 hephy.at</p>""",
     )
     window.logWindow.addLogger(logging.getLogger())
     window.logWindow.setLevel(level)

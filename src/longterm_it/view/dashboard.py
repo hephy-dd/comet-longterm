@@ -3,7 +3,7 @@ from PyQt5 import QtCore, QtWidgets, QtChart
 from QCharted import ChartView
 
 from .controlswidget import ControlsWidget
-from .sensorswidget import SensorsWidget
+from .sensorswidget import SensorsWidget, SensorManager
 from .statuswidget import StatusWidget
 from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
 from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
@@ -13,7 +13,7 @@ __all__ = ["DashboardWidget"]
 
 class DashboardWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Longterm It")
 
@@ -120,7 +120,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.controlsWidget.operatorComboBox.setDuplicatesEnabled(False)
 
-    def createCharts(self):
+    def createCharts(self) -> None:
         self.ivChart = IVChart(self.sensors())
         self.ivChartView.setChart(self.ivChart)
         self.itChart = ItChart(self.sensors())
@@ -153,7 +153,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.itChart.axisX.rangeChanged.connect(itRangeChanged)
 
-    def loadSettings(self):
+    def loadSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         state = settings.value("splitter/state", QtCore.QByteArray(), QtCore.QByteArray)
@@ -162,28 +162,28 @@ class DashboardWidget(QtWidgets.QWidget):
         if not state.isEmpty():
             self.horizontalSplitter.restoreState(state)
 
-    def storeSettings(self):
+    def storeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         settings.setValue("splitter/state", self.horizontalSplitter.saveState())
         settings.endGroup()
 
-    def sensors(self):
+    def sensors(self) -> SensorManager:
         """Returns sensors manager."""
         return self.sensorsWidget.sensors
 
     @QtCore.pyqtSlot()
-    def onIvStarted(self):
+    def onIvStarted(self) -> None:
         self.topTabWidget.setCurrentIndex(0)
         self.bottomTabWidget.setCurrentIndex(1)  # switch to IV temperature
 
     @QtCore.pyqtSlot()
-    def onItStarted(self):
+    def onItStarted(self) -> None:
         self.topTabWidget.setCurrentIndex(1)
         self.bottomTabWidget.setCurrentIndex(2)  # switch to It temperature
 
-    @QtCore.pyqtSlot(object)
-    def onMeasIvReading(self, reading):
+    @QtCore.pyqtSlot(dict)
+    def onMeasIvReading(self, reading: dict) -> None:
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get("channels")[sensor.index].get("I")
@@ -194,8 +194,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.ivSourceChart.append(reading)
         self.ivChart.append(reading)
 
-    @QtCore.pyqtSlot(object)
-    def onMeasItReading(self, reading):
+    @QtCore.pyqtSlot(dict)
+    def onMeasItReading(self, reading: dict) -> None:
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get("channels")[sensor.index].get("I")
@@ -206,13 +206,13 @@ class DashboardWidget(QtWidgets.QWidget):
         self.itSourceChart.append(reading)
         self.itChart.append(reading)
 
-    @QtCore.pyqtSlot(object)
-    def onSmuReading(self, reading):
+    @QtCore.pyqtSlot(dict)
+    def onSmuReading(self, reading: dict) -> None:
         self.statusWidget.setVoltage(reading.get("U"))
         self.statusWidget.setCurrent(reading.get("I"))
 
     @QtCore.pyqtSlot()
-    def onHalted(self):
+    def onHalted(self) -> None:
         self.controlsWidget.onHalted()
         self.statusWidget.setCurrent(None)
         self.statusWidget.setVoltage(None)

@@ -135,7 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.messageLabel.hide()
 
     @QtCore.pyqtSlot(int, int)
-    def showProgress(self, value, maximum):
+    def showProgress(self, value: int, maximum: int) -> None:
         self.progressBar.setRange(0, maximum)
         self.progressBar.setValue(value)
         self.progressBar.show()
@@ -225,9 +225,9 @@ class MainWindow(QtWidgets.QMainWindow):
             dialog.setLabelText("Stopping active threads...")
 
             def stop_processes():
-                self.meas_process.stop()
-                self.environ_process.requestAbort()
-                self.meas_process.join()
+                self.meas_worker.abort()
+                self.environ_worker.abort()
+                self.meas_thread.join()
                 self.environ_thread.join()
                 dialog.close()
 

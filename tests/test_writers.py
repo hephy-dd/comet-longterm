@@ -1,8 +1,8 @@
 import csv
 from io import StringIO
 
-from comet_longterm.sensor import Sensor
-from comet_longterm.writers import Writer
+from longterm_it.sensor import Sensor
+from longterm_it.writers import Writer
 
 
 def test_writer():

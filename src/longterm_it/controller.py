@@ -10,8 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 from comet import Resource
 
 from . import __version__
-from .processes import EnvironProcess
-from .processes import MeasureProcess
+from .processes import EnvironWorker, MeasureWorker
 
 __all__ = ["Controller"]
 
@@ -70,25 +69,25 @@ class Controller:
     def createProcesses(self):
         widget = self.view.centralWidget()
         # Environ process
-        self.view.environ_process = EnvironProcess(self.view.resources)
-        self.view.environ_process.reading.connect(self.onEnvironReading)
-        self.view.environ_process.failed.connect(self.view.onShowException)
+        self.view.environ_worker = EnvironWorker(self.view.resources)
+        self.view.environ_worker.reading.connect(self.onEnvironReading)
+        self.view.environ_worker.failed.connect(self.view.onShowException)
         self.onEnableEnviron(widget.controlsWidget.isEnvironEnabled())
         self.onEnableShuntBox(widget.controlsWidget.isShuntBoxEnabled())
-        self.view.environ_thread = threading.Thread(target=self.view.environ_process)
+        self.view.environ_thread = threading.Thread(target=self.view.environ_worker)
         self.view.environ_thread.start()
 
         # Measurement process
-        meas = MeasureProcess(self.view.resources)
+        meas = MeasureWorker(self.view.resources)
 
-        meas.ivStarted = widget.onIvStarted
-        meas.itStarted = widget.onItStarted
-        meas.ivReading = widget.onMeasIvReading
-        meas.itReading = widget.onMeasItReading
-        meas.smuReading = widget.onSmuReading
-        meas.finished = widget.onHalted
+        meas.ivStarted.connect(widget.onIvStarted)
+        meas.itStarted.connect(widget.onItStarted)
+        meas.ivReading.connect(widget.onMeasIvReading)
+        meas.itReading.connect(widget.onMeasItReading)
+        meas.smuReading.connect(widget.onSmuReading)
+        meas.finished.connect(widget.onHalted)
 
-        widget.controlsWidget.stopRequest.connect(meas.stop)
+        widget.controlsWidget.stopRequest.connect(meas.abort)
         widget.controlsWidget.useShuntBoxChanged.connect(meas.setUseShuntBox)
         widget.controlsWidget.ivEndVoltageChanged.connect(meas.setIvEndVoltage)
         widget.controlsWidget.ivStepChanged.connect(meas.setIvStep)
@@ -124,15 +123,8 @@ class Controller:
             lambda count: meas.params.update({"dmm.filter.count": count})
         )
 
-        self.view.meas_process = meas
-
-    def connectProcess(self, process):
-        """Connect process signals to main window slots."""
-        process.failed = self.view.onShowException
-        process.messageChanged = self.view.showMessage
-        process.messageCleared = self.view.clearMessage
-        process.progressChanged = self.view.showProgress
-        process.progressHidden = self.view.hideProgress
+        self.view.meas_worker = meas
+        self.view.meas_thread = threading.Thread(target=self.view.meas_worker)
 
     def onEnableEnviron(self, enabled):
         """Enable environment process."""
@@ -145,8 +137,8 @@ class Controller:
         widget.statusWidget.setHumidity(float("nan"))
         widget.statusWidget.setStatus("N/A")
         widget.sensorsWidget.dataChanged()  # HACK keep updated
-        # Toggle environ process
-        self.view.environ_process.setEnabled(enabled)
+        # Toggle environ worker
+        self.view.environ_worker.setEnabled(enabled)
 
     def onEnableShuntBox(self, enabled):
         """Enable shunt box."""
@@ -160,7 +152,7 @@ class Controller:
         widget.statusWidget.setStatus(
             "{} ({})".format(reading.get("status"), reading.get("program"))
         )
-        meas = self.view.meas_process
+        meas = self.view.meas_worker
         meas.setTemperature(reading.get("temp"))
         meas.setHumidity(reading.get("humid"))
         meas.setStatus(reading.get("status"))
@@ -195,7 +187,7 @@ class Controller:
         if not os.path.exists(path):
             os.makedirs(path)
 
-        meas = self.view.meas_process
+        meas = self.view.meas_worker
         meas.setSensors(widget.sensors())
         meas.setUseShuntBox(widget.controlsWidget.isShuntBoxEnabled())
         meas.setIvEndVoltage(widget.controlsWidget.ivEndVoltage())
@@ -220,7 +212,8 @@ class Controller:
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget.operator())
 
-        meas.start()
+        self.view.meas_thread = threading.Thread(target=self.view.meas_worker)
+        self.view.meas_thread.start()
 
     def onStopRequest(self):
         self.view.importCalibAction.setEnabled(False)

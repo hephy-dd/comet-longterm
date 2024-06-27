@@ -1,6 +1,7 @@
 import logging
 import threading
 import html
+from datetime import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -84,8 +85,8 @@ class LogWidget(QtWidgets.QTextEdit):
 
     @classmethod
     def formatTime(cls, seconds):
-        dt = QtCore.QDateTime.fromMSecsSinceEpoch(seconds * 1000)
-        return dt.toString("yyyy-MM-dd hh:mm:ss")
+        dt = datetime.fromtimestamp(seconds)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @classmethod
     def formatRecord(cls, record):

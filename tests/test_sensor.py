@@ -1,4 +1,4 @@
-from comet_longterm.sensor import Sensor
+from longterm_it.sensor import Sensor
 
 
 def test_sensor():

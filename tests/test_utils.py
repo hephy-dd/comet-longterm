@@ -1,6 +1,6 @@
 import re
 
-from comet_longterm import utils
+from longterm_it import utils
 
 
 def test_escape_string():
