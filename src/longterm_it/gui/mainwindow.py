@@ -227,8 +227,10 @@ class MainWindow(QtWidgets.QMainWindow):
             def stop_processes():
                 self.meas_worker.abort()
                 self.environ_worker.abort()
-                self.meas_thread.join()
-                self.environ_thread.join()
+                if self.meas_thread.is_alive():
+                    self.meas_thread.join()
+                if self.environ_thread.is_alive():
+                    self.environ_thread.join()
                 dialog.close()
 
             QtCore.QTimer.singleShot(250, stop_processes)

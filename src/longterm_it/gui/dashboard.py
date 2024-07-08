@@ -108,8 +108,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.horizontalSplitter.addWidget(self.rightVerticalWidget)
         self.horizontalSplitter.setSizes([400, 800])
 
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.horizontalSplitter)
+        gridLayout = QtWidgets.QVBoxLayout(self)
+        gridLayout.addWidget(self.horizontalSplitter)
 
         self.createCharts()
 
@@ -186,8 +186,8 @@ class DashboardWidget(QtWidgets.QWidget):
     def onMeasIvReading(self, reading: dict) -> None:
         for sensor in self.sensors():
             if sensor.enabled:
-                sensor.current = reading.get("channels")[sensor.index].get("I")
-                sensor.temperature = reading.get("channels")[sensor.index].get("temp")
+                sensor.current = reading.get("channels", {})[sensor.index].get("I")
+                sensor.temperature = reading.get("channels", {})[sensor.index].get("temp")
         self.sensorsWidget.dataChanged()  # HACK keep updated
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
@@ -198,8 +198,8 @@ class DashboardWidget(QtWidgets.QWidget):
     def onMeasItReading(self, reading: dict) -> None:
         for sensor in self.sensors():
             if sensor.enabled:
-                sensor.current = reading.get("channels")[sensor.index].get("I")
-                sensor.temperature = reading.get("channels")[sensor.index].get("temp")
+                sensor.current = reading.get("channels", {})[sensor.index].get("I")
+                sensor.temperature = reading.get("channels", {})[sensor.index].get("temp")
         self.sensorsWidget.dataChanged()  # HACK keep updated
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)

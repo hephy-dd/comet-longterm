@@ -17,4 +17,5 @@ class Sensor:
         self.hv: Optional[bool] = None  # valid: None, True, False
         self.current: Optional[float] = None
         self.temperature: Optional[float] = None
-        self.resistivity: Optional[float] = None
+        self.temperature_offset: float = 0.0
+        self.resistivity: float = 0.0

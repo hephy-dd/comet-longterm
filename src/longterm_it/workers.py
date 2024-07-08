@@ -1,10 +1,12 @@
 import logging
 import csv
 import contextlib
-import time
+import math
 import os
-import traceback
 import threading
+import time
+import traceback
+from typing import Any
 
 import pyvisa.errors
 
@@ -42,7 +44,7 @@ class EnvironWorker(QtCore.QObject):
     failed = QtCore.pyqtSignal(Exception)
     reading = QtCore.pyqtSignal(dict)
 
-    def __init__(self, resources, parent=None):
+    def __init__(self, resources, parent=None) -> None:
         super().__init__(parent)
         self.resources = resources
         self.abort_requested = threading.Event()
@@ -54,7 +56,7 @@ class EnvironWorker(QtCore.QObject):
     def setEnabled(self, enabled: bool) -> None:
         self.isEnabled = enabled
 
-    def read(self, device) -> None:
+    def read(self, device) -> dict:
         """Read environment data from device."""
         temp = device.analog_channel[1][0]
         humid = device.analog_channel[2][0]
@@ -113,7 +115,6 @@ class MeasureWorker(QtCore.QObject):
     """
 
     failed = QtCore.pyqtSignal(Exception)
-
     finished = QtCore.pyqtSignal()
 
     messageChanged = QtCore.pyqtSignal(str)
@@ -127,11 +128,11 @@ class MeasureWorker(QtCore.QObject):
     itReading = QtCore.pyqtSignal(object)
     smuReading = QtCore.pyqtSignal(object)
 
-    def __init__(self, resources, parent=None):
+    def __init__(self, resources, parent=None) -> None:
         super().__init__(parent)
         self.abort_requested = threading.Event()
         self.resources = resources
-        self.params = {}
+        self.params: dict[str, Any] = {}
 
         self.setUseShuntBox(True)
         self.setCurrentVoltage(0.0)
@@ -283,7 +284,7 @@ class MeasureWorker(QtCore.QObject):
     def hideProgress(self):
         self.progressHidden.emit()
 
-    def reset(self, smu, multi):
+    def reset(self, smu, multi) -> None:
         # Reset SMU
         logger.info("Reset SMU...")
         smu.resource.write("*RST")
@@ -307,7 +308,7 @@ class MeasureWorker(QtCore.QObject):
         if code:
             raise RuntimeError(f"{multi.resource.resource_name}: {code}, {message}")
 
-    def scan(self, smu, multi):
+    def scan(self, smu, multi) -> dict:
         """Scan selected channels and return dictionary of readings.
 
         time:  timestamp
@@ -318,7 +319,7 @@ class MeasureWorker(QtCore.QObject):
             I:  current
             U:  voltage
             R:  calibrated resistor value
-            temp:  temperature (PT100)
+            temp:  temperature (PT100) incl. offset
         """
         # Check SMU compliance tripped?
         compliance_tripped = int(smu.resource.query(":SENS:CURR:PROT:TRIP?"))
@@ -379,7 +380,7 @@ class MeasureWorker(QtCore.QObject):
                     "I": I,
                     "U": U,
                     "R": R,
-                    "temp": temp,
+                    "temp": temp + sensor.temperature_offset,
                 }
 
         if len(results):
@@ -393,7 +394,7 @@ class MeasureWorker(QtCore.QObject):
             "shuntbox": shuntbox,
         }
 
-    def setup(self, smu, multi):
+    def setup(self, smu, multi) -> None:
         """Setup SMU and Multimeter instruments."""
 
         self.showMessage("Clear buffers")
@@ -446,7 +447,7 @@ class MeasureWorker(QtCore.QObject):
         if not channels:
             raise RuntimeError("No sensor channels selected!")
 
-        count = len(channels)
+        sample_count = len(channels)
 
         # ROUTE:SCAN (@101,102,103...)
         logger.info("channels: %s", ",".join(channels))
@@ -456,8 +457,8 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.write(":TRIG:COUN 1")
         multi.resource.query("*OPC?")
 
-        logger.info("sample count: %d", count)
-        multi.resource.write(f":SAMP:COUN {count}")
+        logger.info("sample count: %d", sample_count)
+        multi.resource.write(f":SAMP:COUN {sample_count}")
         multi.resource.query("*OPC?")
         # start scan when triggered
         multi.resource.write(":ROUT:SCAN:TSO IMM")
@@ -467,40 +468,38 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.query("*OPC?")
 
         # Filter
-        logger.info("dmm.filter.enable: %s", self.params.get("dmm.filter.enable"))
-        enable = self.params.get("dmm.filter.enable")
-        multi.resource.write(f":SENS:VOLT:AVER:STAT {enable:d}")
+        dmm_filter_enable = self.params.get("dmm.filter.enable", False)
+        logger.info("dmm.filter.enable: %s", dmm_filter_enable)
+        multi.resource.write(f":SENS:VOLT:AVER:STAT {dmm_filter_enable:d}")
         multi.resource.query("*OPC?")
 
-        if int(multi.resource.query(":SENS:VOLT:AVER:STAT?").strip()) != enable:
-            raise RuntimeError("failed to configure dmm.filter.enabled")
+        if int(multi.resource.query(":SENS:VOLT:AVER:STAT?").strip()) != dmm_filter_enable:
+            raise RuntimeError("failed to configure dmm.filter.enable")
 
-        logger.info("dmm.filter.type: %s", self.params.get("dmm.filter.type"))
-        tcontrol = {"repeat": "REP", "moving": "MOV"}[
-            self.params.get("dmm.filter.type")
-        ]
+        dmm_filter_type: str = self.params.get("dmm.filter.type", "repeat")
+        logger.info("dmm.filter.type: %s", dmm_filter_type)
+        tcontrol = {"repeat": "REP", "moving": "MOV"}[dmm_filter_type]
         multi.resource.write(f":SENS:VOLT:AVER:TCON {tcontrol}")
         multi.resource.query("*OPC?")
 
         if multi.resource.query(":SENS:VOLT:AVER:TCON?").strip() != tcontrol:
             raise RuntimeError("failed to configure dmm.filter.type")
 
-        logger.info("dmm.filter.count: %s", self.params.get("dmm.filter.count"))
-        count = self.params.get("dmm.filter.count")
-        multi.resource.write(f":SENS:VOLT:AVER:COUN {count:d}")
+        dmm_filter_count = self.params.get("dmm.filter.count", 10)
+        logger.info("dmm.filter.count: %s", dmm_filter_count)
+        multi.resource.write(f":SENS:VOLT:AVER:COUN {dmm_filter_count:d}")
         multi.resource.query("*OPC?")
 
-        if int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip()) != count:
+        if int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip()) != dmm_filter_count:
             raise RuntimeError("failed to configure dmm.filter.count")
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
 
-        logger.info("smu.route.terminals: %s", self.params.get("smu.route.terminals"))
-        terminals = {"front": "FRON", "rear": "REAR"}[
-            self.params.get("smu.route.terminals")
-        ]
-        smu.resource.write(f":ROUT:TERM {terminals}")
+        dmm_route_terminal = self.params.get("smu.route.terminals", "rear")
+        logger.info("smu.route.terminal: %s", dmm_route_terminal)
+        terminal = {"front": "FRON", "rear": "REAR"}[dmm_route_terminal]
+        smu.resource.write(f":ROUT:TERM {terminal}")
         smu.resource.query("*OPC?")
 
         smu.resource.write(":SOUR:FUNC VOLT")
@@ -519,21 +518,20 @@ class MeasureWorker(QtCore.QObject):
         smu.resource.query("*OPC?")
 
         # Filter
-        logger.info("smu.filter.enable: %s", self.params.get("smu.filter.enable"))
-        enable = self.params.get("smu.filter.enable")
-        smu.resource.write(f":SENS:AVER:STAT {enable:d}")
+        smu_filter_enable = self.params.get("smu.filter.enable", False)
+        logger.info("smu.filter.enable: %s", smu_filter_enable)
+        smu.resource.write(f":SENS:AVER:STAT {smu_filter_enable:d}")
         smu.resource.query("*OPC?")
 
-        logger.info("smu.filter.type: %s", self.params.get("smu.filter.type"))
-        tcontrol = {"repeat": "REP", "moving": "MOV"}[
-            self.params.get("smu.filter.type")
-        ]
+        smu_filter_type = self.params.get("smu.filter.type", "repeat")
+        logger.info("smu.filter.type: %s", smu_filter_type)
+        tcontrol = {"repeat": "REP", "moving": "MOV"}[smu_filter_type]
         smu.resource.write(f":SENS:AVER:TCON {tcontrol}")
         smu.resource.query("*OPC?")
 
-        logger.info("smu.filter.count: %s", self.params.get("smu.filter.count"))
-        count = self.params.get("smu.filter.count")
-        smu.resource.write(f":SENS:AVER:COUN {count:d}")
+        smu_filter_count = self.params.get("smu.filter.count", 10)
+        logger.info("smu.filter.count: %s", smu_filter_count)
+        smu.resource.write(f":SENS:AVER:COUN {smu_filter_count:d}")
         smu.resource.query("*OPC?")
 
         # Set SMU complicance
@@ -561,7 +559,7 @@ class MeasureWorker(QtCore.QObject):
         self.showProgress(3, 3)
         self.showMessage("Done")
 
-    def rampUp(self, smu, multi):
+    def rampUp(self, smu, multi) -> bool:
         """Ramp up SMU voltage to end voltage."""
         self.showMessage("Ramping up")
         self.showProgress(self.currentVoltage(), self.ivEndVoltage())
@@ -603,10 +601,10 @@ class MeasureWorker(QtCore.QObject):
                         dt = time.time() - t0
                         writers[sensor.index].write_row(
                             timestamp=dt,
-                            voltage=reading.get("U"),
-                            current=reading.get("channels")[sensor.index].get("I"),
-                            smu_current=reading.get("I"),
-                            pt100=reading.get("channels")[sensor.index].get("temp"),
+                            voltage=reading.get("U", math.nan),
+                            current=reading.get("channels", {})[sensor.index].get("I", math.nan),
+                            smu_current=reading.get("I", math.nan),
+                            pt100=reading.get("channels", {})[sensor.index].get("temp", math.nan),
                             cts_temperature=self.temperature(),
                             cts_humidity=self.humidity(),
                             cts_status=self.status(),
@@ -617,7 +615,7 @@ class MeasureWorker(QtCore.QObject):
         self.showMessage("Done")
         return True
 
-    def rampBias(self, smu, multi):
+    def rampBias(self, smu, multi) -> None:
         """Ramp down SMU voltage to bias voltage."""
         startVoltage = self.currentVoltage() - self.biasVoltage()
         deltaVoltage = startVoltage - self.currentVoltage()
@@ -642,7 +640,7 @@ class MeasureWorker(QtCore.QObject):
             self.smuReading.emit(dict(U=self.currentVoltage(), I=totalCurrent))
         self.showMessage("Done")
 
-    def longterm(self, smu, multi):
+    def longterm(self, smu, multi) -> None:
         """Run long term measurement."""
         self.showMessage("Measuring...")
         self.itStarted.emit()
@@ -682,10 +680,10 @@ class MeasureWorker(QtCore.QObject):
                         dt = time.time() - t0
                         writers[sensor.index].write_row(
                             timestamp=dt,
-                            voltage=reading.get("U"),
-                            current=reading.get("channels")[sensor.index].get("I"),
-                            smu_current=reading.get("I"),
-                            pt100=reading.get("channels")[sensor.index].get("temp"),
+                            voltage=reading.get("U", math.nan),
+                            current=reading.get("channels", {})[sensor.index].get("I", math.nan),
+                            smu_current=reading.get("I", math.nan),
+                            pt100=reading.get("channels", {})[sensor.index].get("temp", math.nan),
                             cts_temperature=self.temperature(),
                             cts_humidity=self.humidity(),
                             cts_status=self.status(),
@@ -704,7 +702,7 @@ class MeasureWorker(QtCore.QObject):
         self.showProgress(1, 1)
         self.showMessage("Done")
 
-    def rampDown(self, smu, multi):
+    def rampDown(self, smu, multi) -> None:
         """Ramp down SMU voltage to zero."""
         minimumStep = 5.0  # quick ramp down minimum step
         zeroVoltage = 0.0
@@ -738,7 +736,7 @@ class MeasureWorker(QtCore.QObject):
 
         self.showMessage("Done")
 
-    def __call__(self):
+    def __call__(self) -> None:
         try:
             # Open connection to instruments
             with contextlib.ExitStack() as stack:

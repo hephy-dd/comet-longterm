@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..sensor import Sensor
 from ..utils import auto_unit
 
-Colors = [
+Colors: list = [
     "#2a7fff",
     "#5fd3bc",
     "#ffd42a",
@@ -20,7 +20,7 @@ Colors = [
 ]
 """List of distinct colors used for plots."""
 
-CalibratedResistors = [
+CalibratedResistors: list = [
     470160,
     471085,
     469315,
@@ -34,7 +34,7 @@ CalibratedResistors = [
 ]
 """List of default calibrated resistors in Ohm."""
 
-SensorCount = 10
+SensorCount: int = 10
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,7 @@ class SensorsWidget(QtWidgets.QWidget):
         self.tableView.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.AdjustToContents
         )
+        self.tableView.doubleClicked.connect(self.editTableItem)
 
         layout = QtWidgets.QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -117,6 +118,26 @@ class SensorsWidget(QtWidgets.QWidget):
             self.model.createIndex(len(self.sensors), 4),
         )
 
+    def editTableItem(self, index: QtCore.QModelIndex) -> None:
+        if index.isValid():
+            try:
+                sensor = self.sensors.sensors[index.row()]
+                if index.column() == SensorsModel.Column.TemperatureOffset:
+                    value, ok = QtWidgets.QInputDialog.getDouble(self,
+                        "Edit Sample",
+                        "Temperature Offset (°C)",
+                        sensor.temperature_offset,
+                        -256.0,
+                        +256.0,
+                        2,
+                    )
+                    if ok:
+                        sensor.temperature_offset = value
+                        self.dataChanged()  # HACK keep updated
+                        self.sensors.storeSettings()
+            except Exception as exc:
+                logger.exception(exc)
+
 
 class SensorsModel(QtCore.QAbstractTableModel):
 
@@ -126,6 +147,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "HV",
         "Current",
         "Temp.",
+        "Temp. Off.",
         "Calib.",
     )
 
@@ -135,7 +157,8 @@ class SensorsModel(QtCore.QAbstractTableModel):
         HV = 2
         Current = 3
         Temperature = 4
-        Resistivity = 5
+        TemperatureOffset = 5
+        Resistivity = 6
 
     def __init__(self, sensors, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -179,9 +202,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
                     if not sensor.temperature is None:
-                        return "{} °C".format(sensor.temperature)
+                        return "{:.2f} °C".format(sensor.temperature)
+            elif index.column() == self.Column.TemperatureOffset:
+                return "{:+.2f} °C".format(sensor.temperature_offset)
             elif index.column() == self.Column.Resistivity:
-                return "{} Ohm".format(sensor.resistivity)
+                return "{:d} Ohm".format(sensor.resistivity)
 
         elif role == QtCore.Qt.DecorationRole:
             if index.column() == self.Column.Name:
@@ -259,7 +284,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         return flags
 
 
-class SensorManager(object):
+class SensorManager:
 
     def __init__(self, count):
         self.sensors = []
@@ -271,25 +296,29 @@ class SensorManager(object):
         self.loadSettings()
         self.setEditable(True)
 
-    def loadSettings(self):
+    def loadSettings(self) -> None:
         settings = QtCore.QSettings()
         data = settings.value("sensors", {})
         for i, sensor in enumerate(self.sensors):
             if sensor.index in data:
-                sensor.enabled = data.get(sensor.index).get("enabled", False)
-                sensor.name = data.get(sensor.index).get(
+                sensor.enabled = data.get(sensor.index, {}).get("enabled", False)
+                sensor.name = data.get(sensor.index, {}).get(
                     "name", "Unnamed{}".format(sensor.index)
                 )
+                sensor.temperature_offset = float(
+                    data.get(sensor.index, {}).get("temperature_offset", 0)
+                )
                 sensor.resistivity = int(
-                    data.get(sensor.index).get("resistivity", CalibratedResistors[i])
+                    data.get(sensor.index, {}).get("resistivity", CalibratedResistors[i])
                 )
 
-    def storeSettings(self):
+    def storeSettings(self) -> None:
         data = {}
         for sensor in self.sensors:
             data[sensor.index] = {}
             data[sensor.index]["enabled"] = bool(sensor.enabled)
             data[sensor.index]["name"] = str(sensor.name)
+            data[sensor.index]["temperature_offset"] = float(sensor.temperature_offset)
             data[sensor.index]["resistivity"] = int(sensor.resistivity)
         settings = QtCore.QSettings()
         settings.setValue("sensors", data)

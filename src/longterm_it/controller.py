@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 from comet import Resource
 
 from . import __version__
-from .processes import EnvironWorker, MeasureWorker
+from .workers import EnvironWorker, MeasureWorker
 
 __all__ = ["Controller"]
 
