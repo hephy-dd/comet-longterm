@@ -152,6 +152,8 @@ class MeasureWorker(QtCore.QObject):
             "dmm.filter.enable": False,
             "dmm.fitler.type": "repeat",
             "dmm.filter.count": 0,
+            "dmm.channels.slot": 1,
+            "dmm.channels.offset": 0,
         })
 
     def abort(self) -> None:
@@ -426,7 +428,18 @@ class MeasureWorker(QtCore.QObject):
 
         self.showMessage("Setup multimeter")
         self.showProgress(1, 3)
-        multi.resource.write(':FUNC "VOLT:DC", (@101:110)')
+
+        n_channels = len(self.sensors())
+
+        dmm_channels_slot = self.params.get("dmm.channels.slot", 1)
+        logger.info("dmm.channels.slot: %s", dmm_channels_slot)
+
+        dmm_channels_offset = self.params.get("dmm.channels.offset", 0)
+        logger.info("dmm.channels.offset: %s", dmm_channels_offset)
+
+        offset = (dmm_channels_slot * 100) + dmm_channels_offset
+
+        multi.resource.write(f':FUNC "VOLT:DC", (@{offset+1}:{offset+1+n_channels})')
         multi.resource.query("*OPC?")
         # delete instrument buffer
         multi.resource.write(":TRACE:CLEAR")
@@ -440,7 +453,6 @@ class MeasureWorker(QtCore.QObject):
 
         # set channels to scan (up to max 10)
         channels = []
-        offset = 100
         for sensor in self.sensors():
             if sensor.enabled:
                 channels.append(format(offset + sensor.index))

@@ -122,6 +122,12 @@ class Controller:
         widget.controlsWidget.dmmWidget.filterCountChanged.connect(
             lambda count: meas.params.update({"dmm.filter.count": count})
         )
+        widget.controlsWidget.dmmWidget.channelsSlotChanged.connect(
+            lambda slot: meas.params.update({"dmm.channels.slot": slot})
+        )
+        widget.controlsWidget.dmmWidget.channelsOffsetChanged.connect(
+            lambda offset: meas.params.update({"dmm.channels.offset": offset})
+        )
 
         self.view.meas_worker = meas
         self.view.meas_thread = threading.Thread(target=self.view.meas_worker)
@@ -208,6 +214,8 @@ class Controller:
             "dmm.filter.enable": widget.controlsWidget.dmmWidget.filterEnable(),
             "dmm.filter.type": widget.controlsWidget.dmmWidget.filterType(),
             "dmm.filter.count": widget.controlsWidget.dmmWidget.filterCount(),
+            "dmm.channels.slot": widget.controlsWidget.dmmWidget.channelsSlot(),
+            "dmm.channels.offset": widget.controlsWidget.dmmWidget.channelsOffset(),
         })
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget.operator())

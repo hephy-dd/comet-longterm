@@ -482,6 +482,8 @@ class ControlsWidget(QtWidgets.QWidget):
             settings.value("dmm/filter/type", "repeat", type=str)
         )
         self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
+        self.dmmWidget.setChannelsSlot(settings.value("dmm/channels/slot", 1, type=int))
+        self.dmmWidget.setChannelsOffset(settings.value("dmm/channels/offset", 0, type=int))
 
     def storeSettings(self):
         settings = QtCore.QSettings()
@@ -502,6 +504,8 @@ class ControlsWidget(QtWidgets.QWidget):
         settings.setValue("dmm/filter/enable", self.dmmWidget.filterEnable())
         settings.setValue("dmm/filter/type", self.dmmWidget.filterType())
         settings.setValue("dmm/filter/count", self.dmmWidget.filterCount())
+        settings.setValue("dmm/channels/slot", self.dmmWidget.channelsSlot())
+        settings.setValue("dmm/channels/offset", self.dmmWidget.channelsOffset())
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -520,6 +524,8 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.filterEnableComboBox.setEnabled(False)
         self.dmmWidget.filterTypeComboBox.setEnabled(False)
         self.dmmWidget.filterCountSpinBox.setEnabled(False)
+        self.dmmWidget.slotComboBox.setEnabled(False)
+        self.dmmWidget.offsetSpinBox.setEnabled(False)
         self.operatorGroupBox.setEnabled(False)
         self.pathGroupBox.setEnabled(False)
         self.started.emit()
@@ -547,6 +553,8 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.filterEnableComboBox.setEnabled(True)
         self.dmmWidget.filterTypeComboBox.setEnabled(True)
         self.dmmWidget.filterCountSpinBox.setEnabled(True)
+        self.dmmWidget.slotComboBox.setEnabled(True)
+        self.dmmWidget.offsetSpinBox.setEnabled(True)
         self.operatorGroupBox.setEnabled(True)
         self.pathGroupBox.setEnabled(True)
         self.halted.emit()
@@ -681,6 +689,8 @@ class DMMWidget(QtWidgets.QWidget):
     filterEnableChanged = QtCore.pyqtSignal(bool)
     filterTypeChanged = QtCore.pyqtSignal(str)
     filterCountChanged = QtCore.pyqtSignal(int)
+    channelsSlotChanged = QtCore.pyqtSignal(int)
+    channelsOffsetChanged = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -707,34 +717,64 @@ class DMMWidget(QtWidgets.QWidget):
         self.filterCountSpinBox.setMaximum(100)
         self.filterCountSpinBox.setValue(10)
 
-        self.filterGroupBox = QtWidgets.QGroupBox()
+        self.filterGroupBox = QtWidgets.QGroupBox(self)
         self.filterGroupBox.setTitle("Filter")
-        self.filterGroupBox.setMinimumWidth(140)
+        # self.filterGroupBox.setMinimumWidth(140)
 
-        layout = QtWidgets.QVBoxLayout(self.filterGroupBox)
-        layout.addWidget(self.filterEnableLabel)
-        layout.addWidget(self.filterEnableComboBox)
-        layout.addWidget(self.filterTypeLabel)
-        layout.addWidget(self.filterTypeComboBox)
-        layout.addWidget(self.filterCountLabel)
-        layout.addWidget(self.filterCountSpinBox)
-        layout.addStretch()
+        filterGroupBoxLayout = QtWidgets.QVBoxLayout(self.filterGroupBox)
+        filterGroupBoxLayout.addWidget(self.filterEnableLabel)
+        filterGroupBoxLayout.addWidget(self.filterEnableComboBox)
+        filterGroupBoxLayout.addWidget(self.filterTypeLabel)
+        filterGroupBoxLayout.addWidget(self.filterTypeComboBox)
+        filterGroupBoxLayout.addWidget(self.filterCountLabel)
+        filterGroupBoxLayout.addWidget(self.filterCountSpinBox)
+        filterGroupBoxLayout.addStretch()
+
+        self.slotLabel = QtWidgets.QLabel(self)
+        self.slotLabel.setText("Slot")
+
+        self.slotComboBox = QtWidgets.QComboBox(self)
+        self.slotComboBox.addItem("Slot 1", 1)
+        self.slotComboBox.addItem("Slot 2", 2)
+
+        self.channelsGroupBox = QtWidgets.QGroupBox(self)
+        self.channelsGroupBox.setTitle("Channels")
+
+        self.offsetLabel = QtWidgets.QLabel(self)
+        self.offsetLabel.setText("Offset")
+
+        self.offsetSpinBox = QtWidgets.QSpinBox(self)
+        self.offsetSpinBox.setRange(0, 32)
+
+        channelsGroupBoxLayout = QtWidgets.QVBoxLayout(self.channelsGroupBox)
+        channelsGroupBoxLayout.addWidget(self.slotLabel)
+        channelsGroupBoxLayout.addWidget(self.slotComboBox)
+        channelsGroupBoxLayout.addWidget(self.offsetLabel)
+        channelsGroupBoxLayout.addWidget(self.offsetSpinBox)
+        channelsGroupBoxLayout.addStretch()
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(self.filterGroupBox)
+        layout.addWidget(self.channelsGroupBox)
         layout.addStretch()
         layout.setStretch(0, 1)
-        layout.setStretch(1, 2)
+        layout.setStretch(1, 1)
+        layout.setStretch(2, 1)
 
         self.filterEnableComboBox.currentIndexChanged.connect(
             self.onFilterEnableChanged
         )
         self.filterTypeComboBox.currentIndexChanged.connect(self.onFilterTypeChanged)
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
+        self.slotComboBox.currentIndexChanged.connect(self.onChannelsSlotChanged)
+        self.offsetSpinBox.editingFinished.connect(self.onFilterCountChanged)
+
 
         self.onFilterEnableChanged()
         self.onFilterTypeChanged()
         self.onFilterCountChanged()
+        self.onChannelsSlotChanged()
+        self.onChannelsOffsetChanged()
 
     def filterEnable(self):
         """Returns filter enable state."""
@@ -761,6 +801,19 @@ class DMMWidget(QtWidgets.QWidget):
         """Set filter count."""
         self.filterCountSpinBox.setValue(count)
 
+    def channelsSlot(self) -> int:
+        return self.slotComboBox.currentData() or 0
+
+    def setChannelsSlot(self, slot: int) -> None:
+        index = self.slotComboBox.findData(slot)
+        self.slotComboBox.setCurrentIndex(index)
+
+    def channelsOffset(self) -> int:
+        return self.offsetSpinBox.value()
+
+    def setChannelsOffset(self, offset: int) -> None:
+        self.offsetSpinBox.setValue(offset)
+
     @QtCore.pyqtSlot()
     def onFilterEnableChanged(self):
         enabled = self.filterEnable()
@@ -775,3 +828,11 @@ class DMMWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onFilterCountChanged(self):
         self.filterCountChanged.emit(self.filterCount())
+
+    @QtCore.pyqtSlot()
+    def onChannelsSlotChanged(self):
+        self.channelsSlotChanged.emit(self.channelsSlot())
+
+    @QtCore.pyqtSlot()
+    def onChannelsOffsetChanged(self):
+        self.channelsOffsetChanged.emit(self.channelsOffset())
