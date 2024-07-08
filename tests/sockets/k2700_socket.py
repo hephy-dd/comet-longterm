@@ -17,6 +17,8 @@ class K2700Handler(socketserver.BaseRequestHandler):
     average_type = "REP"
     average_count = 10
 
+    trigger_delay = 0.0
+
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
@@ -75,6 +77,13 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
                 elif re.match(r"\:?READ\?", data):
                     self.send(",".join(["0.000024"] * type(self).channels))
+
+                elif re.match(r"\:?TRIG:DEL\?", data):
+                    self.send("{:E}".format(type(self).trigger_delay))
+
+                elif re.match(r"\:?TRIG:DEL\s+(.*)", data):
+                    value = float(data.split()[-1])
+                    type(self).trigger_delay = value
 
                 elif re.match(r"\:?FETC[h]?\?", data):
                     values = []

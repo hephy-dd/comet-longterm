@@ -484,6 +484,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
         self.dmmWidget.setChannelsSlot(settings.value("dmm/channels/slot", 1, type=int))
         self.dmmWidget.setChannelsOffset(settings.value("dmm/channels/offset", 0, type=int))
+        self.dmmWidget.setTriggerDelay(settings.value("dmm/trigger/delay", 0, type=float))
 
     def storeSettings(self):
         settings = QtCore.QSettings()
@@ -506,6 +507,7 @@ class ControlsWidget(QtWidgets.QWidget):
         settings.setValue("dmm/filter/count", self.dmmWidget.filterCount())
         settings.setValue("dmm/channels/slot", self.dmmWidget.channelsSlot())
         settings.setValue("dmm/channels/offset", self.dmmWidget.channelsOffset())
+        settings.setValue("dmm/trigger/delay", self.dmmWidget.triggerDelay())
 
     @QtCore.pyqtSlot()
     def onStart(self):
@@ -526,6 +528,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.filterCountSpinBox.setEnabled(False)
         self.dmmWidget.slotComboBox.setEnabled(False)
         self.dmmWidget.offsetSpinBox.setEnabled(False)
+        self.dmmWidget.triggerDelaySpinBox.setEnabled(False)
         self.operatorGroupBox.setEnabled(False)
         self.pathGroupBox.setEnabled(False)
         self.started.emit()
@@ -555,6 +558,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.filterCountSpinBox.setEnabled(True)
         self.dmmWidget.slotComboBox.setEnabled(True)
         self.dmmWidget.offsetSpinBox.setEnabled(True)
+        self.dmmWidget.triggerDelaySpinBox.setEnabled(True)
         self.operatorGroupBox.setEnabled(True)
         self.pathGroupBox.setEnabled(True)
         self.halted.emit()
@@ -691,6 +695,7 @@ class DMMWidget(QtWidgets.QWidget):
     filterCountChanged = QtCore.pyqtSignal(int)
     channelsSlotChanged = QtCore.pyqtSignal(int)
     channelsOffsetChanged = QtCore.pyqtSignal(int)
+    triggerDelayChanged = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -737,29 +742,44 @@ class DMMWidget(QtWidgets.QWidget):
         self.slotComboBox.addItem("Slot 1", 1)
         self.slotComboBox.addItem("Slot 2", 2)
 
-        self.channelsGroupBox = QtWidgets.QGroupBox(self)
-        self.channelsGroupBox.setTitle("Channels")
-
         self.offsetLabel = QtWidgets.QLabel(self)
         self.offsetLabel.setText("Offset")
 
         self.offsetSpinBox = QtWidgets.QSpinBox(self)
         self.offsetSpinBox.setRange(0, 32)
 
+        self.channelsGroupBox = QtWidgets.QGroupBox(self)
+        self.channelsGroupBox.setTitle("Channels")
+
         channelsGroupBoxLayout = QtWidgets.QVBoxLayout(self.channelsGroupBox)
         channelsGroupBoxLayout.addWidget(self.slotLabel)
         channelsGroupBoxLayout.addWidget(self.slotComboBox)
         channelsGroupBoxLayout.addWidget(self.offsetLabel)
         channelsGroupBoxLayout.addWidget(self.offsetSpinBox)
-        channelsGroupBoxLayout.addStretch()
 
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.addWidget(self.filterGroupBox)
-        layout.addWidget(self.channelsGroupBox)
-        layout.addStretch()
-        layout.setStretch(0, 1)
-        layout.setStretch(1, 1)
-        layout.setStretch(2, 1)
+        self.triggerDelayLabel = QtWidgets.QLabel(self)
+        self.triggerDelayLabel.setText("Delay")
+
+        self.triggerDelaySpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.triggerDelaySpinBox.setRange(0, 9999)
+        self.triggerDelaySpinBox.setDecimals(4)
+        self.triggerDelaySpinBox.setSuffix(" s")
+
+        self.triggerGroupBox = QtWidgets.QGroupBox(self)
+        self.triggerGroupBox.setTitle("Trigger")
+
+        triggerGroupBoxLayout = QtWidgets.QVBoxLayout(self.triggerGroupBox)
+        triggerGroupBoxLayout.addWidget(self.triggerDelayLabel)
+        triggerGroupBoxLayout.addWidget(self.triggerDelaySpinBox)
+        triggerGroupBoxLayout.addStretch()
+
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(self.filterGroupBox, 0, 0, 2, 1)
+        layout.addWidget(self.channelsGroupBox, 0, 1)
+        layout.addWidget(self.triggerGroupBox, 1, 1)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 1)
 
         self.filterEnableComboBox.currentIndexChanged.connect(
             self.onFilterEnableChanged
@@ -768,7 +788,7 @@ class DMMWidget(QtWidgets.QWidget):
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
         self.slotComboBox.currentIndexChanged.connect(self.onChannelsSlotChanged)
         self.offsetSpinBox.editingFinished.connect(self.onFilterCountChanged)
-
+        self.triggerDelaySpinBox.editingFinished.connect(self.onTriggerDelayChanged)
 
         self.onFilterEnableChanged()
         self.onFilterTypeChanged()
@@ -814,6 +834,12 @@ class DMMWidget(QtWidgets.QWidget):
     def setChannelsOffset(self, offset: int) -> None:
         self.offsetSpinBox.setValue(offset)
 
+    def triggerDelay(self) -> float:
+        return self.triggerDelaySpinBox.value()
+
+    def setTriggerDelay(self, delay: float) -> None:
+        self.triggerDelaySpinBox.setValue(delay)
+
     @QtCore.pyqtSlot()
     def onFilterEnableChanged(self):
         enabled = self.filterEnable()
@@ -836,3 +862,7 @@ class DMMWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onChannelsOffsetChanged(self):
         self.channelsOffsetChanged.emit(self.channelsOffset())
+
+    @QtCore.pyqtSlot()
+    def onTriggerDelayChanged(self):
+        self.triggerDelayChanged.emit(self.triggerDelay())

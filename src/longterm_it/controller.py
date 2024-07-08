@@ -128,6 +128,9 @@ class Controller:
         widget.controlsWidget.dmmWidget.channelsOffsetChanged.connect(
             lambda offset: meas.params.update({"dmm.channels.offset": offset})
         )
+        widget.controlsWidget.dmmWidget.triggerDelayChanged.connect(
+            lambda delay: meas.params.update({"dmm.trigger.delay": delay})
+        )
 
         self.view.meas_worker = meas
         self.view.meas_thread = threading.Thread(target=self.view.meas_worker)
@@ -216,6 +219,7 @@ class Controller:
             "dmm.filter.count": widget.controlsWidget.dmmWidget.filterCount(),
             "dmm.channels.slot": widget.controlsWidget.dmmWidget.channelsSlot(),
             "dmm.channels.offset": widget.controlsWidget.dmmWidget.channelsOffset(),
+            "dmm.trigger.delay": widget.controlsWidget.dmmWidget.triggerDelay(),
         })
         meas.setPath(path)
         meas.setOperator(widget.controlsWidget.operator())

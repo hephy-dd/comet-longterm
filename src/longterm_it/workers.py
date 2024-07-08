@@ -154,6 +154,7 @@ class MeasureWorker(QtCore.QObject):
             "dmm.filter.count": 0,
             "dmm.channels.slot": 1,
             "dmm.channels.offset": 0,
+            "dmm.trigger.delay": 0,
         })
 
     def abort(self) -> None:
@@ -504,6 +505,16 @@ class MeasureWorker(QtCore.QObject):
 
         if int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip()) != dmm_filter_count:
             raise RuntimeError("failed to configure dmm.filter.count")
+
+        dmm_trigger_delay = self.params.get("dmm.trigger.delay", 0)
+        logger.info("dmm.trigger.delay: %s", dmm_trigger_delay)
+        multi.resource.write(f":TRIG:DEL:AUTO OFF")
+        multi.resource.query("*OPC?")
+        multi.resource.write(f":TRIG:DEL {dmm_trigger_delay:E}")
+        multi.resource.query("*OPC?")
+
+        if float(multi.resource.query(":TRIG:DEL?").strip()) != dmm_trigger_delay:
+            raise RuntimeError("failed to configure dmm.trigger.delay")
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
