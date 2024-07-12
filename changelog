@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Obsolete setup.py file.
 
 ### Changed
-- Migrated to comet 0.13.x (#25).
+- Migrated to comet 1.0.0 (#25).
 
 ### Fixed
 - Multimeter filter settings.

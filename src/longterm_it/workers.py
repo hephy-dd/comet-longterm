@@ -1,30 +1,48 @@
-import logging
 import csv
 import contextlib
+import logging
 import math
 import os
+import re
 import threading
 import time
 import traceback
-from typing import Any
+from typing import Any, Optional
 
 import pyvisa.errors
 
 from PyQt5 import QtCore
 
-from comet import Range
+from comet.functions import LinearRange
 
-from comet.driver.cts import ITC
+from comet.driver.cts.itc import ITC
 from comet.driver.keithley import K2410
-from comet.driver.keithley import K2700
-from comet.driver.hephy import ShuntBox
+from comet.driver.keithley import K2400 as K2700  # TODO
 
+from .driver import ShuntBox  # TODO
 from .utils import make_iso
 from .writers import IVWriter, ItWriter
 
 __all__ = ["EnvironWorker", "MeasureWorker"]
 
 logger = logging.getLogger(__name__)
+
+driver_registry: dict = {
+    "smu": K2410,
+    "dmm": K2700,
+    "itc": ITC,
+    "shuntbox": ShuntBox,
+}
+
+
+def parse_reading(s):  #TODO
+    """Returns list of dictionaries containing reading values."""
+    readings = []
+    # split '-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#,...'
+    for values in re.findall(r'([^#]+)#\,?', s):
+        values = re.findall(r'([+-]?\d+(?:\.\d+)?(?:E[+-]\d+)?)([A-Z]+)\,?', values)
+        readings.append({suffix: float(value) for value, suffix in values})
+    return readings
 
 
 class AbortRequested(Exception): ...
@@ -85,7 +103,7 @@ class EnvironWorker(QtCore.QObject):
                 if self.isEnabled:
                     # Open connection to instrument
                     with self.resources.get("cts") as res:
-                        cts = ITC(res)
+                        cts = driver_registry.get("itc")(res)
                         while not self.abort_requested.is_set() and self.isEnabled:
                             reading = self.read(cts)
                             logger.info("CTS reading: %s", reading)
@@ -295,10 +313,11 @@ class MeasureWorker(QtCore.QObject):
         time.sleep(0.500)
         smu.resource.write("*CLS")
         smu.resource.query("*OPC?")
-        smu.system.beeper.status = 0
-        code, message = smu.system.error
-        if code:
-            raise RuntimeError(f"{smu.resource.resource_name}: {code}, {message}")
+        smu.resource.write(":SYST:BEEP:STAT OFF")
+        smu.resource.query("*OPC?")
+        error = smu.next_error()
+        if error:
+            raise RuntimeError(f"{smu.resource.resource_name}: {error.code}, {error.message}")
         # Reset multimeter
         logger.info("Reset Multimeter...")
         multi.resource.write("*RST")
@@ -306,10 +325,11 @@ class MeasureWorker(QtCore.QObject):
         time.sleep(0.500)
         multi.resource.write("*CLS")
         multi.resource.query("*OPC?")
-        multi.system.beeper.status = 0
-        code, message = multi.system.error
-        if code:
-            raise RuntimeError(f"{multi.resource.resource_name}: {code}, {message}")
+        multi.resource.write(":SYST:BEEP:STAT OFF")
+        multi.resource.query("*OPC?")
+        error = multi.next_error()
+        if error:
+            raise RuntimeError(f"{multi.resource.resource_name}: {error.code}, {error.message}")
 
     def scan(self, smu, multi) -> dict:
         """Scan selected channels and return dictionary of readings.
@@ -339,25 +359,36 @@ class MeasureWorker(QtCore.QObject):
 
         # SMU current
         logger.info("Read SMU current...")
-        totalCurrent = smu.read()[1]
+        totalCurrent = float(smu.resource.query(":READ?").split(",")[1])
         logger.info(f"SMU current: {totalCurrent:G} A")
 
         # Read temperatures and shunt box stats
-        temperature = {}
-        shuntbox = dict(uptime=0, memory=0)
+        temperature: dict = {}
+        shuntbox: dict = {"uptime": 0, "memory": 0}
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = ShuntBox(res)
-                shuntbox["uptime"] = shunt.uptime
-                shuntbox["memory"] = shunt.memory
-                for index, value in enumerate(shunt.temperature):
+                shunt = driver_registry.get("shuntbox")(res)
+                shuntbox["uptime"] = shunt.uptime()
+                shuntbox["memory"] = shunt.memory()
+                for index, value in enumerate(shunt.temperature()):
                     temperature[index + 1] = value
 
         # start measurement
         logger.info("Initiate measurement...")
-        multi.init()
+        multi.resource.write("*CLS")
+        multi.resource.write("*OPC")
+        multi.resource.write(":INIT")
+        done = False
+        retries = 40
+        for i in range(retries):
+            if 1 == int(multi.resource.query("*ESR?")) & 0x1:
+                done = True
+                break
+            time.sleep(0.250)
+        if not done:
+            raise RuntimeError("failed to poll for ESR")
         logger.info("Read results buffer...")
-        results = multi.fetch()
+        results = parse_reading(multi.resource.query(":FETC?"))
 
         for index, result in enumerate(results):
             logger.info("[%d]: %s", index, result)
@@ -374,8 +405,8 @@ class MeasureWorker(QtCore.QObject):
                     # Switch HV relay off
                     if self.useShuntBox():
                         with self.resources.get("shunt") as res:
-                            shunt = ShuntBox(res)
-                            shunt.relays[sensor.index] = False
+                            shunt = driver_registry.get("shuntbox")(res)
+                            shunt.set_relay(sensor.index, False)
                             sensor.hv = False
                 temp = temperature.get(sensor.index, float("nan"))
                 channels[sensor.index] = {
@@ -410,21 +441,24 @@ class MeasureWorker(QtCore.QObject):
         self.showProgress(0, 3)
 
         # Optional ramp down SMU
-        self.setCurrentVoltage(smu.source.voltage.level)
+        value = float(smu.resource.query(":SOUR:VOLT:LEV?"))
+        self.setCurrentVoltage(value)
         self.rampDown(smu, multi)
 
         # Reset instruments
         self.reset(smu, multi)
 
         # Read instrument identifications
-        idn = multi.identification
+        idn = multi.resource.query("*IDN?").strip()
         logger.info("Multimeter: %s", idn)
-        idn = smu.identification
+
+        idn = smu.resource.query("*IDN?").strip()
         logger.info("Source Unit: %s", idn)
+
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = ShuntBox(res)
-                idn = shunt.identification
+                shunt = driver_registry.get("shuntbox")(res)
+                idn = shunt.identify()
                 logger.info("HEPHY ShuntBox: %s", idn)
 
         self.showMessage("Setup multimeter")
@@ -519,9 +553,9 @@ class MeasureWorker(QtCore.QObject):
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)
 
-        dmm_route_terminal = self.params.get("smu.route.terminals", "rear")
-        logger.info("smu.route.terminal: %s", dmm_route_terminal)
-        terminal = {"front": "FRON", "rear": "REAR"}[dmm_route_terminal]
+        smu_route_terminal = self.params.get("smu.route.terminals", "rear")
+        logger.info("smu.route.terminal: %s", smu_route_terminal)
+        terminal = {"front": "FRON", "rear": "REAR"}[smu_route_terminal]
         smu.resource.write(f":ROUT:TERM {terminal}")
         smu.resource.query("*OPC?")
 
@@ -564,16 +598,19 @@ class MeasureWorker(QtCore.QObject):
 
         # clear voltage
         self.setCurrentVoltage(0.0)
-        smu.source.voltage.level = self.currentVoltage()
+        smu.resource.write(f":SOUR:VOLT:LEV {self.currentVoltage():E}")
+        smu.resource.query("*OPC?")
+
         # switch output ON
-        smu.output = True
+        smu.resource.write(":OUTP:STAT ON")
+        smu.resource.query("*OPC?")
 
         # Enable active shunt box channels
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = ShuntBox(res)
+                shunt = driver_registry.get("shuntbox")(res)
                 for sensor in self.sensors():
-                    shunt.relays[sensor.index] = sensor.enabled
+                    shunt.set_relay(sensor.index, sensor.enabled)
                     sensor.hv = sensor.enabled
         else:
             for sensor in self.sensors():
@@ -605,19 +642,20 @@ class MeasureWorker(QtCore.QObject):
                 if self.ivEndVoltage() < self.currentVoltage()
                 else self.ivStep()
             )
-            for value in Range(self.currentVoltage(), self.ivEndVoltage(), step):
+            for value in LinearRange(self.currentVoltage(), self.ivEndVoltage(), step):
                 if self.abort_requested.is_set():
                     raise AbortRequested()
                 self.setCurrentVoltage(value)
                 self.showMessage(f"Ramping up ({value:.2f} V)")
                 # Set voltage
-                smu.source.voltage.level = value
+                smu.resource.write(f":SOUR:VOLT:LEV {value:E}")
+                smu.resource.query("*OPC?")
                 self.showProgress(self.currentVoltage(), self.ivEndVoltage())
                 time.sleep(self.ivDelay())
                 reading = self.scan(smu, multi)
                 logger.info("scan reading: %s", reading)
                 self.ivReading.emit(reading)
-                self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get("I")))
+                self.smuReading.emit({"U": self.currentVoltage(), "I": reading.get("I")})
                 for sensor in self.sensors():
                     if sensor.enabled:
                         # Time delta since start of IV
@@ -649,18 +687,19 @@ class MeasureWorker(QtCore.QObject):
             if self.biasVoltage() < self.currentVoltage()
             else self.ivStep()
         )
-        for value in Range(self.currentVoltage(), self.biasVoltage(), step):
+        for value in LinearRange(self.currentVoltage(), self.biasVoltage(), step):
             if self.abort_requested.is_set():
                 raise AbortRequested()
             self.setCurrentVoltage(value)
             self.showMessage(f"Ramping to bias ({value:.2f} V)")
             # Set voltage
-            smu.source.voltage.level = value
+            smu.resource.write(f":SOUR:VOLT:LEV {value:E}")
+            smu.resource.query("*OPC?")
             deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             time.sleep(self.ivDelay())
-            totalCurrent = smu.read()[1]
-            self.smuReading.emit(dict(U=self.currentVoltage(), I=totalCurrent))
+            totalCurrent = float(smu.resource.query(":READ?").split(",")[1])
+            self.smuReading.emit({"U": self.currentVoltage(), "I": totalCurrent})
         self.showMessage("Done")
 
     def longterm(self, smu, multi) -> None:
@@ -696,7 +735,7 @@ class MeasureWorker(QtCore.QObject):
                 reading = self.scan(smu, multi)
                 logger.info("scan reading: %s", reading)
                 self.itReading.emit(reading)
-                self.smuReading.emit(dict(U=self.currentVoltage(), I=reading.get("I")))
+                self.smuReading.emit({"U": self.currentVoltage(), "I": reading.get("I")})
                 for sensor in self.sensors():
                     if sensor.enabled:
                         # Time delta since start of IV
@@ -735,27 +774,28 @@ class MeasureWorker(QtCore.QObject):
         self.showProgress(deltaVoltage, startVoltage)
         ivStep = max(minimumStep, self.ivStep())
         step = -ivStep if zeroVoltage < self.currentVoltage() else ivStep
-        for value in Range(self.currentVoltage(), zeroVoltage, step):
+        for value in LinearRange(self.currentVoltage(), zeroVoltage, step):
             # Ramp down at any cost to save lives!
             self.setCurrentVoltage(value)
             self.showMessage(f"Ramping to zero ({value:.2f} V)")
             # Set voltage
-            smu.source.voltage.level = value
+            smu.resource.write(f":SOUR:VOLT:LEV {value:E}")
+            smu.resource.query("*OPC?")
             deltaVoltage = startVoltage - self.currentVoltage()
             self.showProgress(deltaVoltage, startVoltage)
             time.sleep(0.25)  # value from labview
-            self.smuReading.emit(dict(U=self.currentVoltage(), I=None))
+            self.smuReading.emit({"U": self.currentVoltage(), "I": None})
 
         # Diable all shunt box channels
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = ShuntBox(res)
-                shunt.relays.all = False
+                shunt = driver_registry.get("shuntbox")(res)
+                shunt.set_all_relays(False)
                 for sensor in self.sensors():
                     sensor.hv = False
 
         # switch output OFF
-        smu.output = False
+        smu.resource.write(":OUTP:STAT OFF")
 
         self.showMessage("Done")
 
@@ -763,8 +803,8 @@ class MeasureWorker(QtCore.QObject):
         try:
             # Open connection to instruments
             with contextlib.ExitStack() as stack:
-                smu = K2410(stack.enter_context(self.resources.get("smu")))
-                multi = K2700(stack.enter_context(self.resources.get("multi")))
+                smu = driver_registry.get("smu")(stack.enter_context(self.resources.get("smu")))
+                multi = driver_registry.get("dmm")(stack.enter_context(self.resources.get("multi")))
                 try:
                     self.setup(smu, multi)
                     self.rampUp(smu, multi)

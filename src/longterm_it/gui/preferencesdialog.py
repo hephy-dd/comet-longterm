@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PyQt5 import QtCore, QtWidgets
 
 from ..utils import escape_string, unescape_string
@@ -5,12 +7,12 @@ from ..utils import escape_string, unescape_string
 
 class ResourcesTab(QtWidgets.QWidget):
 
-    DefaultReadTermination = "\n"
-    DefaultWriteTermination = "\n"
+    DefaultReadTermination = "\r\n"
+    DefaultWriteTermination = "\r\n"
     DefaultTimeout = 2000
     DefaultVisaLibrary = "@py"
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Resources"))
         self.treeWidget = QtWidgets.QTreeWidget()
@@ -30,10 +32,10 @@ class ResourcesTab(QtWidgets.QWidget):
         layout.addItem(QtWidgets.QSpacerItem(0, 0), 1, 1)
         self.setLayout(layout)
 
-    def resources(self):
+    def resources(self) -> dict:
         """Returns dictionary of resource options."""
         root = self.treeWidget.topLevelItem(0)
-        resources = {}
+        resources: dict = {}
         for i in range(self.treeWidget.topLevelItemCount()):
             item = self.treeWidget.topLevelItem(i)
             name = item.text(0)
@@ -55,7 +57,7 @@ class ResourcesTab(QtWidgets.QWidget):
             resources[name] = options
         return resources
 
-    def setResources(self, resources):
+    def setResources(self, resources: dict) -> None:
         """Set dictionary of resource options."""
         self.treeWidget.clear()
         items = []
@@ -106,7 +108,7 @@ class ResourcesTab(QtWidgets.QWidget):
         self.treeWidget.resizeColumnToContents(0)
 
     @QtCore.pyqtSlot()
-    def editResource(self):
+    def editResource(self) -> None:
         item = self.treeWidget.currentItem()
         if item.parent():
             text, ok = QtWidgets.QInputDialog.getText(
@@ -120,14 +122,14 @@ class ResourcesTab(QtWidgets.QWidget):
                 item.setText(1, text)
 
     @QtCore.pyqtSlot()
-    def selectionChanged(self):
+    def selectionChanged(self) -> None:
         item = self.treeWidget.currentItem()
         self.editButton.setEnabled(item.parent() is not None)
 
 
 class OperatorsTab(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Operators"))
         self.listWidget = QtWidgets.QListWidget()
@@ -149,18 +151,18 @@ class OperatorsTab(QtWidgets.QWidget):
         layout.addItem(QtWidgets.QSpacerItem(0, 0), 3, 1)
         self.setLayout(layout)
 
-    def operators(self):
+    def operators(self) -> list[str]:
         """Returns list of operators."""
         return [self.listWidget.item(i).text() for i in range(self.listWidget.count())]
 
-    def setOperators(self, operators):
+    def setOperators(self, operators: list[str]) -> None:
         """Set list of operators."""
         self.listWidget.clear()
         for text in operators:
             self.listWidget.addItem(text)
 
     @QtCore.pyqtSlot()
-    def addOperator(self):
+    def addOperator(self) -> None:
         text, ok = QtWidgets.QInputDialog.getText(
             self, self.tr("Operator"), self.tr("Name"), QtWidgets.QLineEdit.Normal
         )
@@ -169,7 +171,7 @@ class OperatorsTab(QtWidgets.QWidget):
             self.listWidget.setCurrentItem(item)
 
     @QtCore.pyqtSlot()
-    def editOperator(self):
+    def editOperator(self) -> None:
         item = self.listWidget.currentItem()
         text, ok = QtWidgets.QInputDialog.getText(
             self,
@@ -182,14 +184,14 @@ class OperatorsTab(QtWidgets.QWidget):
             item.setText(text)
 
     @QtCore.pyqtSlot()
-    def removeOperator(self):
+    def removeOperator(self) -> None:
         item = self.listWidget.currentItem()
         if item is not None:
             row = self.listWidget.row(item)
             self.listWidget.takeItem(row)
 
     @QtCore.pyqtSlot()
-    def selectionChanged(self):
+    def selectionChanged(self) -> None:
         item = self.listWidget.currentItem()
         self.editButton.setEnabled(item is not None)
         self.removeButton.setEnabled(item is not None)
@@ -197,7 +199,7 @@ class OperatorsTab(QtWidgets.QWidget):
 
 class PreferencesDialog(QtWidgets.QDialog):
 
-    def __init__(self, resources, parent=None):
+    def __init__(self, resources, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.resources = resources
         self.setWindowTitle(self.tr("Preferences"))
@@ -209,12 +211,9 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.tabWidget.addTab(self.operatorsTab, self.operatorsTab.windowTitle())
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Apply
-            | QtWidgets.QDialogButtonBox.RestoreDefaults
-        )
-        self.buttonBox.clicked.connect(self.handleButton)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.handleAccept)
         self.buttonBox.rejected.connect(self.reject)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.tabWidget)
@@ -222,26 +221,22 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.setLayout(layout)
         self.loadSettings()
 
-    @QtCore.pyqtSlot(QtWidgets.QAbstractButton)
-    def handleButton(self, button):
-        button = self.buttonBox.standardButton(button)
-        if button == QtWidgets.QDialogButtonBox.Apply:
-            self.saveSettings()
-            QtWidgets.QMessageBox.information(
-                self,
-                self.tr("Preferences"),
-                self.tr("Application restart required for changes to take effect."),
-            )
-            self.accept()
-        if button == QtWidgets.QDialogButtonBox.RestoreDefaults:
-            self.resetSettings()
+    @QtCore.pyqtSlot()
+    def handleAccept(self) -> None:
+        self.saveSettings()
+        QtWidgets.QMessageBox.information(
+            self,
+            self.tr("Preferences"),
+            self.tr("Application restart required for changes to take effect."),
+        )
+        self.accept()
 
-    def saveSettings(self):
+    def saveSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.setValue("operators", self.operatorsTab.operators())
-        settings.setValue("resources", self.resourcesTab.resources())
+        settings.setValue("resources2", self.resourcesTab.resources())
 
-    def loadSettings(self):
+    def loadSettings(self) -> None:
         resources = {}
         for name, resource in self.resources.items():
             options = {}
@@ -259,17 +254,14 @@ class PreferencesDialog(QtWidgets.QDialog):
             resources[name] = options
         # Update default resources with stored settings
         settings = QtCore.QSettings()
-        for name, options in settings.value("resources", {}, dict).items():
-            # Migrate old style settings
-            if isinstance(options, str):
-                options = {"resource_name": options}
+        # Migrate old style settings (<= 0.12.x)
+        if not settings.value("resources2", {}, dict):
+            for name, resource_name in settings.value("resources", {}, dict).items():
+                resources.update({name: {"resource_name": resource_name}})
+        for name, options in settings.value("resources2", {}, dict).items():
             if name in resources:
                 for key, value in options.items():
                     resources[name][key] = value
         self.resourcesTab.setResources(resources)
         operators = settings.value("operators", [], list)
         self.operatorsTab.setOperators(operators)
-
-    def resetSettings(self):
-        self.operatorsTab.setOperators([])
-        self.resourcesTab.setResources({})

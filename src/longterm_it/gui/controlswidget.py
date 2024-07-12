@@ -261,7 +261,8 @@ class ControlsWidget(QtWidgets.QWidget):
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.addLayout(self.controlLayout, 0, 0, 1, 1)
         self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
-        self.gridLayout.addLayout(self.horizontalLayout, 1, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout, 2, 0, 1, 2)
+        self.gridLayout.setRowStretch(1, 1)
 
         self.setTabOrder(self.startPushButton, self.stopPushButton)
         self.setTabOrder(self.stopPushButton, self.totalComplianceSpinBox)

@@ -7,9 +7,9 @@ import threading
 
 from PyQt5 import QtCore, QtWidgets
 
-from comet import Resource
 
 from . import __version__
+from .resource import Resource
 from .workers import EnvironWorker, MeasureWorker
 
 __all__ = ["Controller"]
@@ -24,10 +24,10 @@ class Controller:
         self.view = view
 
         # regster resources
-        self.view.resources.update({"shunt": Resource(resource_name="TCPIP::localhost::10001::SOCKET")})
-        self.view.resources.update({"smu": Resource(resource_name="TCPIP::localhost::10002::SOCKET")})
-        self.view.resources.update({"multi": Resource(resource_name="TCPIP::localhost::10003::SOCKET")})
-        self.view.resources.update({"cts": Resource(resource_name="TCPIP::localhost::1080::SOCKET")})
+        self.view.resources.update({"shunt": Resource("TCPIP::localhost::10001::SOCKET")})
+        self.view.resources.update({"smu": Resource("TCPIP::localhost::10002::SOCKET")})
+        self.view.resources.update({"multi": Resource("TCPIP::localhost::10003::SOCKET")})
+        self.view.resources.update({"cts": Resource("TCPIP::localhost::1080::SOCKET")})
 
         self.createProcesses()
 
@@ -40,7 +40,11 @@ class Controller:
 
     def loadResources(self):
         settings = QtCore.QSettings()
-        resources = settings.value("resources", {}, dict)
+        resources = settings.value("resources2", {}, dict)
+        # Migrate old style settings (<= 0.12.x)
+        if not resources:
+            for name, resource_name in settings.value("resources", {}, dict).items():
+                resources.update({name: {"resource_name": resource_name}})
         tr = {"timeout": int}
         for name, resource in self.view.resources.items():
             for key, value in resources.get(name, {}).items():

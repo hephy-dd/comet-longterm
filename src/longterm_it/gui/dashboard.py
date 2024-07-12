@@ -90,10 +90,10 @@ class DashboardWidget(QtWidgets.QWidget):
         self.leftVerticalLayout.addWidget(self.controlsWidget)
         self.leftVerticalLayout.addStretch()
         self.leftVerticalLayout.setStretch(0, 0)
-        self.leftVerticalLayout.setStretch(1, 1)
+        self.leftVerticalLayout.setStretch(1, 0)
         self.leftVerticalLayout.setStretch(2, 0)
-        self.leftVerticalLayout.setStretch(3, 0)
-        self.leftVerticalLayout.setStretch(4, 10)
+        self.leftVerticalLayout.setStretch(3, 1)
+        # self.leftVerticalLayout.setStretch(4, 10)
 
         self.rightVerticalWidget = QtWidgets.QWidget(self)
 
