@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -17,8 +17,10 @@ class ResourcesTab(QtWidgets.QWidget):
         self.setWindowTitle(self.tr("Resources"))
         self.treeWidget = QtWidgets.QTreeWidget()
         self.treeWidget.setColumnCount(2)
-        self.treeWidget.headerItem().setText(0, self.tr("Resource"))
-        self.treeWidget.headerItem().setText(1, self.tr("Value"))
+        item = self.treeWidget.headerItem()
+        if item:
+            item.setText(0, self.tr("Resource"))
+            item.setText(1, self.tr("Value"))
         self.treeWidget.itemDoubleClicked.connect(
             lambda item, column: self.editResource()
         )
@@ -38,12 +40,14 @@ class ResourcesTab(QtWidgets.QWidget):
         resources: dict = {}
         for i in range(self.treeWidget.topLevelItemCount()):
             item = self.treeWidget.topLevelItem(i)
+            if not item:
+                continue
             name = item.text(0)
             options = {}
             for j in range(item.childCount()):
                 child = item.child(j)
                 key = child.text(0)
-                value = child.text(1)
+                value: Any = child.text(1)
                 # Escape special characters
                 if key in ["read_termination", "write_termination"]:
                     value = unescape_string(value)
@@ -60,7 +64,7 @@ class ResourcesTab(QtWidgets.QWidget):
     def setResources(self, resources: dict) -> None:
         """Set dictionary of resource options."""
         self.treeWidget.clear()
-        items = []
+        items: list = []
         for name, options in resources.items():
             item = QtWidgets.QTreeWidgetItem([name])
             item.addChild(
@@ -110,7 +114,7 @@ class ResourcesTab(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def editResource(self) -> None:
         item = self.treeWidget.currentItem()
-        if item.parent():
+        if item and item.parent():
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
                 self.tr("Resource {}").format(item.parent().text(0)),
@@ -124,7 +128,8 @@ class ResourcesTab(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def selectionChanged(self) -> None:
         item = self.treeWidget.currentItem()
-        self.editButton.setEnabled(item.parent() is not None)
+        if item:
+            self.editButton.setEnabled(item.parent() is not None)
 
 
 class OperatorsTab(QtWidgets.QWidget):
@@ -153,7 +158,12 @@ class OperatorsTab(QtWidgets.QWidget):
 
     def operators(self) -> list[str]:
         """Returns list of operators."""
-        return [self.listWidget.item(i).text() for i in range(self.listWidget.count())]
+        operators: list[str] = []
+        for index in range(self.listWidget.count()):
+            item = self.listWidget.item(index)
+            if item:
+                operators.append(item.text())
+        return operators
 
     def setOperators(self, operators: list[str]) -> None:
         """Set list of operators."""
@@ -173,15 +183,16 @@ class OperatorsTab(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def editOperator(self) -> None:
         item = self.listWidget.currentItem()
-        text, ok = QtWidgets.QInputDialog.getText(
-            self,
-            self.tr("Operator"),
-            self.tr("Name"),
-            QtWidgets.QLineEdit.Normal,
-            item.text(),
-        )
-        if ok and text:
-            item.setText(text)
+        if item:
+            text, ok = QtWidgets.QInputDialog.getText(
+                self,
+                self.tr("Operator"),
+                self.tr("Name"),
+                QtWidgets.QLineEdit.Normal,
+                item.text(),
+            )
+            if ok and text:
+                item.setText(text)
 
     @QtCore.pyqtSlot()
     def removeOperator(self) -> None:

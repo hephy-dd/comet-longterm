@@ -7,7 +7,7 @@ import re
 import threading
 import time
 import traceback
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import pyvisa.errors
 
@@ -27,12 +27,18 @@ __all__ = ["EnvironWorker", "MeasureWorker"]
 
 logger = logging.getLogger(__name__)
 
-driver_registry: dict = {
+driver_registry: dict[str, Callable] = {
     "smu": K2410,
     "dmm": K2700,
     "itc": ITC,
     "shuntbox": ShuntBox,
 }
+
+
+def get_driver(name: str) -> Callable:
+    if name in driver_registry:
+        return driver_registry[name]
+    raise ValueError(f"no such driver: {name!r}")
 
 
 def parse_reading(s):  #TODO
@@ -103,7 +109,7 @@ class EnvironWorker(QtCore.QObject):
                 if self.isEnabled:
                     # Open connection to instrument
                     with self.resources.get("cts") as res:
-                        cts = driver_registry.get("itc")(res)
+                        cts = get_driver("itc")(res)
                         while not self.abort_requested.is_set() and self.isEnabled:
                             reading = self.read(cts)
                             logger.info("CTS reading: %s", reading)
@@ -367,7 +373,7 @@ class MeasureWorker(QtCore.QObject):
         shuntbox: dict = {"uptime": 0, "memory": 0}
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = driver_registry.get("shuntbox")(res)
+                shunt = get_driver("shuntbox")(res)
                 shuntbox["uptime"] = shunt.uptime()
                 shuntbox["memory"] = shunt.memory()
                 for index, value in enumerate(shunt.temperature()):
@@ -405,7 +411,7 @@ class MeasureWorker(QtCore.QObject):
                     # Switch HV relay off
                     if self.useShuntBox():
                         with self.resources.get("shunt") as res:
-                            shunt = driver_registry.get("shuntbox")(res)
+                            shunt = get_driver("shuntbox")(res)
                             shunt.set_relay(sensor.index, False)
                             sensor.hv = False
                 temp = temperature.get(sensor.index, float("nan"))
@@ -457,7 +463,7 @@ class MeasureWorker(QtCore.QObject):
 
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = driver_registry.get("shuntbox")(res)
+                shunt = get_driver("shuntbox")(res)
                 idn = shunt.identify()
                 logger.info("HEPHY ShuntBox: %s", idn)
 
@@ -608,7 +614,7 @@ class MeasureWorker(QtCore.QObject):
         # Enable active shunt box channels
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = driver_registry.get("shuntbox")(res)
+                shunt = get_driver("shuntbox")(res)
                 for sensor in self.sensors():
                     shunt.set_relay(sensor.index, sensor.enabled)
                     sensor.hv = sensor.enabled
@@ -789,7 +795,7 @@ class MeasureWorker(QtCore.QObject):
         # Diable all shunt box channels
         if self.useShuntBox():
             with self.resources.get("shunt") as res:
-                shunt = driver_registry.get("shuntbox")(res)
+                shunt = get_driver("shuntbox")(res)
                 shunt.set_all_relays(False)
                 for sensor in self.sensors():
                     sensor.hv = False
@@ -803,8 +809,8 @@ class MeasureWorker(QtCore.QObject):
         try:
             # Open connection to instruments
             with contextlib.ExitStack() as stack:
-                smu = driver_registry.get("smu")(stack.enter_context(self.resources.get("smu")))
-                multi = driver_registry.get("dmm")(stack.enter_context(self.resources.get("multi")))
+                smu = get_driver("smu")(stack.enter_context(self.resources.get("smu")))
+                multi = get_driver("dmm")(stack.enter_context(self.resources.get("multi")))
                 try:
                     self.setup(smu, multi)
                     self.rampUp(smu, multi)

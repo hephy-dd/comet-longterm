@@ -8,6 +8,7 @@ from longterm_it.writers import Writer
 def test_writer():
     sensor = Sensor(index=42)
     sensor.name = "Spam"
+    sensor.resistivity = 42
     fp = StringIO()
     w = Writer(fp)
     w.write_meta(
@@ -36,7 +37,7 @@ def test_writer():
     assert next(r) == ["sensor channel: 42"]
     assert next(r) == ["operator: Monty"]
     assert next(r) == ["datetime: 1970-05-02"]
-    assert next(r) == ["calibration [Ohm]: None"]
+    assert next(r) == ["calibration [Ohm]: 42"]
     assert next(r) == ["Voltage [V]: 600.0"]
     assert next(r) == []
     assert next(r)[:3] == ["timestamp [s]", "voltage [V]", "current [A]"]

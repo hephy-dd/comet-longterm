@@ -313,7 +313,7 @@ class SensorManager:
                 )
 
     def storeSettings(self) -> None:
-        data = {}
+        data: dict = {}
         for sensor in self.sensors:
             data[sensor.index] = {}
             data[sensor.index]["enabled"] = bool(sensor.enabled)
