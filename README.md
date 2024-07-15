@@ -30,7 +30,7 @@ longterm-it
 
 ## Binaries
 
-See for pre-built windows binaries in the releases section.
+See for pre-built windows binaries in the [releases](https://github.com/hephy-dd/comet-longterm/releases) section.
 
 ## License
 

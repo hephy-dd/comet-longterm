@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multimeter filter settings.
 - Contents URL.
 
+## [0.11.2] - 2023-07-06
+
+### Fixed
+- broken pyinstaller.spec for Windows.
+
+## [0.11.1] - 2023-06-19
+
+### Added
+- Output enable for 2410 SMU (#26).
+
 ## [0.11.0] - 2021-06-22
 
 ### Added
