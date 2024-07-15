@@ -219,7 +219,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Show modal about dialog."""
         aboutText = self.property("aboutText")
         if isinstance(aboutText, str):
-            QtWidgets.QMessageBox.about(self, "About", "aboutText")
+            QtWidgets.QMessageBox.about(self, "About", aboutText)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         dialog = QtWidgets.QMessageBox(self)
