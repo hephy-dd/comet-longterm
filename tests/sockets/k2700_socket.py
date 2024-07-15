@@ -84,8 +84,6 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
                 elif re.match(r"\:?TRIG:DEL:AUTO\s+(OFF|ON|0|1)", data):
                     value = {"OFF": False, "ON": True, "0": False, "1": True}.get(data.split()[-1], False)
-                    import logging
-                    logging.warning("!!!!! %s (%s)", value, data)
                     type(self).trigger_delay_auto = value
 
                 elif re.match(r"\:?TRIG:DEL\?", data):
