@@ -737,7 +737,7 @@ class MeasureWorker(QtCore.QObject):
                     filename = os.path.join(self.path(), f"it-{name}-{timestamp}.txt")
                     f = open(filename, "w", newline="")
                     writer = ItWriter(stack.enter_context(f))
-                    writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
+                    writer.write_meta(sensor, self.operator(), timestamp, self.biasVoltage())
                     writer.write_header()
                     writers[sensor.index] = writer
             while not self.abort_requested.is_set():
