@@ -1,11 +1,11 @@
-# comet-longterm
+# Longterm It
 
-Long term sensor It measurements in CTS climate chamber.
+Longterm sensor It measurements in CTS climate chamber.
 
 ## Overview
 
-This application provides long term It measurements for up to 10 sensors in a
-controlled climate environment.
+This application provides long term It measurements for up to 10 sensors
+in a controlled climate environment.
 
 ### Required instruments:
 
@@ -19,8 +19,13 @@ controlled climate environment.
 Install using pip in a virtual environment.
 
 ```bash
-pip install git+https://github.com/hephy-dd/comet-longterm.git@0.11.2
-comet-longterm
+pip install git+https://github.com/hephy-dd/comet-longterm.git@0.12.0
+```
+
+### Run
+
+```bash
+longterm-it
 ```
 
 ## Binaries
@@ -29,4 +34,4 @@ See for pre-built windows binaries in the [releases](https://github.com/hephy-dd
 
 ## License
 
-This software is licensed under the [GNU General Public License Version 3](https://github.com/hephy-dd/comet-longterm/tree/master/LICENSE).
+Longterm It is licensed under the [GNU General Public License Version 3](https://github.com/hephy-dd/comet-longterm/tree/main/LICENSE).

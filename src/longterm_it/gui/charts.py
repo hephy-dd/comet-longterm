@@ -1,27 +1,26 @@
-import logging
 import math
+from typing import Iterable
 
 from PyQt5 import QtCore, QtGui
 from QCharted import Chart
 
 __all__ = [
-    'IVChart',
-    'ItChart',
-    'CtsChart',
-    'IVTempChart',
-    'ItTempChart',
-    'ShuntBoxChart',
-    'IVSourceChart',
-    'ItSourceChart'
+    "IVChart",
+    "ItChart",
+    "CtsChart",
+    "IVTempChart",
+    "ItTempChart",
+    "ShuntBoxChart",
+    "IVSourceChart",
+    "ItSourceChart",
 ]
 
-logger = logging.getLogger(__name__)
+DateTimeFormat = "dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss"
 
-DateTimeFormat = 'dd-MM-yyyy<br/>&#160;&#160;&#160;hh:mm:ss'
 
 class IVChart(Chart):
 
-    def __init__(self, sensors):
+    def __init__(self, sensors: Iterable) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -41,28 +40,31 @@ class IVChart(Chart):
             self.ivSeries[sensor.index] = series
         self.load(sensors)
 
-    def load(self, sensors):
+    def load(self, sensors: Iterable) -> None:
         for sensor in sensors:
             series = self.ivSeries.get(sensor.index)
-            series.data().clear()
-            series.setName(format(sensor.name))
-            series.setPen(QtGui.QColor(sensor.color))
-            series.setVisible(sensor.enabled)
+            if series is not None:
+                series.data().clear()
+                series.setName(format(sensor.name))
+                series.setPen(QtGui.QColor(sensor.color))
+                series.setVisible(sensor.enabled)
         self.fit()
 
-    def append(self, reading):
-        voltage = abs(reading.get('U')) # absolute (can be negative)
-        for channel in reading.get('channels').values():
-            series = self.ivSeries.get(channel.get('index'))
-            series.data().append(voltage, channel.get('I') * 1000 * 1000) # a to uA
+    def append(self, reading: dict) -> None:
+        voltage = abs(reading.get("U", math.nan))  # absolute (can be negative)
+        for channel in reading.get("channels", {}).values():
+            series = self.ivSeries.get(channel.get("index"))
+            if series is not None:
+                series.data().append(voltage, channel.get("I", math.nan) * 1000 * 1000)  # a to uA
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
 
+
 class ItChart(Chart):
 
-    def __init__(self, sensors):
+    def __init__(self, sensors: Iterable) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -74,34 +76,37 @@ class ItChart(Chart):
         self.axisY.setTitleText("Current uA")
         self.axisY.setRange(0, 100)
 
-        self.itSeries = {}
+        self.itSeries: dict = {}
         for sensor in sensors:
             series = self.addLineSeries(self.axisX, self.axisY)
             self.itSeries[sensor.index] = series
         self.load(sensors)
 
-    def load(self, sensors):
+    def load(self, sensors: Iterable) -> None:
         for sensor in sensors:
             series = self.itSeries.get(sensor.index)
-            series.data().clear()
-            series.setName(format(sensor.name))
-            series.setPen(QtGui.QColor(sensor.color))
-            series.setVisible(sensor.enabled)
+            if series is not None:
+                series.data().clear()
+                series.setName(format(sensor.name))
+                series.setPen(QtGui.QColor(sensor.color))
+                series.setVisible(sensor.enabled)
         self.fit()
 
-    def append(self, reading):
-        ts = reading.get('time')
-        for channel in reading.get('channels').values():
-            series = self.itSeries.get(channel.get('index'))
-            series.data().append(ts, channel.get('I') * 1000 * 1000) # A to uA
+    def append(self, reading: dict) -> None:
+        ts = reading.get("time", 0)
+        for channel in reading.get("channels", {}).values():
+            series = self.itSeries.get(channel.get("index"))
+            if series is not None:
+                series.data().append(ts, channel.get("I", math.nan) * 1000 * 1000)  # A to uA
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
 
+
 class CtsChart(Chart):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -141,25 +146,26 @@ class CtsChart(Chart):
         self.ctsProgramSeries.setName("Running")
         self.ctsProgramSeries.setPen(self.axisY3.linePenColor())
 
-    def reset(self):
+    def reset(self) -> None:
         self.ctsTempSeries.data().clear()
         self.ctsHumidSeries.data().clear()
         self.ctsProgramSeries.data().clear()
         self.fit()
 
-    def append(self, reading):
-        ts = reading.get('time')
-        self.ctsTempSeries.data().append(ts, reading.get('temp'))
-        self.ctsHumidSeries.data().append(ts, reading.get('humid'))
-        self.ctsProgramSeries.data().append(ts, reading.get('running') != 0)
+    def append(self, reading: dict) -> None:
+        ts = reading.get("time", 0)
+        self.ctsTempSeries.data().append(ts, reading.get("temp", math.nan))
+        self.ctsHumidSeries.data().append(ts, reading.get("humid", math.nan))
+        self.ctsProgramSeries.data().append(ts, reading.get("running", False) != 0)
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
 
+
 class IVTempChart(Chart):
 
-    def __init__(self, sensors):
+    def __init__(self, sensors: Iterable) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -174,38 +180,42 @@ class IVTempChart(Chart):
         self.axisY.setTitleText("Temp")
         self.axisY.setRange(0, 100)
 
-        self.tempSeries = {}
+        self.tempSeries: dict = {}
         for sensor in sensors:
             series = self.addLineSeries(self.axisX, self.axisY)
             self.tempSeries[sensor.index] = series
         self.load(sensors)
 
-    def load(self, sensors):
+    def load(self, sensors: Iterable) -> None:
         for sensor in sensors:
-            series = self.tempSeries[sensor.index]
-            series.data().clear()
-            series.setName(format(sensor.name))
-            series.setPen(QtGui.QColor(sensor.color))
-            series.setVisible(sensor.enabled)
+            series = self.tempSeries.get(sensor.index)
+            if series is not None:
+                series.data().clear()
+                series.setName(format(sensor.name))
+                series.setPen(QtGui.QColor(sensor.color))
+                series.setVisible(sensor.enabled)
         self.fit()
 
-    def append(self, reading):
-        ts = reading.get('time')
-        for channel in reading.get('channels').values():
-            series = self.tempSeries.get(channel.get('index'))
-            if channel.get('temp') is not None:
-                # watch out!
-                if not math.isnan(channel.get('temp')):
-                    series.data().append(ts, channel.get('temp'))
+    def append(self, reading: dict) -> None:
+        ts = reading.get("time", 0)
+        for channel in reading.get("channels", {}).values():
+            series = self.tempSeries.get(channel.get("index"))
+            if series is not None:
+                if channel.get("temp", math.nan) is not None:
+                    # watch out!
+                    if not math.isnan(channel.get("temp", math.nan)):
+                        series.data().append(ts, channel.get("temp", math.nan))
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
+
 
 class ItTempChart(IVTempChart):
 
-    pass
+    ...
+
 
 class ShuntBoxChart(Chart):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -229,18 +239,19 @@ class ShuntBoxChart(Chart):
         self.memorySeries = self.addLineSeries(self.axisX, self.axisY2)
         self.memorySeries.setName("Memory")
 
-    def append(self, reading):
-        ts = reading.get('time')
-        self.uptimeSeries.data().append(ts, reading.get('shuntbox').get('uptime'))
-        self.memorySeries.data().append(ts, reading.get('shuntbox').get('memory'))
+    def append(self, reading: dict) -> None:
+        ts = reading.get("time", 0)
+        self.uptimeSeries.data().append(ts, reading.get("shuntbox", {}).get("uptime", 0))
+        self.memorySeries.data().append(ts, reading.get("shuntbox", {}).get("memory", 0))
         if self.isZoomed():
             self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
         else:
             self.fit()
 
+
 class IVSourceChart(Chart):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -257,19 +268,20 @@ class IVSourceChart(Chart):
         self.ivSeries.setName("SMU")
         self.ivSeries.setPen(QtGui.QColor("red"))
 
-    def append(self, reading):
-        voltage = abs(reading.get('U')) # absolute (can be negative)
-        current = reading.get('I') * 1e6 # A to uA
+    def append(self, reading: dict) -> None:
+        voltage = abs(reading.get("U", math.nan))  # absolute (can be negative)
+        current = reading.get("I", math.nan) * 1e6  # A to uA
         self.ivSeries.data().append(voltage, current)
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
-    def reset(self):
+    def reset(self) -> None:
         self.ivSeries.data().clear()
         self.fit()
 
+
 class ItSourceChart(Chart):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.legend().setAlignment(QtCore.Qt.AlignRight)
 
@@ -284,12 +296,12 @@ class ItSourceChart(Chart):
         self.itSeries.setName("SMU")
         self.itSeries.setPen(QtGui.QColor("red"))
 
-    def append(self, reading):
-        ts = reading.get('time')
-        current = reading.get('I') * 1e6 # A to uA
+    def append(self, reading: dict) -> None:
+        ts = reading.get("time", 0)
+        current = reading.get("I", math.nan) * 1e6  # A to uA
         self.itSeries.data().append(ts, current)
         self.updateAxis(self.axisX, self.axisX.min(), self.axisX.max())
 
-    def reset(self):
+    def reset(self) -> None:
         self.itSeries.data().clear()
         self.fit()
