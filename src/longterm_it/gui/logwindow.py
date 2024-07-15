@@ -2,6 +2,7 @@ import logging
 import threading
 import html
 from datetime import datetime
+from typing import Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -10,27 +11,27 @@ __all__ = ["LogWindow", "LogWidget"]
 
 class LogHandlerObject(QtCore.QObject):
 
-    message = QtCore.pyqtSignal(object)
+    message = QtCore.pyqtSignal(logging.LogRecord)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
 
 class LogHandler(logging.Handler):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__()
         self.object = LogHandlerObject(parent)
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         self.object.message.emit(record)
 
 
 class LogWidget(QtWidgets.QTextEdit):
 
-    MaximumEntries = 1024 * 1024
+    MaximumEntries: int = 1024 * 1024
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setReadOnly(True)
         self.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
@@ -38,27 +39,27 @@ class LogWidget(QtWidgets.QTextEdit):
         self.handler = LogHandler(self)
         self.handler.object.message.connect(self.appendRecord)
         self.setLevel(logging.INFO)
-        self.__entries = 0
+        self.__entries: int = 0
 
     @property
-    def entries(self):
+    def entries(self) -> int:
         return self.__entries
 
-    def setLevel(self, level):
+    def setLevel(self, level) -> None:
         self.handler.setLevel(level)
 
-    def addLogger(self, logger):
+    def addLogger(self, logger: logging.Logger) -> None:
         logger.addHandler(self.handler)
 
-    def removeLogger(self, logger):
+    def removeLogger(self, logger: logging.Logger) -> None:
         logger.removeHandler(self.handler)
 
-    def toBottom(self):
+    def toBottom(self) -> None:
         scrollbar = self.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    @QtCore.pyqtSlot(object)
-    def appendRecord(self, record):
+    @QtCore.pyqtSlot(logging.LogRecord)
+    def appendRecord(self, record: logging.LogRecord) -> None:
         with self.mutex:
             # Clear when exceeding maximum allowed entries...
             if self.entries > self.MaximumEntries:
@@ -79,17 +80,17 @@ class LogWidget(QtWidgets.QTextEdit):
             else:
                 scrollbar.setValue(current_pos)
 
-    def clear(self):
+    def clear(self) -> None:
         super().clear()
         self.__entries = 0
 
     @classmethod
-    def formatTime(cls, seconds):
+    def formatTime(cls, seconds: float) -> str:
         dt = datetime.fromtimestamp(seconds)
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @classmethod
-    def formatRecord(cls, record):
+    def formatRecord(cls, record: logging.LogRecord) -> str:
         if record.levelno >= logging.ERROR:
             color = "red"
         elif record.levelno >= logging.WARNING:
@@ -106,40 +107,42 @@ class LogWidget(QtWidgets.QTextEdit):
 
 class LogWindow(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Logging"))
+
         self.logHeader = QtWidgets.QLabel()
         self.logHeader.setTextFormat(QtCore.Qt.RichText)
         self.logHeader.setText(
             '<span style="white-space:pre">Time\t\tLevel\tMessage</span>'
         )
+
         self.logWidget = LogWidget()
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setStandardButtons(self.buttonBox.Close)
         self.buttonBox.rejected.connect(lambda: self.hide())
-        layout = QtWidgets.QGridLayout()
+
+        layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.logHeader)
         layout.addWidget(self.logWidget)
         layout.addWidget(self.buttonBox)
-        self.setLayout(layout)
 
-    def setLevel(self, level):
+    def setLevel(self, level) -> None:
         self.logWidget.setLevel(level)
 
-    def addLogger(self, logger):
+    def addLogger(self, logger: logging.Logger) -> None:
         self.logWidget.addLogger(logger)
 
-    def removeLogger(self, logger):
+    def removeLogger(self, logger: logging.Logger) -> None:
         self.logWidget.removeLogger(logger)
 
-    def toBottom(self):
+    def toBottom(self) -> None:
         self.logWidget.toBottom()
 
     @QtCore.pyqtSlot()
-    def clear(self):
+    def clear(self) -> None:
         self.logWidget.clear()
 
-    @QtCore.pyqtSlot(object)
-    def appendRecord(self, record):
+    @QtCore.pyqtSlot(logging.LogRecord)
+    def appendRecord(self, record: logging.LogRecord) -> None:
         self.logWidget.appendRecord(record)

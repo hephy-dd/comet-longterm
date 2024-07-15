@@ -41,7 +41,7 @@ def get_driver(name: str) -> Callable:
     raise ValueError(f"no such driver: {name!r}")
 
 
-def parse_reading(s):  #TODO
+def parse_reading(s):  # TODO
     """Returns list of dictionaries containing reading values."""
     readings = []
     # split '-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#,...'
@@ -68,7 +68,7 @@ class EnvironWorker(QtCore.QObject):
     failed = QtCore.pyqtSignal(Exception)
     reading = QtCore.pyqtSignal(dict)
 
-    def __init__(self, resources, parent=None) -> None:
+    def __init__(self, resources, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
         self.resources = resources
         self.abort_requested = threading.Event()
@@ -152,7 +152,7 @@ class MeasureWorker(QtCore.QObject):
     itReading = QtCore.pyqtSignal(object)
     smuReading = QtCore.pyqtSignal(object)
 
-    def __init__(self, resources, parent=None) -> None:
+    def __init__(self, resources, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
         self.abort_requested = threading.Event()
         self.resources = resources
@@ -178,6 +178,7 @@ class MeasureWorker(QtCore.QObject):
             "dmm.filter.count": 0,
             "dmm.channels.slot": 1,
             "dmm.channels.offset": 0,
+            "dmm.trigger.delay_auto": True,
             "dmm.trigger.delay": 0,
         })
 
@@ -546,15 +547,23 @@ class MeasureWorker(QtCore.QObject):
         if int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip()) != dmm_filter_count:
             raise RuntimeError("failed to configure dmm.filter.count")
 
-        dmm_trigger_delay = self.params.get("dmm.trigger.delay", 0)
-        logger.info("dmm.trigger.delay: %s", dmm_trigger_delay)
-        multi.resource.write(f":TRIG:DEL:AUTO OFF")
-        multi.resource.query("*OPC?")
-        multi.resource.write(f":TRIG:DEL {dmm_trigger_delay:E}")
+        dmm_trigger_delay_auto = self.params.get("dmm.trigger.delay_auto", False)
+        logger.info("dmm.trigger.delay_auto: %s", dmm_trigger_delay_auto)
+        multi.resource.write(f":TRIG:DEL:AUTO {dmm_trigger_delay_auto:d}")
         multi.resource.query("*OPC?")
 
-        if float(multi.resource.query(":TRIG:DEL?").strip()) != dmm_trigger_delay:
-            raise RuntimeError("failed to configure dmm.trigger.delay")
+        if bool(int(multi.resource.query(":TRIG:DEL:AUTO?").strip())) != dmm_trigger_delay_auto:
+            raise RuntimeError("failed to configure dmm.trigger.delay_auto")
+
+        dmm_trigger_delay = self.params.get("dmm.trigger.delay", 0)
+        logger.info("dmm.trigger.delay: %s", dmm_trigger_delay)
+
+        if not dmm_trigger_delay_auto:
+            multi.resource.write(f":TRIG:DEL {dmm_trigger_delay:E}")
+            multi.resource.query("*OPC?")
+
+            if float(multi.resource.query(":TRIG:DEL?").strip()) != dmm_trigger_delay:
+                raise RuntimeError("failed to configure dmm.trigger.delay")
 
         self.showMessage("Setup source unit")
         self.showProgress(2, 3)

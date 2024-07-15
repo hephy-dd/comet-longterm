@@ -17,6 +17,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
     average_type = "REP"
     average_count = 10
 
+    trigger_delay_auto = True
     trigger_delay = 0.0
 
     def recv(self, n):
@@ -46,7 +47,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
                 elif re.match(r"\*ESR\?", data):
                     self.send("1")
 
-                elif re.match(r"\:SYST\:ERR\?", data):
+                elif re.match(r"\:SYST\:ERR(\:NEXT)?\?", data):
                     self.send('0,"no error"')
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\?", data):
@@ -77,6 +78,15 @@ class K2700Handler(socketserver.BaseRequestHandler):
 
                 elif re.match(r"\:?READ\?", data):
                     self.send(",".join(["0.000024"] * type(self).channels))
+
+                elif re.match(r"\:?TRIG:DEL:AUTO\?", data):
+                    self.send("{:d}".format(type(self).trigger_delay_auto))
+
+                elif re.match(r"\:?TRIG:DEL:AUTO\s+(OFF|ON|0|1)", data):
+                    value = {"OFF": False, "ON": True, "0": False, "1": True}.get(data.split()[-1], False)
+                    import logging
+                    logging.warning("!!!!! %s (%s)", value, data)
+                    type(self).trigger_delay_auto = value
 
                 elif re.match(r"\:?TRIG:DEL\?", data):
                     self.send("{:E}".format(type(self).trigger_delay))

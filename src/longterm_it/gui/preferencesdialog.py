@@ -5,16 +5,30 @@ from PyQt5 import QtCore, QtWidgets
 from ..utils import escape_string, unescape_string
 
 
-class ResourcesTab(QtWidgets.QWidget):
+class PreferencesWidget(QtWidgets.QWidget):
+
+    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+        self.context: dict = context
+
+    def readSettings(self, settings: QtCore.QSettings) -> None:
+        ...
+
+    def writeSettings(self, settings: QtCore.QSettings) -> None:
+        ...
+
+
+class ResourcesWidget(PreferencesWidget):
 
     DefaultReadTermination = "\r\n"
     DefaultWriteTermination = "\r\n"
     DefaultTimeout = 2000
     DefaultVisaLibrary = "@py"
 
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
+    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(context, parent)
         self.setWindowTitle(self.tr("Resources"))
+
         self.treeWidget = QtWidgets.QTreeWidget()
         self.treeWidget.setColumnCount(2)
         item = self.treeWidget.headerItem()
@@ -25,14 +39,15 @@ class ResourcesTab(QtWidgets.QWidget):
             lambda item, column: self.editResource()
         )
         self.treeWidget.itemSelectionChanged.connect(self.selectionChanged)
+
         self.editButton = QtWidgets.QPushButton(self.tr("&Edit"))
         self.editButton.setEnabled(False)
         self.editButton.clicked.connect(self.editResource)
-        layout = QtWidgets.QGridLayout()
+
+        layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.treeWidget, 0, 0, 2, 1)
         layout.addWidget(self.editButton, 0, 1)
         layout.addItem(QtWidgets.QSpacerItem(0, 0), 1, 1)
-        self.setLayout(layout)
 
     def resources(self) -> dict:
         """Returns dictionary of resource options."""
@@ -131,30 +146,63 @@ class ResourcesTab(QtWidgets.QWidget):
         if item:
             self.editButton.setEnabled(item.parent() is not None)
 
+    def readSettings(self, settings: QtCore.QSettings) -> None:
+        resources: dict = {}
+        for name, resource in self.context.get("resources", {}).items():
+            options = {}
+            options["resource_name"] = resource.resource_name
+            options["read_termination"] = resource.options.get(
+                "read_termination", self.DefaultReadTermination
+            )
+            options["write_termination"] = resource.options.get(
+                "write_termination", self.DefaultWriteTermination
+            )
+            options["timeout"] = resource.options.get(
+                "timeout", self.DefaultTimeout
+            )
+            options["visa_library"] = resource.visa_library
+            resources[name] = options
+        # Migrate old style settings (<= 0.12.x)
+        if not settings.value("resources2", {}, dict):
+            for name, resource_name in settings.value("resources", {}, dict).items():
+                resources.update({name: {"resource_name": resource_name}})
+        for name, options in settings.value("resources2", {}, dict).items():
+            if name in resources:
+                for key, value in options.items():
+                    resources[name][key] = value
+        self.setResources(resources)
 
-class OperatorsTab(QtWidgets.QWidget):
+    def writeSettings(self, settings: QtCore.QSettings) -> None:
+        settings.setValue("resources2", self.resources())
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
-        super().__init__(parent)
+
+class OperatorsWidget(PreferencesWidget):
+
+    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(context, parent)
         self.setWindowTitle(self.tr("Operators"))
-        self.listWidget = QtWidgets.QListWidget()
+
+        self.listWidget = QtWidgets.QListWidget(self)
         self.listWidget.itemDoubleClicked.connect(self.editOperator)
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
-        self.addButton = QtWidgets.QPushButton(self.tr("&Add"))
+
+        self.addButton = QtWidgets.QPushButton(self.tr("&Add"), self)
         self.addButton.clicked.connect(self.addOperator)
-        self.editButton = QtWidgets.QPushButton(self.tr("&Edit"))
+
+        self.editButton = QtWidgets.QPushButton(self.tr("&Edit"), self)
         self.editButton.setEnabled(False)
         self.editButton.clicked.connect(self.editOperator)
-        self.removeButton = QtWidgets.QPushButton(self.tr("&Remove"))
+
+        self.removeButton = QtWidgets.QPushButton(self.tr("&Remove"), self)
         self.removeButton.setEnabled(False)
         self.removeButton.clicked.connect(self.removeOperator)
-        layout = QtWidgets.QGridLayout()
+
+        layout = QtWidgets.QGridLayout(self)
         layout.addWidget(self.listWidget, 0, 0, 4, 1)
         layout.addWidget(self.addButton, 0, 1)
         layout.addWidget(self.editButton, 1, 1)
         layout.addWidget(self.removeButton, 2, 1)
         layout.addItem(QtWidgets.QSpacerItem(0, 0), 3, 1)
-        self.setLayout(layout)
 
     def operators(self) -> list[str]:
         """Returns list of operators."""
@@ -207,72 +255,49 @@ class OperatorsTab(QtWidgets.QWidget):
         self.editButton.setEnabled(item is not None)
         self.removeButton.setEnabled(item is not None)
 
+    def readSettings(self, settings: QtCore.QSettings) -> None:
+        operators = settings.value("operators", [], list)
+        self.setOperators(operators)
+
+    def writeSettings(self, settings: QtCore.QSettings) -> None:
+        settings.setValue("operators", self.operators())
+
 
 class PreferencesDialog(QtWidgets.QDialog):
 
-    def __init__(self, resources, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
-        self.resources = resources
         self.setWindowTitle(self.tr("Preferences"))
         self.resize(480, 320)
-        self.tabWidget = QtWidgets.QTabWidget()
-        self.resourcesTab = ResourcesTab()
-        self.tabWidget.addTab(self.resourcesTab, self.resourcesTab.windowTitle())
-        self.operatorsTab = OperatorsTab()
-        self.tabWidget.addTab(self.operatorsTab, self.operatorsTab.windowTitle())
+
+        self.resourcesWidget = ResourcesWidget(context, self)
+        self.operatorsWidget = OperatorsWidget(context, self)
+
+        self.tabWidget = QtWidgets.QTabWidget(self)
+        self.tabWidget.addTab(self.resourcesWidget, self.resourcesWidget.windowTitle())
+        self.tabWidget.addTab(self.operatorsWidget, self.operatorsWidget.windowTitle())
+
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
-        self.buttonBox.accepted.connect(self.handleAccept)
+        self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        layout = QtWidgets.QVBoxLayout()
+
+        layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.tabWidget)
         layout.addWidget(self.buttonBox)
-        self.setLayout(layout)
-        self.loadSettings()
 
-    @QtCore.pyqtSlot()
-    def handleAccept(self) -> None:
-        self.saveSettings()
-        QtWidgets.QMessageBox.information(
-            self,
-            self.tr("Preferences"),
-            self.tr("Application restart required for changes to take effect."),
-        )
-        self.accept()
-
-    def saveSettings(self) -> None:
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
-        settings.setValue("operators", self.operatorsTab.operators())
-        settings.setValue("resources2", self.resourcesTab.resources())
+        for index in range(self.tabWidget.count()):
+            widget = self.tabWidget.widget(index)
+            if isinstance(widget, PreferencesWidget):
+                widget.readSettings(settings)
 
-    def loadSettings(self) -> None:
-        resources = {}
-        for name, resource in self.resources.items():
-            options = {}
-            options["resource_name"] = resource.resource_name
-            options["read_termination"] = resource.options.get(
-                "read_termination", ResourcesTab.DefaultReadTermination
-            )
-            options["write_termination"] = resource.options.get(
-                "write_termination", ResourcesTab.DefaultWriteTermination
-            )
-            options["timeout"] = resource.options.get(
-                "timeout", ResourcesTab.DefaultTimeout
-            )
-            options["visa_library"] = resource.visa_library
-            resources[name] = options
-        # Update default resources with stored settings
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
-        # Migrate old style settings (<= 0.12.x)
-        if not settings.value("resources2", {}, dict):
-            for name, resource_name in settings.value("resources", {}, dict).items():
-                resources.update({name: {"resource_name": resource_name}})
-        for name, options in settings.value("resources2", {}, dict).items():
-            if name in resources:
-                for key, value in options.items():
-                    resources[name][key] = value
-        self.resourcesTab.setResources(resources)
-        operators = settings.value("operators", [], list)
-        self.operatorsTab.setOperators(operators)
+        for index in range(self.tabWidget.count()):
+            widget = self.tabWidget.widget(index)
+            if isinstance(widget, PreferencesWidget):
+                widget.writeSettings(settings)

@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -20,7 +21,7 @@ class ControlsWidget(QtWidgets.QWidget):
     itDurationChanged = QtCore.pyqtSignal(float)
     itIntervalChanged = QtCore.pyqtSignal(float)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Controls")
 
@@ -101,17 +102,17 @@ class ControlsWidget(QtWidgets.QWidget):
         self.singleComplianceLabel = QtWidgets.QLabel()
         self.singleComplianceLabel.setText("Single Compliance")
 
-        layout = QtWidgets.QGridLayout(self.complGroupBox)
-        layout.addWidget(self.totalComplianceLabel, 2, 0, 1, 1)
-        layout.addWidget(self.totalComplianceSpinBox, 3, 0, 1, 1)
-        layout.addWidget(self.singleComplianceLabel, 4, 0, 1, 1)
-        layout.addWidget(self.singleComplianceSpinBox, 5, 0, 1, 1)
-        layout.addWidget(self.continueInComplianceCheckBox, 6, 0, 1, 1)
+        complGroupBoxLayout = QtWidgets.QGridLayout(self.complGroupBox)
+        complGroupBoxLayout.addWidget(self.totalComplianceLabel, 2, 0, 1, 1)
+        complGroupBoxLayout.addWidget(self.totalComplianceSpinBox, 3, 0, 1, 1)
+        complGroupBoxLayout.addWidget(self.singleComplianceLabel, 4, 0, 1, 1)
+        complGroupBoxLayout.addWidget(self.singleComplianceSpinBox, 5, 0, 1, 1)
+        complGroupBoxLayout.addWidget(self.continueInComplianceCheckBox, 6, 0, 1, 1)
 
         spacerItem1 = QtWidgets.QSpacerItem(
             20, 12, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
         )
-        layout.addItem(spacerItem1, 7, 0, 1, 1)
+        complGroupBoxLayout.addItem(spacerItem1, 7, 0, 1, 1)
 
         self.ivEndVoltageLabel = QtWidgets.QLabel()
         self.ivEndVoltageLabel.setText("End Voltage")
@@ -147,17 +148,17 @@ class ControlsWidget(QtWidgets.QWidget):
         self.ivGroupBox.setTitle("IV Ramp")
         self.ivGroupBox.setMinimumWidth(140)
 
-        layout = QtWidgets.QGridLayout(self.ivGroupBox)
-        layout.addWidget(self.ivEndVoltageLabel, 0, 0, 1, 1)
-        layout.addWidget(self.ivEndVoltageSpinBox, 1, 0, 1, 1)
-        layout.addWidget(self.ivStepLabel, 2, 0, 1, 1)
-        layout.addWidget(self.ivStepSpinBox, 3, 0, 1, 1)
-        layout.addWidget(self.ivDelayLabel, 4, 0, 1, 1)
-        layout.addWidget(self.ivDelaySpinBox, 5, 0, 1, 1)
+        ivGroupBoxLayout = QtWidgets.QGridLayout(self.ivGroupBox)
+        ivGroupBoxLayout.addWidget(self.ivEndVoltageLabel, 0, 0, 1, 1)
+        ivGroupBoxLayout.addWidget(self.ivEndVoltageSpinBox, 1, 0, 1, 1)
+        ivGroupBoxLayout.addWidget(self.ivStepLabel, 2, 0, 1, 1)
+        ivGroupBoxLayout.addWidget(self.ivStepSpinBox, 3, 0, 1, 1)
+        ivGroupBoxLayout.addWidget(self.ivDelayLabel, 4, 0, 1, 1)
+        ivGroupBoxLayout.addWidget(self.ivDelaySpinBox, 5, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(
             20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
         )
-        layout.addItem(spacerItem, 6, 0, 1, 1)
+        ivGroupBoxLayout.addItem(spacerItem, 6, 0, 1, 1)
 
         self.biasVoltageSpinBox = QtWidgets.QDoubleSpinBox()
         self.biasVoltageSpinBox.setDecimals(1)
@@ -190,27 +191,27 @@ class ControlsWidget(QtWidgets.QWidget):
         self.itGroupBox.setTitle("It Longterm")
         self.itGroupBox.setMinimumWidth(140)
 
-        layout = QtWidgets.QGridLayout(self.itGroupBox)
-        layout.addWidget(self.biasComplianceLabel, 0, 0, 1, 1)
-        layout.addWidget(self.biasVoltageSpinBox, 1, 0, 1, 1)
-        layout.addWidget(self.itDurationLabel, 2, 0, 1, 1)
-        layout.addWidget(self.itDurationSpinBox, 3, 0, 1, 1)
-        layout.addWidget(self.itIntervalLabel, 4, 0, 1, 1)
-        layout.addWidget(self.itIntervalSpinBox, 5, 0, 1, 1)
+        itGroupBoxLayout = QtWidgets.QGridLayout(self.itGroupBox)
+        itGroupBoxLayout.addWidget(self.biasComplianceLabel, 0, 0, 1, 1)
+        itGroupBoxLayout.addWidget(self.biasVoltageSpinBox, 1, 0, 1, 1)
+        itGroupBoxLayout.addWidget(self.itDurationLabel, 2, 0, 1, 1)
+        itGroupBoxLayout.addWidget(self.itDurationSpinBox, 3, 0, 1, 1)
+        itGroupBoxLayout.addWidget(self.itIntervalLabel, 4, 0, 1, 1)
+        itGroupBoxLayout.addWidget(self.itIntervalSpinBox, 5, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(
             20, 89, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
         )
-        layout.addItem(spacerItem, 6, 0, 1, 1)
+        itGroupBoxLayout.addItem(spacerItem, 6, 0, 1, 1)
 
         self.generalWidget = QtWidgets.QWidget()
 
-        layout = QtWidgets.QHBoxLayout(self.generalWidget)
-        layout.addWidget(self.complGroupBox)
-        layout.addWidget(self.ivGroupBox)
-        layout.addWidget(self.itGroupBox)
-        layout.setStretch(0, 1)
-        layout.setStretch(1, 1)
-        layout.setStretch(2, 1)
+        generalWidgetLayout = QtWidgets.QHBoxLayout(self.generalWidget)
+        generalWidgetLayout.addWidget(self.complGroupBox)
+        generalWidgetLayout.addWidget(self.ivGroupBox)
+        generalWidgetLayout.addWidget(self.itGroupBox)
+        generalWidgetLayout.setStretch(0, 1)
+        generalWidgetLayout.setStretch(1, 1)
+        generalWidgetLayout.setStretch(2, 1)
 
         self.smuWidget = SMUWidget()
 
@@ -234,8 +235,8 @@ class ControlsWidget(QtWidgets.QWidget):
         self.operatorGroupBox.setTitle("Operator")
         self.operatorGroupBox.setMaximumWidth(220)
 
-        layout = QtWidgets.QHBoxLayout(self.operatorGroupBox)
-        layout.addWidget(self.operatorComboBox)
+        operatorGroupBoxLayout = QtWidgets.QHBoxLayout(self.operatorGroupBox)
+        operatorGroupBoxLayout.addWidget(self.operatorComboBox)
 
         # Output path
 
@@ -248,21 +249,20 @@ class ControlsWidget(QtWidgets.QWidget):
         self.pathGroupBox = QtWidgets.QGroupBox()
         self.pathGroupBox.setTitle("Output Path")
 
-        layout = QtWidgets.QHBoxLayout(self.pathGroupBox)
-
-        layout.addWidget(self.pathComboBox)
-        layout.addWidget(self.selectPathPushButton)
+        pathGroupBoxLayout = QtWidgets.QHBoxLayout(self.pathGroupBox)
+        pathGroupBoxLayout.addWidget(self.pathComboBox)
+        pathGroupBoxLayout.addWidget(self.selectPathPushButton)
 
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.addWidget(self.operatorGroupBox)
         self.horizontalLayout.addWidget(self.pathGroupBox)
 
-        self.gridLayout = QtWidgets.QGridLayout(self)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout.addLayout(self.controlLayout, 0, 0, 1, 1)
-        self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
-        self.gridLayout.addLayout(self.horizontalLayout, 2, 0, 1, 2)
-        self.gridLayout.setRowStretch(1, 1)
+        layout = QtWidgets.QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(self.controlLayout, 0, 0, 1, 1)
+        layout.addWidget(self.tabWidget, 0, 1, 1, 1)
+        layout.addLayout(self.horizontalLayout, 2, 0, 1, 2)
+        layout.setRowStretch(1, 1)
 
         self.setTabOrder(self.startPushButton, self.stopPushButton)
         self.setTabOrder(self.stopPushButton, self.totalComplianceSpinBox)
@@ -323,7 +323,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.onIvEndVoltageChanged()
         self.onTotalComplianceChanged()
 
-    def onIvEndVoltageChanged(self):
+    def onIvEndVoltageChanged(self) -> None:
         """Syncronize bias voltage and step with end voltage limit."""
         bias = self.biasVoltageSpinBox.value()
         if self.ivEndVoltage() < 0:
@@ -336,109 +336,109 @@ class ControlsWidget(QtWidgets.QWidget):
             self.biasVoltageSpinBox.setValue(abs(bias))
         self.ivStepSpinBox.setMaximum(abs(self.ivEndVoltage()))
 
-    def onTotalComplianceChanged(self):
+    def onTotalComplianceChanged(self) -> None:
         """Syncronize total/single compliance limit."""
         self.singleComplianceSpinBox.setMaximum(
             self.totalCompliance() * 1000 * 1000
         )  # in uA
 
-    def isEnvironEnabled(self):
+    def isEnvironEnabled(self) -> bool:
         """Returns True if use CTS is checked."""
         return self.ctsCheckBox.isChecked()
 
-    def setEnvironEnabled(self, value):
+    def setEnvironEnabled(self, value: bool) -> None:
         """Set use CTS enabled."""
         self.ctsCheckBox.setChecked(value)
 
-    def isShuntBoxEnabled(self):
+    def isShuntBoxEnabled(self) -> bool:
         """Returns True if use shunt box is checked."""
         return self.shuntBoxCheckBox.isChecked()
 
-    def setShuntBoxEnabled(self, value):
+    def setShuntBoxEnabled(self, value: bool) -> None:
         """Set shunt box enabled."""
         self.shuntBoxCheckBox.setChecked(value)
 
-    def ivEndVoltage(self):
+    def ivEndVoltage(self) -> float:
         """Returns IV ramp up end voltage in volts."""
         return self.ivEndVoltageSpinBox.value()
 
-    def setIvEndVoltage(self, value):
+    def setIvEndVoltage(self, value: float) -> None:
         """Set IV ramp up end voltage in volts."""
         self.ivEndVoltageSpinBox.setValue(value)
 
-    def ivStep(self):
+    def ivStep(self) -> float:
         """Returns IV ramp up step size in volts."""
         return self.ivStepSpinBox.value()
 
-    def setIvStep(self, value):
+    def setIvStep(self, value: float) -> None:
         """Set IV ramp up step size in volts."""
         self.ivStepSpinBox.setValue(value)
 
-    def ivDelay(self):
+    def ivDelay(self) -> float:
         """Returns IV measurement interval in seconds."""
         return self.ivDelaySpinBox.value() / 1000.0
 
-    def setIvDelay(self, value):
+    def setIvDelay(self, value: float) -> None:
         """Set IV measurement interval in seconds."""
         self.ivDelaySpinBox.setValue(value * 1000.0)
 
-    def biasVoltage(self):
+    def biasVoltage(self) -> float:
         """Returns It bias voltage in volts."""
         return self.biasVoltageSpinBox.value()
 
-    def setBiasVoltage(self, value):
+    def setBiasVoltage(self, value: float) -> None:
         """Set It bias voltage in volts."""
         self.biasVoltageSpinBox.setValue(value)
 
-    def totalCompliance(self):
+    def totalCompliance(self) -> float:
         """Returns total compliance in Ampere."""
         return self.totalComplianceSpinBox.value() / 1000 / 1000
 
-    def setTotalCompliance(self, value):
+    def setTotalCompliance(self, value: float) -> None:
         """Set total compliance in Ampere."""
         self.totalComplianceSpinBox.setValue(value * 1000 * 1000)
 
-    def singleCompliance(self):
+    def singleCompliance(self) -> float:
         """Returns single compliance in Ampere."""
         return self.singleComplianceSpinBox.value() / 1000 / 1000
 
-    def setSingleCompliance(self, value):
+    def setSingleCompliance(self, value: float) -> None:
         """Set single compliance in Ampere."""
         self.singleComplianceSpinBox.setValue(value * 1000 * 1000)
 
-    def continueInCompliance(self):
+    def continueInCompliance(self) -> bool:
         """Retruns True if continue in compliance is enabled."""
         return self.continueInComplianceCheckBox.isChecked()
 
-    def setContinueInCompliance(self, enabled):
+    def setContinueInCompliance(self, enabled: bool) -> None:
         """Set True if continue in compliance."""
         self.continueInComplianceCheckBox.setChecked(enabled)
 
-    def itDuration(self):
+    def itDuration(self) -> float:
         """Returns It duration in seconds or zero for unlimited duration."""
         return self.itDurationSpinBox.value() * 60 * 60
 
-    def setItDuration(self, value):
+    def setItDuration(self, value: float) -> None:
         """Set It duration in seconds or zero for unlimited duration."""
         self.itDurationSpinBox.setValue(value / 60 / 60)
 
-    def itInterval(self):
+    def itInterval(self) -> float:
         """Returns It measurement interval in seconds."""
         return self.itIntervalSpinBox.value()
 
-    def setItInterval(self, value):
+    def setItInterval(self, value: float) -> None:
         """Set It measurement interval in seconds."""
         self.itIntervalSpinBox.setValue(value)
 
-    def operator(self):
+    def operator(self) -> str:
         """Returns current operator."""
         return self.operatorComboBox.currentText()
 
-    def path(self):
+    def path(self) -> str:
         """Returns current absolute path."""
         return os.path.normpath(self.pathComboBox.currentText())
 
-    def loadSettings(self):
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
         home = os.path.join(os.path.expanduser("~"), "longterm")
         names = settings.value("operators") or []
@@ -485,9 +485,10 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
         self.dmmWidget.setChannelsSlot(settings.value("dmm/channels/slot", 1, type=int))
         self.dmmWidget.setChannelsOffset(settings.value("dmm/channels/offset", 0, type=int))
+        self.dmmWidget.setTriggerDelayAuto(settings.value("dmm/trigger/delayAuto", True, type=bool))
         self.dmmWidget.setTriggerDelay(settings.value("dmm/trigger/delay", 0, type=float))
 
-    def storeSettings(self):
+    def writeSettings(self):
         settings = QtCore.QSettings()
         settings.setValue("useEnviron", self.isEnvironEnabled())
         settings.setValue("useShuntBox", self.isShuntBoxEnabled())
@@ -508,6 +509,7 @@ class ControlsWidget(QtWidgets.QWidget):
         settings.setValue("dmm/filter/count", self.dmmWidget.filterCount())
         settings.setValue("dmm/channels/slot", self.dmmWidget.channelsSlot())
         settings.setValue("dmm/channels/offset", self.dmmWidget.channelsOffset())
+        settings.setValue("dmm/trigger/delayAuto", self.dmmWidget.triggerDelayAuto())
         settings.setValue("dmm/trigger/delay", self.dmmWidget.triggerDelay())
 
     @QtCore.pyqtSlot()
@@ -529,6 +531,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.filterCountSpinBox.setEnabled(False)
         self.dmmWidget.slotComboBox.setEnabled(False)
         self.dmmWidget.offsetSpinBox.setEnabled(False)
+        self.dmmWidget.triggerDelayAutoCheckBox.setEnabled(False)
         self.dmmWidget.triggerDelaySpinBox.setEnabled(False)
         self.operatorGroupBox.setEnabled(False)
         self.pathGroupBox.setEnabled(False)
@@ -552,14 +555,15 @@ class ControlsWidget(QtWidgets.QWidget):
         self.ivStepSpinBox.setEnabled(True)
         self.biasVoltageSpinBox.setEnabled(True)
         self.smuWidget.filterEnableComboBox.setEnabled(True)
-        self.smuWidget.filterTypeComboBox.setEnabled(True)
-        self.smuWidget.filterCountSpinBox.setEnabled(True)
+        self.smuWidget.filterTypeComboBox.setEnabled(self.smuWidget.filterEnable())
+        self.smuWidget.filterCountSpinBox.setEnabled(self.smuWidget.filterEnable())
         self.dmmWidget.filterEnableComboBox.setEnabled(True)
-        self.dmmWidget.filterTypeComboBox.setEnabled(True)
-        self.dmmWidget.filterCountSpinBox.setEnabled(True)
+        self.dmmWidget.filterTypeComboBox.setEnabled(self.dmmWidget.filterEnable())
+        self.dmmWidget.filterCountSpinBox.setEnabled(self.dmmWidget.filterEnable())
         self.dmmWidget.slotComboBox.setEnabled(True)
         self.dmmWidget.offsetSpinBox.setEnabled(True)
-        self.dmmWidget.triggerDelaySpinBox.setEnabled(True)
+        self.dmmWidget.triggerDelayAutoCheckBox.setEnabled(True)
+        self.dmmWidget.triggerDelaySpinBox.setEnabled(not self.dmmWidget.triggerDelayAuto())
         self.operatorGroupBox.setEnabled(True)
         self.pathGroupBox.setEnabled(True)
         self.halted.emit()
@@ -623,14 +627,14 @@ class SMUWidget(QtWidgets.QWidget):
         self.filterGroupBox.setTitle("Filter")
         self.filterGroupBox.setMinimumWidth(140)
 
-        layout = QtWidgets.QVBoxLayout(self.filterGroupBox)
-        layout.addWidget(self.filterEnableLabel)
-        layout.addWidget(self.filterEnableComboBox)
-        layout.addWidget(self.filterTypeLabel)
-        layout.addWidget(self.filterTypeComboBox)
-        layout.addWidget(self.filterCountLabel)
-        layout.addWidget(self.filterCountSpinBox)
-        layout.addStretch()
+        filterGroupBoxLayout = QtWidgets.QVBoxLayout(self.filterGroupBox)
+        filterGroupBoxLayout.addWidget(self.filterEnableLabel)
+        filterGroupBoxLayout.addWidget(self.filterEnableComboBox)
+        filterGroupBoxLayout.addWidget(self.filterTypeLabel)
+        filterGroupBoxLayout.addWidget(self.filterTypeComboBox)
+        filterGroupBoxLayout.addWidget(self.filterCountLabel)
+        filterGroupBoxLayout.addWidget(self.filterCountSpinBox)
+        filterGroupBoxLayout.addStretch()
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(self.filterGroupBox)
@@ -696,6 +700,7 @@ class DMMWidget(QtWidgets.QWidget):
     filterCountChanged = QtCore.pyqtSignal(int)
     channelsSlotChanged = QtCore.pyqtSignal(int)
     channelsOffsetChanged = QtCore.pyqtSignal(int)
+    triggerDelayAutoChanged = QtCore.pyqtSignal(bool)
     triggerDelayChanged = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
@@ -758,18 +763,22 @@ class DMMWidget(QtWidgets.QWidget):
         channelsGroupBoxLayout.addWidget(self.offsetLabel)
         channelsGroupBoxLayout.addWidget(self.offsetSpinBox)
 
+        self.triggerDelayAutoCheckBox = QtWidgets.QCheckBox(self)
+        self.triggerDelayAutoCheckBox.setText("Auto Delay")
+
         self.triggerDelayLabel = QtWidgets.QLabel(self)
         self.triggerDelayLabel.setText("Delay")
 
         self.triggerDelaySpinBox = QtWidgets.QDoubleSpinBox(self)
         self.triggerDelaySpinBox.setRange(0, 9999)
-        self.triggerDelaySpinBox.setDecimals(4)
+        self.triggerDelaySpinBox.setDecimals(3)
         self.triggerDelaySpinBox.setSuffix(" s")
 
         self.triggerGroupBox = QtWidgets.QGroupBox(self)
         self.triggerGroupBox.setTitle("Trigger")
 
         triggerGroupBoxLayout = QtWidgets.QVBoxLayout(self.triggerGroupBox)
+        triggerGroupBoxLayout.addWidget(self.triggerDelayAutoCheckBox)
         triggerGroupBoxLayout.addWidget(self.triggerDelayLabel)
         triggerGroupBoxLayout.addWidget(self.triggerDelaySpinBox)
         triggerGroupBoxLayout.addStretch()
@@ -789,6 +798,7 @@ class DMMWidget(QtWidgets.QWidget):
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
         self.slotComboBox.currentIndexChanged.connect(self.onChannelsSlotChanged)
         self.offsetSpinBox.editingFinished.connect(self.onFilterCountChanged)
+        self.triggerDelayAutoCheckBox.stateChanged.connect(self.onTriggerDelayAutoChanged)
         self.triggerDelaySpinBox.editingFinished.connect(self.onTriggerDelayChanged)
 
         self.onFilterEnableChanged()
@@ -835,6 +845,12 @@ class DMMWidget(QtWidgets.QWidget):
     def setChannelsOffset(self, offset: int) -> None:
         self.offsetSpinBox.setValue(offset)
 
+    def triggerDelayAuto(self) -> bool:
+        return self.triggerDelayAutoCheckBox.isChecked()
+
+    def setTriggerDelayAuto(self, enabled: bool) -> None:
+        self.triggerDelayAutoCheckBox.setChecked(enabled)
+
     def triggerDelay(self) -> float:
         return self.triggerDelaySpinBox.value()
 
@@ -863,6 +879,12 @@ class DMMWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def onChannelsOffsetChanged(self):
         self.channelsOffsetChanged.emit(self.channelsOffset())
+
+    @QtCore.pyqtSlot()
+    def onTriggerDelayAutoChanged(self):
+        enabled = self.triggerDelayAuto()
+        self.triggerDelayAutoChanged.emit(enabled)
+        self.triggerDelaySpinBox.setEnabled(not enabled)
 
     @QtCore.pyqtSlot()
     def onTriggerDelayChanged(self):

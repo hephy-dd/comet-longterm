@@ -1,4 +1,5 @@
-import datetime
+from datetime import datetime
+from typing import Optional
 
 __all__ = [
     "escape_string",
@@ -8,42 +9,42 @@ __all__ = [
 ]
 
 
-def escape_string(s):
+def escape_string(s: str) -> str:
     """Return string with encoded escaped special characters.
 
     >>> escape_string("\r\n")
     '\\r\\n'
     """
-    return s.encode('unicode-escape').decode()
+    return s.encode("unicode-escape").decode()
 
 
-def unescape_string(s):
+def unescape_string(s: str) -> str:
     """Return string with decoded escaped special characters.
 
     >>> unescape_string("\\r\\n")
     '\r\n'
     """
-    return bytes(s, encoding='ascii').decode('unicode-escape')
+    return bytes(s, encoding="ascii").decode("unicode-escape")
 
 
-def make_iso(dt=None):
-    """Returns filesystem safe ISO date time.
+def make_iso(dt: Optional[datetime] = None) -> str:
+    """Returns filesystem safe ISO date time (UTC).
     >>> make_iso()
     '2019-12-24T12-21-42'
     >>> make_iso(1423456789.8)
-    '2015-02-09T05-39-49'
+    '2015-02-09T04-39-49'
     """
     if dt is None:
-        dt = datetime.datetime.now()
-    if not isinstance(dt, datetime.datetime):
-        dt = datetime.datetime.fromtimestamp(dt)
+        dt = datetime.utcnow()
+    if not isinstance(dt, datetime):
+        dt = datetime.utcfromtimestamp(dt)
     return dt.replace(microsecond=0).isoformat().replace(":", "-")
 
 
-def auto_unit(value, unit, decimals=3):
+def auto_unit(value: float, unit: str, decimals: int = 3) -> str:
     """Auto format value to proper unit.
 
-    >>> auto_unit(.0042, 'A')
+    >>> auto_unit(.0042, "A")
     '4.200 mA'
     """
     scales = (

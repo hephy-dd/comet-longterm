@@ -13,14 +13,14 @@ from .gui.mainwindow import MainWindow
 logger = logging.getLogger(__name__)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", dest="verbose", action="store_true", help="show verbose information")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args()
 
 
-def create_loggers(level):
+def create_loggers(level) -> None:
     logger = logging.getLogger()
     formatter = logging.Formatter("%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S")
     handler = logging.StreamHandler()
@@ -29,7 +29,7 @@ def create_loggers(level):
     logger.setLevel(level)
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     # Set logging level
@@ -70,10 +70,10 @@ def main():
     window.logWindow.addLogger(logging.getLogger())
     window.logWindow.setLevel(level)
     controller = Controller(window)
-    controller.loadSettings()
+    controller.readSettings()
     window.show()
 
-    app.aboutToQuit.connect(controller.storeSettings)
+    app.aboutToQuit.connect(controller.writeSettings)
     app.exec()
 
 

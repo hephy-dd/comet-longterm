@@ -8,7 +8,7 @@ from .utils import make_iso
 class Writer:
     """CSV file writer for IV and It measurements."""
 
-    def __init__(self, fp):
+    def __init__(self, fp) -> None:
         self.fp = fp
         self.writer = csv.writer(fp)
 

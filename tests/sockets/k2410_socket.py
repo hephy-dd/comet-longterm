@@ -46,7 +46,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 elif re.match(r"\*ESR\?", data):
                     self.send("1")
 
-                elif re.match(r"\:SYST\:ERR\?", data):
+                elif re.match(r"\:SYST\:ERR(\:NEXT)?\?", data):
                     self.send('0,"no error"')
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\?", data):

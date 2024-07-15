@@ -1,11 +1,12 @@
 import logging
+from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..sensor import Sensor
 from ..utils import auto_unit
 
-Colors: list = [
+Colors: list[str] = [
     "#2a7fff",
     "#5fd3bc",
     "#ffd42a",
@@ -20,7 +21,7 @@ Colors: list = [
 ]
 """List of distinct colors used for plots."""
 
-CalibratedResistors: list = [
+CalibratedResistors: list[float] = [
     470160,
     471085,
     469315,
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 class HVDelegate(QtWidgets.QItemDelegate):
 
-    States = ["OFF", "ON"]
+    States: list[str] = ["OFF", "ON"]
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QComboBox(parent)
@@ -58,13 +59,13 @@ class HVDelegate(QtWidgets.QItemDelegate):
         model.setData(index, bool(editorIndex))
 
     @QtCore.pyqtSlot()
-    def currentIndexChanged(self):
+    def currentIndexChanged(self) -> None:
         self.commitData.emit(self.sender())
 
 
 class SensorsWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.sensors = SensorManager(SensorCount)
@@ -99,7 +100,7 @@ class SensorsWidget(QtWidgets.QWidget):
 
         self.verticalResizeTableView()
 
-    def verticalResizeTableView(self):
+    def verticalResizeTableView(self) -> None:
         """Resize table view to vertical content height."""
         rowTotalHeight = 0
         count = self.tableView.verticalHeader().count()
@@ -112,7 +113,7 @@ class SensorsWidget(QtWidgets.QWidget):
         rowTotalHeight += self.tableView.horizontalHeader().height()
         self.tableView.setMinimumHeight(rowTotalHeight)
 
-    def dataChanged(self):
+    def dataChanged(self) -> None:
         self.model.dataChanged.emit(
             self.model.createIndex(0, 1),
             self.model.createIndex(len(self.sensors), 4),
@@ -134,14 +135,20 @@ class SensorsWidget(QtWidgets.QWidget):
                     if ok:
                         sensor.temperature_offset = value
                         self.dataChanged()  # HACK keep updated
-                        self.sensors.storeSettings()
+                        self.sensors.writeSettings()
             except Exception as exc:
                 logger.exception(exc)
+
+    def readSettings(self) -> None:
+        self.sensors.readSettings()
+
+    def writeSettings(self) -> None:
+        self.sensors.writeSettings()
 
 
 class SensorsModel(QtCore.QAbstractTableModel):
 
-    columns = (
+    columns: list[str] = [
         "Sensor",
         "Status",
         "HV",
@@ -149,7 +156,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "Temp.",
         "Temp. Off.",
         "Calib.",
-    )
+    ]
 
     class Column:
         Name = 0
@@ -160,7 +167,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         TemperatureOffset = 5
         Resistivity = 6
 
-    def __init__(self, sensors, *args, **kwargs):
+    def __init__(self, sensors: Iterable, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sensors = sensors
 
@@ -248,24 +255,24 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(
                     index, self.createIndex(index.row(), self.Column.Temperature)
                 )
-                self.sensors.storeSettings()
+                self.sensors.writeSettings()
                 return True
 
         elif role == QtCore.Qt.EditRole:
             if index.column() == self.Column.Name:
                 sensor.name = format(value)
                 self.dataChanged.emit(index, index)
-                self.sensors.storeSettings()
+                self.sensors.writeSettings()
                 return True
             # if index.column() == self.Column.HV:
             #     sensor.hv = value
             #     self.dataChanged.emit(index, index)
-            #     self.sensors.storeSettings()
+            #     self.sensors.writeSettings()
             #     return True
             # if index.column() == self.Column.Resistivity:
             #     sensor.resistivity = format(value)
             #     self.dataChanged.emit(index, index)
-            #     self.sensors.storeSettings()
+            #     self.sensors.writeSettings()
             #     return True
 
         return False
@@ -286,17 +293,16 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
 class SensorManager:
 
-    def __init__(self, count):
-        self.sensors = []
+    def __init__(self, count: int) -> None:
+        self.sensors: list[Sensor] = []
         for i in range(count):
             sensor = Sensor(i + 1)
             sensor.color = Colors[i]
             sensor.resistivity = CalibratedResistors[i]
             self.sensors.append(sensor)
-        self.loadSettings()
         self.setEditable(True)
 
-    def loadSettings(self) -> None:
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
         data = settings.value("sensors", {})
         for i, sensor in enumerate(self.sensors):
@@ -312,7 +318,7 @@ class SensorManager:
                     data.get(sensor.index, {}).get("resistivity", CalibratedResistors[i])
                 )
 
-    def storeSettings(self) -> None:
+    def writeSettings(self) -> None:
         data: dict = {}
         for sensor in self.sensors:
             data[sensor.index] = {}
@@ -323,13 +329,13 @@ class SensorManager:
         settings = QtCore.QSettings()
         settings.setValue("sensors", data)
 
-    def isEditable(self):
+    def isEditable(self) -> bool:
         return self.__editable
 
     def setEditable(self, value):
         self.__editable = bool(value)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sensors)
 
     def __getitem__(self, key):

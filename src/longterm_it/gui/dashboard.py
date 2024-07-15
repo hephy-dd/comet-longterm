@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PyQt5 import QtCore, QtWidgets, QtChart
 
 from QCharted import ChartView
@@ -13,7 +15,7 @@ __all__ = ["DashboardWidget"]
 
 class DashboardWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Longterm It")
 
@@ -28,13 +30,13 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ivTab = QtWidgets.QWidget()
         self.ivChartView = ChartView()
-        layout = QtWidgets.QGridLayout(self.ivTab)
-        layout.addWidget(self.ivChartView, 0, 0, 1, 1)
+        ivTabLayout = QtWidgets.QGridLayout(self.ivTab)
+        ivTabLayout.addWidget(self.ivChartView, 0, 0, 1, 1)
 
         self.itTab = QtWidgets.QWidget()
         self.itChartView = ChartView()
-        layout = QtWidgets.QGridLayout(self.itTab)
-        layout.addWidget(self.itChartView, 0, 0, 1, 1)
+        itTabLayout = QtWidgets.QGridLayout(self.itTab)
+        itTabLayout.addWidget(self.itChartView, 0, 0, 1, 1)
 
         self.topTabWidget = QtWidgets.QTabWidget(self)
         self.topTabWidget.addTab(self.ivTab, "IV Curve")
@@ -43,33 +45,33 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ctsTab = QtWidgets.QWidget()
         self.ctsChartView = ChartView(self.ctsTab)
-        layout = QtWidgets.QGridLayout(self.ctsTab)
-        layout.addWidget(self.ctsChartView, 0, 0, 1, 1)
+        ctsTabLayout = QtWidgets.QGridLayout(self.ctsTab)
+        ctsTabLayout.addWidget(self.ctsChartView, 0, 0, 1, 1)
 
         self.ivTempTab = QtWidgets.QWidget()
         self.ivTempChartView = ChartView(self.ivTempTab)
-        layout = QtWidgets.QGridLayout(self.ivTempTab)
-        layout.addWidget(self.ivTempChartView, 0, 0, 1, 1)
+        ivTempTabLayout = QtWidgets.QGridLayout(self.ivTempTab)
+        ivTempTabLayout.addWidget(self.ivTempChartView, 0, 0, 1, 1)
 
         self.itTempTab = QtWidgets.QWidget()
         self.itTempChartView = ChartView(self.itTempTab)
-        layout = QtWidgets.QGridLayout(self.itTempTab)
-        layout.addWidget(self.itTempChartView, 0, 0, 1, 1)
+        itTempTabLayout = QtWidgets.QGridLayout(self.itTempTab)
+        itTempTabLayout.addWidget(self.itTempChartView, 0, 0, 1, 1)
 
         self.ivSourceTab = QtWidgets.QWidget()
         self.ivSourceChartView = ChartView(self.ivSourceTab)
-        layout = QtWidgets.QGridLayout(self.ivSourceTab)
-        layout.addWidget(self.ivSourceChartView, 0, 0, 1, 1)
+        ivSourceTabLayout = QtWidgets.QGridLayout(self.ivSourceTab)
+        ivSourceTabLayout.addWidget(self.ivSourceChartView, 0, 0, 1, 1)
 
         self.itSourceTab = QtWidgets.QWidget()
         self.itSourceChartView = ChartView(self.itSourceTab)
-        layout = QtWidgets.QGridLayout(self.itSourceTab)
-        layout.addWidget(self.itSourceChartView, 0, 0, 1, 1)
+        itSourceTabLayout = QtWidgets.QGridLayout(self.itSourceTab)
+        itSourceTabLayout.addWidget(self.itSourceChartView, 0, 0, 1, 1)
 
         self.shuntBoxTab = QtWidgets.QWidget()
         self.shuntBoxChartView = ChartView(self.shuntBoxTab)
-        layout = QtWidgets.QGridLayout(self.shuntBoxTab)
-        layout.addWidget(self.shuntBoxChartView, 0, 0, 1, 1)
+        shuntBoxTabLayout = QtWidgets.QGridLayout(self.shuntBoxTab)
+        shuntBoxTabLayout.addWidget(self.shuntBoxChartView, 0, 0, 1, 1)
 
         self.bottomTabWidget = QtWidgets.QTabWidget(self)
         self.bottomTabWidget.addTab(self.ctsTab, "Chamber")
@@ -108,13 +110,13 @@ class DashboardWidget(QtWidgets.QWidget):
         self.horizontalSplitter.addWidget(self.rightVerticalWidget)
         self.horizontalSplitter.setSizes([400, 800])
 
-        gridLayout = QtWidgets.QVBoxLayout(self)
-        gridLayout.addWidget(self.horizontalSplitter)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.horizontalSplitter)
 
         self.createCharts()
 
-        self.statusWidget.setVoltage(None)
-        self.statusWidget.setCurrent(None)
+        self.statusWidget.clearVoltage()
+        self.statusWidget.clearCurrent()
         # TODO implement measurement timer
         self.controlsWidget.itDurationSpinBox.setEnabled(False)
 
@@ -138,14 +140,14 @@ class DashboardWidget(QtWidgets.QWidget):
         self.itSourceChart = ItSourceChart()
         self.itSourceChartView.setChart(self.itSourceChart)
 
-        def ivRangeChanged(minimum, maximum):
+        def ivRangeChanged(minimum: float, maximum: float) -> None:
             self.ivSourceChart.fit()
             self.ivSourceChart.axisX.setRange(minimum, maximum)
             self.ivTempChart.fit()
 
         self.ivChart.axisX.rangeChanged.connect(ivRangeChanged)
 
-        def itRangeChanged(minimum, maximum):
+        def itRangeChanged(minimum: float, maximum: float) -> None:
             self.itTempChart.fit()
             self.itTempChart.axisX.setRange(minimum, maximum)
             self.itSourceChart.fit()
@@ -153,7 +155,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.itChart.axisX.rangeChanged.connect(itRangeChanged)
 
-    def loadSettings(self) -> None:
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         state = settings.value("splitter/state", QtCore.QByteArray(), QtCore.QByteArray)
@@ -162,11 +164,14 @@ class DashboardWidget(QtWidgets.QWidget):
         if not state.isEmpty():
             self.horizontalSplitter.restoreState(state)
 
-    def storeSettings(self) -> None:
+        self.sensorsWidget.readSettings()
+
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("dashboard")
         settings.setValue("splitter/state", self.horizontalSplitter.saveState())
         settings.endGroup()
+        self.sensorsWidget.writeSettings()
 
     def sensors(self) -> SensorManager:
         """Returns sensors manager."""
@@ -208,13 +213,21 @@ class DashboardWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(dict)
     def onSmuReading(self, reading: dict) -> None:
-        self.statusWidget.setVoltage(reading.get("U"))
-        self.statusWidget.setCurrent(reading.get("I"))
+        voltage = reading.get("U")
+        if voltage is None:
+            self.statusWidget.clearVoltage()
+        else:
+            self.statusWidget.setVoltage(voltage)
+        current = reading.get("I")
+        if current is None:
+            self.statusWidget.clearCurrent()
+        else:
+            self.statusWidget.setCurrent(current)
 
     @QtCore.pyqtSlot()
     def onHalted(self) -> None:
         self.controlsWidget.onHalted()
-        self.statusWidget.setCurrent(None)
-        self.statusWidget.setVoltage(None)
-        self.statusWidget.setCurrent(None)
+        self.statusWidget.clearCurrent()
+        self.statusWidget.clearVoltage()
+        self.statusWidget.clearCurrent()
         self.sensors().setEditable(True)

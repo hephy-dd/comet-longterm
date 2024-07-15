@@ -13,7 +13,7 @@ def test_unescape_string():
 
 def test_make_iso():
     assert re.match(r"\d\d\d\d\-\d\d\-\d\dT\d\d\-\d\d\-\d\d", utils.make_iso())
-    assert utils.make_iso(1423456789.8) == "2015-02-09T05-39-49"
+    assert utils.make_iso(1423456789.8) == "2015-02-09T04-39-49"
 
 
 def test_auto_unit():
