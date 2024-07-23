@@ -154,7 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog = QtWidgets.QMessageBox(self)
         dialog.setIcon(dialog.Icon.Critical)
         dialog.setWindowTitle(self.tr("Exception occured"))
-        dialog.setText(format(exc))
+        dialog.setText(format(format(exc), " <80"))  # quick-fix: increase width of dialog by appending spaces
         dialog.setDetailedText(details)
         dialog.exec()
 

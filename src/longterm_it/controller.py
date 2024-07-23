@@ -90,6 +90,7 @@ class Controller:
         meas.itReading.connect(dashboard.onMeasItReading)
         meas.smuReading.connect(dashboard.onSmuReading)
         meas.finished.connect(dashboard.onHalted)
+        meas.failed.connect(self.view.onShowException)
 
         dashboard.controlsWidget.stopRequest.connect(meas.abort)
         dashboard.controlsWidget.useShuntBoxChanged.connect(meas.setUseShuntBox)
