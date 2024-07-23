@@ -38,6 +38,10 @@ def main() -> None:
 
     logger.info("Longterm It version %s", __version__)
 
+    # Set the locale to EN-US
+    locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
+    QtCore.QLocale.setDefault(locale)
+
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("comet-longterm")
     app.setApplicationVersion(__version__)
