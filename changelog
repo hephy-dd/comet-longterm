@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2024-07-23
+
+### Fixed
+- Force using EN-US locale on non-english systems (#34).
+- Communication issue with Keithley 2700 DMM (#35).
+
 ## [0.12.0] - 2024-06-27
 
 ### Added
@@ -148,7 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial demonstrator.
 
-[Unreleased]: https://github.com/hephy-dd/comet-longterm/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/hephy-dd/comet-longterm/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/hephy-dd/comet-longterm/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/hephy-dd/comet-longterm/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/hephy-dd/comet-longterm/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/hephy-dd/comet-longterm/compare/0.9.0...0.10.0

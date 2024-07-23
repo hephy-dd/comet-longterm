@@ -1,4 +1,24 @@
+from typing import Optional
+
 from comet.driver import Driver
+from comet.driver.generic import InstrumentError, ErrorQueueMixin
+
+
+def parse_error(response: str) -> tuple[int, str]:
+    code, message = [token.strip() for token in response.split(",")][:2]
+    return int(code), message.strip("\"").strip()
+
+
+class K2700(ErrorQueueMixin, Driver):
+
+    def next_error(self) -> Optional[InstrumentError]:
+        code, message = parse_error(self.query(":SYST:ERR?"))
+        if code:
+            return InstrumentError(code, message)
+        return None
+
+    def query(self, message: str) -> str:
+        return self.resource.query(message).strip()
 
 
 class ShuntBox(Driver):
