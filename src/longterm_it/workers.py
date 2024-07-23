@@ -17,9 +17,8 @@ from comet.functions import LinearRange
 
 from comet.driver.cts.itc import ITC
 from comet.driver.keithley import K2410
-from comet.driver.keithley import K2400 as K2700  # TODO
 
-from .driver import ShuntBox  # TODO
+from .driver import K2700, ShuntBox  # TODO
 from .utils import make_iso
 from .writers import IVWriter, ItWriter
 

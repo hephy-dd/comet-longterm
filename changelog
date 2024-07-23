@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Force using EN-US locale on non-english systems (#34).
+- Communication issue with Keithley 2700 DMM (#35).
 
 ## [0.12.0] - 2024-06-27
 
