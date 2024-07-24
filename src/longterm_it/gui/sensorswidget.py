@@ -181,6 +181,13 @@ class SensorsModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal:
             if role == QtCore.Qt.DisplayRole:
                 return self.columns[section]
+            elif role == QtCore.Qt.ToolTipRole:
+                if section == self.Column.Temperature:
+                    return "Temperature"
+                elif section == self.Column.TemperatureOffset:
+                    return "Temperature Offset"
+                elif section == self.Column.Resistivity:
+                    return "Calibration Resistivitiy"
         elif orientation == QtCore.Qt.Vertical:
             if role == QtCore.Qt.DisplayRole:
                 return section + 1
@@ -231,6 +238,16 @@ class SensorsModel(QtCore.QAbstractTableModel):
             else:
                 if not sensor.enabled:
                     return QtGui.QBrush(QtCore.Qt.darkGray)
+
+        elif role == QtCore.Qt.TextAlignmentRole:
+            if index.column() == self.Column.Current:
+                return QtCore.Qt.AlignRight
+            elif index.column() == self.Column.Temperature:
+                return QtCore.Qt.AlignRight
+            elif index.column() == self.Column.TemperatureOffset:
+                return QtCore.Qt.AlignRight
+            elif index.column() == self.Column.Resistivity:
+                return QtCore.Qt.AlignRight
 
         elif role == QtCore.Qt.CheckStateRole:
             if index.column() == self.Column.Name:
