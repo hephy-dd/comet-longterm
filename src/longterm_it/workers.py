@@ -306,6 +306,11 @@ class MeasureWorker(QtCore.QObject):
         self.messageCleared.emit()
 
     def showProgress(self, value, maximum):
+        if maximum:
+            value = int((value / maximum) * 100)
+            maximum = 100
+        else:
+            value = 0
         self.progressChanged.emit(value, maximum)
 
     def hideProgress(self):

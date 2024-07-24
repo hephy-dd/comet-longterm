@@ -97,6 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.messageLabel)
 
         self.progressBar = QtWidgets.QProgressBar(self)
+        self.progressBar.setMaximumWidth(480)
         self.progressBar.hide()
         self.statusBar().addPermanentWidget(self.progressBar)
 
