@@ -6,10 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.12.2] - 2024-07-23
+## [0.12.2] - 2024-07-24
 
 ### Fixed
 - No message box on measurement errors (#37).
+- Missing status message and progress (#38).
 
 ## [0.12.1] - 2024-07-23
 
