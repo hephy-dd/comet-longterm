@@ -38,6 +38,8 @@ class Controller:
         dashboard.controlsWidget.stopRequest.connect(self.onStopRequest)
         dashboard.controlsWidget.halted.connect(self.onHalted)
 
+        self.view.environ_thread.start()
+
     def loadResources(self):
         settings = QtCore.QSettings()
         resources = settings.value("resources2", {}, dict)
@@ -79,7 +81,6 @@ class Controller:
         self.onEnableEnviron(dashboard.controlsWidget.isEnvironEnabled())
         self.onEnableShuntBox(dashboard.controlsWidget.isShuntBoxEnabled())
         self.view.environ_thread = threading.Thread(target=self.view.environ_worker)
-        self.view.environ_thread.start()
 
         # Measurement process
         meas = MeasureWorker(self.view.resources)
@@ -90,6 +91,11 @@ class Controller:
         meas.itReading.connect(dashboard.onMeasItReading)
         meas.smuReading.connect(dashboard.onSmuReading)
         meas.finished.connect(dashboard.onHalted)
+        meas.failed.connect(self.view.onShowException)
+        meas.messageChanged.connect(self.view.showMessage)
+        meas.messageCleared.connect(self.view.clearMessage)
+        meas.progressChanged.connect(self.view.showProgress)
+        meas.progressHidden.connect(self.view.hideProgress)
 
         dashboard.controlsWidget.stopRequest.connect(meas.abort)
         dashboard.controlsWidget.useShuntBoxChanged.connect(meas.setUseShuntBox)
