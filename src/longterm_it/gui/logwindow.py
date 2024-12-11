@@ -155,7 +155,7 @@ class LogWindow(QtWidgets.QWidget):
     def copyToClipboard(self):
         item = self.treeWidget.currentItem()
         if item:
-            content = "\t".join(selected_item.text(col) for col in range(self.treeWidget.columnCount()))
+            content = "\t".join(item.text(col) for col in range(self.treeWidget.columnCount()))
             # Set the text to the clipboard
             clipboard = QtWidgets.QApplication.clipboard()
             clipboard.setText(content)
