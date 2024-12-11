@@ -77,6 +77,7 @@ def main() -> None:
     controller.readSettings()
     window.show()
 
+    app.aboutToQuit.connect(controller.writeSettings)
     app.exec()
 
 
