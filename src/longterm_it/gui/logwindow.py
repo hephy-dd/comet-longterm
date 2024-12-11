@@ -8,7 +8,7 @@ from typing import Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-__all__ = ["LogWindow", "LogWidget"]
+__all__ = ["LogWindow"]
 
 
 def setRowColor(item: QtWidgets.QTreeWidgetItem, color: QtGui.QBrush) -> None:
@@ -134,9 +134,12 @@ class LogWindow(QtWidgets.QWidget):
                 if self.treeWidget.topLevelItemCount() == 1:
                     for index in range(3):
                         self.treeWidget.resizeColumnToContents(index)
-                while self.treeWidget.topLevelItemCount() > self.MaximumMessageCount:
-                    item = self.treeWidget.takeTopLevelItem(0)
-                    del item
+                self.truncateMessages()
+
+    def truncateMessages(self) -> None:
+        while self.treeWidget.topLevelItemCount() > self.MaximumMessageCount:
+            item = self.treeWidget.takeTopLevelItem(0)
+            del item
 
     @QtCore.pyqtSlot(logging.LogRecord)
     def appendRecord(self, record: logging.LogRecord) -> None:
