@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2024-12-11
+
+### Changed
+- New log message window fixing performance issues (#41).
+
 ## [0.12.2] - 2024-07-24
 
 ### Changed
@@ -163,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial demonstrator.
 
-[Unreleased]: https://github.com/hephy-dd/comet-longterm/compare/0.12.2...HEAD
+[Unreleased]: https://github.com/hephy-dd/comet-longterm/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/hephy-dd/comet-longterm/compare/0.12.2...0.13.0
 [0.12.2]: https://github.com/hephy-dd/comet-longterm/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/hephy-dd/comet-longterm/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/hephy-dd/comet-longterm/compare/0.11.0...0.12.0
