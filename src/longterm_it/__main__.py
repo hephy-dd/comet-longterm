@@ -77,6 +77,20 @@ def main() -> None:
     controller.readSettings()
     window.show()
 
+    import time, random
+    def work():
+        time.sleep(8)
+        for i in range (16*1024):
+            r = i + random.random()
+            f = random.choice(["https://github.com/hephy-dd/comet-longterm", "&copy; 2019-2024 hephy.at", "fun with princess Lavi ^_^"])
+            logging.info(f"[{r}]Long term sensor It measurements in CTS climate foo bar baz sadhf ajkfhsajkfh dsafhsajkfhsafjk asfjsajkfsakfsdaf {f}")
+            time.sleep(random.uniform(0.00001, 0.0001))
+        logging.info("~~~~~DONE~~~~~")
+
+    import threading
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+
     app.aboutToQuit.connect(controller.writeSettings)
     app.exec()
 
