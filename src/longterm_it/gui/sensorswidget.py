@@ -1,5 +1,6 @@
 import logging
-from typing import Iterable, Optional
+from typing import Optional
+from collections.abc import Sequence
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -50,11 +51,17 @@ class HVDelegate(QtWidgets.QItemDelegate):
         editor.currentIndexChanged.connect(self.currentIndexChanged)
         return editor
 
-    def setEditorData(self, editor, index):
-        pos = self.States.index(index.data(QtCore.Qt.DisplayRole))
+    def setEditorData(self, editor, index) -> None:
+        if editor is None:
+            return
+        pos = self.States.index(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
         editor.setCurrentIndex(pos)
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor, model, index) -> None:
+        if editor is None:
+            return
+        if model is None:
+            return
         editorIndex = editor.currentIndex()
         model.setData(index, bool(editorIndex))
 
@@ -79,8 +86,10 @@ class SensorsWidget(QtWidgets.QWidget):
         self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.tableView.setCornerButtonEnabled(False)
-        self.tableView.horizontalHeader().setHighlightSections(False)
-        self.tableView.horizontalHeader().setStretchLastSection(True)
+        horizontal_header = self.tableView.horizontalHeader()
+        if horizontal_header is not None:
+            horizontal_header.setHighlightSections(False)
+            horizontal_header.setStretchLastSection(True)
         self.tableView.setModel(self.model)
         self.tableView.resizeColumnsToContents()
         self.tableView.resizeRowsToContents()
@@ -103,14 +112,20 @@ class SensorsWidget(QtWidgets.QWidget):
     def verticalResizeTableView(self) -> None:
         """Resize table view to vertical content height."""
         rowTotalHeight = 0
-        count = self.tableView.verticalHeader().count()
-        for i in range(count):
-            if not self.tableView.verticalHeader().isSectionHidden(i):
-                rowTotalHeight += self.tableView.verticalHeader().sectionSize(i)
-        # if not self.tableView.horizontalScrollBar().isHidden():
-        rowTotalHeight += self.tableView.horizontalScrollBar().height()
-        # if not self.tableView.horizontalHeader().isHidden():
-        rowTotalHeight += self.tableView.horizontalHeader().height()
+        vertical_header = self.tableView.verticalHeader()
+        if vertical_header is not None:
+            count = vertical_header.count()
+            for i in range(count):
+                if not vertical_header.isSectionHidden(i):
+                    rowTotalHeight += vertical_header.sectionSize(i)
+        horizontal_scroll_bar = self.tableView.horizontalScrollBar()
+        if horizontal_scroll_bar is not None:
+            # if not self.tableView.horizontalScrollBar().isHidden():
+            rowTotalHeight += horizontal_scroll_bar.height()
+        horizontal_header = self.tableView.horizontalHeader()
+        if horizontal_header is not None:
+            # if not self.tableView.horizontalHeader().isHidden():
+            rowTotalHeight += horizontal_header.height()
         self.tableView.setMinimumHeight(rowTotalHeight)
 
     def dataChanged(self) -> None:
@@ -167,38 +182,38 @@ class SensorsModel(QtCore.QAbstractTableModel):
         TemperatureOffset = 5
         Resistivity = 6
 
-    def __init__(self, sensors: Iterable, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, sensors: "SensorManager"):
+        super().__init__()
         self.sensors = sensors
 
-    def rowCount(self, parent):
+    def rowCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return len(self.sensors)
 
-    def columnCount(self, parent):
+    def columnCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return len(self.columns)
 
-    def headerData(self, section, orientation, role):
-        if orientation == QtCore.Qt.Horizontal:
-            if role == QtCore.Qt.DisplayRole:
+    def headerData(self, section, orientation, role = QtCore.Qt.ItemDataRole.DisplayRole):
+        if orientation == QtCore.Qt.Orientation.Horizontal:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return self.columns[section]
-            elif role == QtCore.Qt.ToolTipRole:
+            elif role == QtCore.Qt.ItemDataRole.ToolTipRole:
                 if section == self.Column.Temperature:
                     return "Temperature"
                 elif section == self.Column.TemperatureOffset:
                     return "Temperature Offset"
                 elif section == self.Column.Resistivity:
                     return "Calibration Resistivitiy"
-        elif orientation == QtCore.Qt.Vertical:
-            if role == QtCore.Qt.DisplayRole:
+        elif orientation == QtCore.Qt.Orientation.Vertical:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return section + 1
 
-    def data(self, index, role):
+    def data(self, index, role = QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return
 
         sensor = self.sensors[index.row()]
 
-        if role == QtCore.Qt.DisplayRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if index.column() == self.Column.Name:
                 return sensor.name
             elif index.column() == self.Column.State:
@@ -222,11 +237,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Resistivity:
                 return "{:d} Ohm".format(sensor.resistivity)
 
-        elif role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.ItemDataRole.DecorationRole:
             if index.column() == self.Column.Name:
                 return QtGui.QColor(sensor.color)
 
-        elif role == QtCore.Qt.ForegroundRole:
+        elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
             if index.column() == self.Column.State:
                 if sensor.status == sensor.State.OK:
                     return QtGui.QBrush(QtGui.QColor("#00bb00"))
@@ -237,23 +252,23 @@ class SensorsModel(QtCore.QAbstractTableModel):
                 return QtGui.QBrush(QtGui.QColor("#bb0000"))
             else:
                 if not sensor.enabled:
-                    return QtGui.QBrush(QtCore.Qt.darkGray)
+                    return QtGui.QBrush(QtCore.Qt.darkGray)  # type: ignore
 
-        elif role == QtCore.Qt.TextAlignmentRole:
+        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
             if index.column() == self.Column.Current:
-                return QtCore.Qt.AlignRight
+                return QtCore.Qt.AlignRight  # type: ignore
             elif index.column() == self.Column.Temperature:
-                return QtCore.Qt.AlignRight
+                return QtCore.Qt.AlignRight  # type: ignore
             elif index.column() == self.Column.TemperatureOffset:
-                return QtCore.Qt.AlignRight
+                return QtCore.Qt.AlignRight  # type: ignore
             elif index.column() == self.Column.Resistivity:
-                return QtCore.Qt.AlignRight
+                return QtCore.Qt.AlignRight  # type: ignore
 
-        elif role == QtCore.Qt.CheckStateRole:
+        elif role == QtCore.Qt.ItemDataRole.CheckStateRole:
             if index.column() == self.Column.Name:
-                return [QtCore.Qt.Unchecked, QtCore.Qt.Checked][sensor.enabled]
+                return [QtCore.Qt.CheckState.Unchecked, QtCore.Qt.CheckState.Checked][sensor.enabled]
 
-        elif role == QtCore.Qt.EditRole:
+        elif role == QtCore.Qt.ItemDataRole.EditRole:
             if index.column() == self.Column.Name:
                 return sensor.name
             if index.column() == self.Column.HV:
@@ -261,21 +276,21 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if index.column() == self.Column.Resistivity:
                 return sensor.resistivity
 
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
+    def setData(self, index, value, role = QtCore.Qt.ItemDataRole.EditRole) -> bool:
         if not index.isValid():
-            return
+            return False
         sensor = self.sensors[index.row()]
 
-        if role == QtCore.Qt.CheckStateRole:
+        if role == QtCore.Qt.ItemDataRole.CheckStateRole:
             if index.column() == self.Column.Name:
-                sensor.enabled = value == QtCore.Qt.Checked
+                sensor.enabled = value == QtCore.Qt.CheckState.Checked
                 self.dataChanged.emit(
                     index, self.createIndex(index.row(), self.Column.Temperature)
                 )
                 self.sensors.writeSettings()
                 return True
 
-        elif role == QtCore.Qt.EditRole:
+        elif role == QtCore.Qt.ItemDataRole.EditRole:
             if index.column() == self.Column.Name:
                 sensor.name = format(value)
                 self.dataChanged.emit(index, index)
@@ -296,10 +311,10 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
     def flags(self, index):
         flags = super().flags(index)
-        sensor = self.sensors[index.row()]
+        # sensor = self.sensors[index.row()]
         if self.sensors.isEditable():
             if index.column() == self.Column.Name:
-                return flags | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable
+                return flags | QtCore.Qt.ItemFlag.ItemIsUserCheckable | QtCore.Qt.ItemFlag.ItemIsEditable
             # if index.column() == self.Column.HV:
             #     if sensor.enabled:
             #         return flags | QtCore.Qt.ItemIsEditable

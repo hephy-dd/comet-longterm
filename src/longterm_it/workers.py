@@ -360,7 +360,7 @@ class MeasureWorker(QtCore.QObject):
         if compliance_tripped:
             logger.warning("SMU in compliance!")
             if not self.continueInCompliance():
-                raise ValueError(f"SMU in compliance")
+                raise ValueError("SMU in compliance")
 
         # Update SMU complicance
         total_compliance = self.totalCompliance()
@@ -651,8 +651,7 @@ class MeasureWorker(QtCore.QObject):
                 if sensor.enabled:
                     name = sensor.name
                     filename = os.path.join(self.path(), f"IV-{name}-{timestamp}.txt")
-                    f = open(filename, "w", newline="")
-                    writer = IVWriter(stack.enter_context(f))
+                    writer = IVWriter(stack.enter_context(open(filename, "w", newline="")))
                     writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
                     writer.write_header()
                     writers[sensor.index] = writer
@@ -739,8 +738,7 @@ class MeasureWorker(QtCore.QObject):
                     name = sensor.name
                     timestamp = make_iso(self.startTime())
                     filename = os.path.join(self.path(), f"it-{name}-{timestamp}.txt")
-                    f = open(filename, "w", newline="")
-                    writer = ItWriter(stack.enter_context(f))
+                    writer = ItWriter(stack.enter_context(open(filename, "w", newline="")))
                     writer.write_meta(sensor, self.operator(), timestamp, self.biasVoltage())
                     writer.write_header()
                     writers[sensor.index] = writer

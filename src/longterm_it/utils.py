@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 
 __all__ = [
@@ -27,7 +27,7 @@ def unescape_string(s: str) -> str:
     return bytes(s, encoding="ascii").decode("unicode-escape")
 
 
-def make_iso(dt: Optional[datetime] = None) -> str:
+def make_iso(dt: datetime | float | None = None) -> str:
     """Returns filesystem safe ISO date time (UTC).
     >>> make_iso()
     '2019-12-24T12-21-42'
@@ -35,10 +35,10 @@ def make_iso(dt: Optional[datetime] = None) -> str:
     '2015-02-09T04-39-49'
     """
     if dt is None:
-        dt = datetime.utcnow()
+        dt = datetime.now()
     if not isinstance(dt, datetime):
-        dt = datetime.utcfromtimestamp(dt)
-    return dt.replace(microsecond=0).isoformat().replace(":", "-")
+        dt = datetime.fromtimestamp(dt, tz=UTC)
+    return dt.replace(microsecond=0).isoformat().replace(":", "-").split("+")[0]
 
 
 def auto_unit(value: float, unit: str, decimals: int = 3) -> str:

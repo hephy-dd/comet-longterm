@@ -104,7 +104,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.rightVerticalLayout.addWidget(self.topTabWidget)
         self.rightVerticalLayout.addWidget(self.bottomTabWidget)
 
-        self.horizontalSplitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.horizontalSplitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.horizontalSplitter.setChildrenCollapsible(False)
         self.horizontalSplitter.addWidget(self.leftVerticalWidget)
         self.horizontalSplitter.addWidget(self.rightVerticalWidget)
@@ -142,18 +142,18 @@ class DashboardWidget(QtWidgets.QWidget):
 
         def ivRangeChanged(minimum: float, maximum: float) -> None:
             self.ivSourceChart.fit()
-            self.ivSourceChart.axisX.setRange(minimum, maximum)
+            self.ivSourceChart.axis_x.setRange(minimum, maximum)
             self.ivTempChart.fit()
 
-        self.ivChart.axisX.rangeChanged.connect(ivRangeChanged)
+        self.ivChart.axis_x.rangeChanged.connect(ivRangeChanged)
 
-        def itRangeChanged(minimum: float, maximum: float) -> None:
+        def itRangeChanged(minimum: QtCore.QDateTime, maximum: QtCore.QDateTime) -> None:
             self.itTempChart.fit()
-            self.itTempChart.axisX.setRange(minimum, maximum)
+            self.itTempChart.axis_x.setRange(minimum, maximum)
             self.itSourceChart.fit()
-            self.itSourceChart.axisX.setRange(minimum, maximum)
+            self.itSourceChart.axis_x.setRange(minimum, maximum)
 
-        self.itChart.axisX.rangeChanged.connect(itRangeChanged)
+        self.itChart.axis_x.rangeChanged.connect(itRangeChanged)
 
     def readSettings(self) -> None:
         settings = QtCore.QSettings()

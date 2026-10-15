@@ -26,8 +26,8 @@ def test_writer():
         pt100=0.0,
         cts_temperature=0.0,
         cts_humidity=0.0,
-        cts_status=0.0,
-        cts_program=0.0,
+        cts_status=0,
+        cts_program=0,
         hv_status=True,
     )
     fp.seek(0)

@@ -51,7 +51,6 @@ class ResourcesWidget(PreferencesWidget):
 
     def resources(self) -> dict:
         """Returns dictionary of resource options."""
-        root = self.treeWidget.topLevelItem(0)
         resources: dict = {}
         for i in range(self.treeWidget.topLevelItemCount()):
             item = self.treeWidget.topLevelItem(i)
@@ -61,6 +60,8 @@ class ResourcesWidget(PreferencesWidget):
             options = {}
             for j in range(item.childCount()):
                 child = item.child(j)
+                if child is None:
+                    continue
                 key = child.text(0)
                 value: Any = child.text(1)
                 # Escape special characters
@@ -79,7 +80,6 @@ class ResourcesWidget(PreferencesWidget):
     def setResources(self, resources: dict) -> None:
         """Set dictionary of resource options."""
         self.treeWidget.clear()
-        items: list = []
         for name, options in resources.items():
             item = QtWidgets.QTreeWidgetItem([name])
             item.addChild(
@@ -129,10 +129,13 @@ class ResourcesWidget(PreferencesWidget):
     @QtCore.pyqtSlot()
     def editResource(self) -> None:
         item = self.treeWidget.currentItem()
-        if item and item.parent():
+        if item:
+            parent = item.parent()
+            if parent is None:
+                return
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
-                self.tr("Resource {}").format(item.parent().text(0)),
+                self.tr("Resource {}").format(parent.text(0)),
                 item.text(0),
                 QtWidgets.QLineEdit.Normal,
                 item.text(1),
@@ -278,7 +281,7 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.tabWidget.addTab(self.operatorsWidget, self.operatorsWidget.windowTitle())
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.accepted.connect(self.accept)

@@ -1,4 +1,5 @@
 import logging
+from pydoc import cli
 import threading
 import html
 import time
@@ -82,7 +83,7 @@ class LogWindow(QtWidgets.QWidget):
         self.treeWidget.setRootIsDecorated(False)
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.setWordWrap(True)
-        self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeWidget.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.showContextMenu)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
@@ -150,10 +151,13 @@ class LogWindow(QtWidgets.QWidget):
     def showContextMenu(self, position):
         item = self.treeWidget.currentItem()
         if item:
-            contextMenu = QtWidgets.QMenu(self.treeWidget)
-            copyAction = contextMenu.addAction("&Copy")
-            copyAction.triggered.connect(self.copyToClipboard)
-            contextMenu.exec_(self.treeWidget.viewport().mapToGlobal(position))
+            context_menu = QtWidgets.QMenu(self.treeWidget)
+            copy_action = context_menu.addAction("&Copy")
+            if copy_action is not None:
+                copy_action.triggered.connect(self.copyToClipboard)
+            viewport = self.treeWidget.viewport()
+            if viewport is not None:
+                context_menu.exec_(viewport.mapToGlobal(position))
 
     def copyToClipboard(self):
         item = self.treeWidget.currentItem()
@@ -161,4 +165,5 @@ class LogWindow(QtWidgets.QWidget):
             content = "\t".join(item.text(col) for col in range(self.treeWidget.columnCount()))
             # Set the text to the clipboard
             clipboard = QtWidgets.QApplication.clipboard()
-            clipboard.setText(content)
+            if clipboard is not None:
+                clipboard.setText(content)

@@ -1,13 +1,11 @@
-from typing import Optional
-
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets
 
 from ..utils import auto_unit
 
 
 class StatusWidget(QtWidgets.QWidget):
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Status")
 
@@ -108,7 +106,7 @@ class StatusWidget(QtWidgets.QWidget):
         """Set humidity in percent relative humidity."""
         self.humidLineEdit.setText("{:.1f} %rH".format(humidity))
 
-    def setStatus(self, status: str, program: Optional[int] = None) -> None:
+    def setStatus(self, status: str, program: int | None = None) -> None:
         if program is not None:
             text = self.tr("{} ({})").format(status, program)
         else:

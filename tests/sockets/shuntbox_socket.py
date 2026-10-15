@@ -63,7 +63,7 @@ class ShuntBoxHandler(socketserver.BaseRequestHandler):
                     self.send("0")
 
                 elif re.match(r"GET:REL ALL", data):
-                    self.send(",".join(["0"] * self.channels + 4))
+                    self.send(",".join(["0"] * (self.channels + 4)))
 
 
 def main():

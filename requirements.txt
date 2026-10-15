@@ -1,6 +1,0 @@
-comet @ git+https://github.com/hephy-dd/comet.git@v1.0.0
-PyVISA==1.14.1
-PyVISA-py==0.7.2
-PyQt5==5.15.10
-PyQtChart==5.15.6
-QCharted==1.1.2

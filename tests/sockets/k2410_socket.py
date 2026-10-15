@@ -99,7 +99,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                 elif re.match(r"\:?FETC[h]?\?", data):
                     values = []
                     for i in range(self.channels):
-                        vdc = self.state.get("VDC") + random.random(-0.1, +0.1)
+                        vdc = self.state.get("VDC", 0.0) + random.uniform(-0.1, +0.1)
                         values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
                     self.send(",".join(values))
 

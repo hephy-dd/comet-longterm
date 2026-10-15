@@ -1,3 +1,59 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.13.1,<0.14"]
+build-backend = "uv_build"
+
+[project]
+name = "longterm-it"
+version = "0.13.0"
+description = "Longterm sensor It measurements in climate chamber."
+readme = "README.md"
+license = {text = "GPLv3"}
+keywords = []
+authors = [
+    {name = "Bernhard Arnold", email = "bernhard.arnold@oeaw.ac.at"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "comet @ https://github.com/hephy-dd/comet/archive/refs/tags/v1.7.2.tar.gz",
+    "PyVISA~=1.16.1",
+    "PyVISA-py~=0.8.1",
+    "PyQt5~=5.15.10",
+    "PyQtChart~=5.15.6",
+    "QCharted~=1.1.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/hephy-dd/comet-longterm/"
+Source = "https://github.com/hephy-dd/comet-longterm/"
+
+[project.scripts]
+longterm-it = "longterm_it.__main__:main"
+
+[tool.ruff.lint]
+extend-ignore = [
+    "BLE001",
+    "DTZ003",
+    "DTZ004",
+    "F401",
+    "I001",
+    "RUF012",
+    "RUF022",
+    "RUF046",
+    "SIM102",
+    "SIM114",
+    "TRY401",
+    "UP032",
+    "UP035",
+    "UP045",
+]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
