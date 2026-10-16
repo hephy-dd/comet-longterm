@@ -4,7 +4,6 @@ from ..utils import auto_unit
 
 
 class StatusWidget(QtWidgets.QWidget):
-
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Status")
@@ -100,11 +99,11 @@ class StatusWidget(QtWidgets.QWidget):
 
     def setTemperature(self, temperature: float) -> None:
         """Set temperature in Celsius."""
-        self.tempLineEdit.setText("{:.1f} °C".format(temperature))
+        self.tempLineEdit.setText(f"{temperature:.1f} °C")
 
     def setHumidity(self, humidity: float) -> None:
         """Set humidity in percent relative humidity."""
-        self.humidLineEdit.setText("{:.1f} %rH".format(humidity))
+        self.humidLineEdit.setText(f"{humidity:.1f} %rH")
 
     def setStatus(self, status: str, program: int | None = None) -> None:
         if program is not None:

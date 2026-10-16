@@ -27,7 +27,6 @@ dependencies = [
     "PyVISA-py~=0.8.1",
     "PyQt5~=5.15.10",
     "PyQtChart~=5.15.6",
-    "QCharted~=1.1.2",
 ]
 
 [project.urls]
@@ -40,19 +39,8 @@ longterm-it = "longterm_it.__main__:main"
 [tool.ruff.lint]
 extend-ignore = [
     "BLE001",
-    "DTZ003",
-    "DTZ004",
-    "F401",
-    "I001",
-    "RUF012",
-    "RUF022",
-    "RUF046",
     "SIM102",
     "SIM114",
-    "TRY401",
-    "UP032",
-    "UP035",
-    "UP045",
 ]
 
 [tool.basedpyright]

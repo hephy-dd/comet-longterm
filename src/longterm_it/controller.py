@@ -1,14 +1,11 @@
-import datetime
 import logging
 import os
-import re
-import time
 import threading
+import time
+from datetime import UTC, datetime
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 
-
-from . import __version__
 from .resource import Resource
 from .workers import EnvironWorker, MeasureWorker
 
@@ -24,9 +21,13 @@ class Controller:
         self.view = view
 
         # regster resources
-        self.view.resources.update({"shunt": Resource("TCPIP::localhost::10001::SOCKET")})
+        self.view.resources.update(
+            {"shunt": Resource("TCPIP::localhost::10001::SOCKET")}
+        )
         self.view.resources.update({"smu": Resource("TCPIP::localhost::10002::SOCKET")})
-        self.view.resources.update({"multi": Resource("TCPIP::localhost::10003::SOCKET")})
+        self.view.resources.update(
+            {"multi": Resource("TCPIP::localhost::10003::SOCKET")}
+        )
         self.view.resources.update({"cts": Resource("TCPIP::localhost::1080::SOCKET")})
 
         self.createProcesses()
@@ -104,8 +105,12 @@ class Controller:
         dashboard.controlsWidget.ivDelayChanged.connect(meas.setIvDelay)
         dashboard.controlsWidget.biasVoltageChanged.connect(meas.setBiasVoltage)
         dashboard.controlsWidget.totalComplianceChanged.connect(meas.setTotalCompliance)
-        dashboard.controlsWidget.singleComplianceChanged.connect(meas.setSingleCompliance)
-        dashboard.controlsWidget.continueInComplianceChanged.connect(meas.setContinueInCompliance)
+        dashboard.controlsWidget.singleComplianceChanged.connect(
+            meas.setSingleCompliance
+        )
+        dashboard.controlsWidget.continueInComplianceChanged.connect(
+            meas.setContinueInCompliance
+        )
         dashboard.controlsWidget.itDurationChanged.connect(meas.setItDuration)
         dashboard.controlsWidget.itIntervalChanged.connect(meas.setItInterval)
 
@@ -202,7 +207,7 @@ class Controller:
 
         # Setup output location
         path = os.path.normpath(dashboard.controlsWidget.path())
-        timestamp = datetime.datetime.utcfromtimestamp(time.time()).strftime(
+        timestamp = datetime.fromtimestamp(time.time(), tz=UTC).strftime(
             "%Y-%m-%dT%H-%M-%S"
         )
         path = os.path.join(path, timestamp)
@@ -221,20 +226,24 @@ class Controller:
         meas.setContinueInCompliance(dashboard.controlsWidget.continueInCompliance())
         meas.setItDuration(dashboard.controlsWidget.itDuration())
         meas.setItInterval(dashboard.controlsWidget.itInterval())
-        meas.params.update({
-            "smu.filter.enable": dashboard.controlsWidget.smuWidget.filterEnable(),
-            "smu.filter.type": dashboard.controlsWidget.smuWidget.filterType(),
-            "smu.filter.count": dashboard.controlsWidget.smuWidget.filterCount(),
-        })
-        meas.params.update({
-            "dmm.filter.enable": dashboard.controlsWidget.dmmWidget.filterEnable(),
-            "dmm.filter.type": dashboard.controlsWidget.dmmWidget.filterType(),
-            "dmm.filter.count": dashboard.controlsWidget.dmmWidget.filterCount(),
-            "dmm.channels.slot": dashboard.controlsWidget.dmmWidget.channelsSlot(),
-            "dmm.channels.offset": dashboard.controlsWidget.dmmWidget.channelsOffset(),
-            "dmm.trigger.delay_auto": dashboard.controlsWidget.dmmWidget.triggerDelayAuto(),
-            "dmm.trigger.delay": dashboard.controlsWidget.dmmWidget.triggerDelay(),
-        })
+        meas.params.update(
+            {
+                "smu.filter.enable": dashboard.controlsWidget.smuWidget.filterEnable(),
+                "smu.filter.type": dashboard.controlsWidget.smuWidget.filterType(),
+                "smu.filter.count": dashboard.controlsWidget.smuWidget.filterCount(),
+            }
+        )
+        meas.params.update(
+            {
+                "dmm.filter.enable": dashboard.controlsWidget.dmmWidget.filterEnable(),
+                "dmm.filter.type": dashboard.controlsWidget.dmmWidget.filterType(),
+                "dmm.filter.count": dashboard.controlsWidget.dmmWidget.filterCount(),
+                "dmm.channels.slot": dashboard.controlsWidget.dmmWidget.channelsSlot(),
+                "dmm.channels.offset": dashboard.controlsWidget.dmmWidget.channelsOffset(),
+                "dmm.trigger.delay_auto": dashboard.controlsWidget.dmmWidget.triggerDelayAuto(),
+                "dmm.trigger.delay": dashboard.controlsWidget.dmmWidget.triggerDelay(),
+            }
+        )
         meas.setPath(path)
         meas.setOperator(dashboard.controlsWidget.operator())
 

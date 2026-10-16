@@ -8,7 +8,10 @@ def test_escape_string():
 
 
 def test_unescape_string():
-    assert utils.unescape_string("\\\\r\\\\n\\\\t\\r\\n\\t\r\n\t") == "\\r\\n\\t\r\n\t\r\n\t"
+    assert (
+        utils.unescape_string("\\\\r\\\\n\\\\t\\r\\n\\t\r\n\t")
+        == "\\r\\n\\t\r\n\t\r\n\t"
+    )
 
 
 def test_make_iso():
@@ -17,6 +20,6 @@ def test_make_iso():
 
 
 def test_auto_unit():
-    assert utils.auto_unit(.0042, "A") == "4.200 mA"
+    assert utils.auto_unit(0.0042, "A") == "4.200 mA"
     assert utils.auto_unit(4.2e-6, "F") == "4.200 uF"
     assert utils.auto_unit(4200, "V") == "4.200 kV"

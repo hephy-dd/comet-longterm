@@ -1,13 +1,12 @@
 import logging
-from typing import Optional
-from collections.abc import Sequence
+from typing import ClassVar, Final
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..sensor import Sensor
 from ..utils import auto_unit
 
-Colors: list[str] = [
+SENSOR_COLORS: Final[list[str]] = [
     "#2a7fff",
     "#5fd3bc",
     "#ffd42a",
@@ -22,7 +21,7 @@ Colors: list[str] = [
 ]
 """List of distinct colors used for plots."""
 
-CalibratedResistors: list[float] = [
+CALIBRATED_RESISTORS: Final[list[float]] = [
     470160,
     471085,
     469315,
@@ -36,25 +35,27 @@ CalibratedResistors: list[float] = [
 ]
 """List of default calibrated resistors in Ohm."""
 
-SensorCount: int = 10
+SENSOR_COUNT: Final[int] = 10
 
 logger = logging.getLogger(__name__)
 
 
 class HVDelegate(QtWidgets.QItemDelegate):
-
-    States: list[str] = ["OFF", "ON"]
+    STATES: ClassVar = (
+        "OFF",
+        "ON",
+    )
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QComboBox(parent)
-        editor.addItems(self.States)
+        editor.addItems(self.STATES)
         editor.currentIndexChanged.connect(self.currentIndexChanged)
         return editor
 
     def setEditorData(self, editor, index) -> None:
         if editor is None:
             return
-        pos = self.States.index(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
+        pos = self.STATES.index(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
         editor.setCurrentIndex(pos)
 
     def setModelData(self, editor, model, index) -> None:
@@ -71,11 +72,10 @@ class HVDelegate(QtWidgets.QItemDelegate):
 
 
 class SensorsWidget(QtWidgets.QWidget):
-
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self.sensors = SensorManager(SensorCount)
+        self.sensors = SensorManager(SENSOR_COUNT)
         self.model = SensorsModel(self.sensors)
 
         self.setWindowTitle("Sensors")
@@ -139,7 +139,8 @@ class SensorsWidget(QtWidgets.QWidget):
             try:
                 sensor = self.sensors.sensors[index.row()]
                 if index.column() == SensorsModel.Column.TemperatureOffset:
-                    value, ok = QtWidgets.QInputDialog.getDouble(self,
+                    value, ok = QtWidgets.QInputDialog.getDouble(
+                        self,
                         "Edit Sample",
                         "Temperature Offset (°C)",
                         sensor.temperature_offset,
@@ -151,8 +152,8 @@ class SensorsWidget(QtWidgets.QWidget):
                         sensor.temperature_offset = value
                         self.dataChanged()  # HACK keep updated
                         self.sensors.writeSettings()
-            except Exception as exc:
-                logger.exception(exc)
+            except Exception:
+                logger.exception("Failed to write settings")
 
     def readSettings(self) -> None:
         self.sensors.readSettings()
@@ -162,8 +163,7 @@ class SensorsWidget(QtWidgets.QWidget):
 
 
 class SensorsModel(QtCore.QAbstractTableModel):
-
-    columns: list[str] = [
+    COLUMNS: ClassVar = (
         "Sensor",
         "Status",
         "HV",
@@ -171,7 +171,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
         "Temp.",
         "Temp. Off.",
         "Calib.",
-    ]
+    )
 
     class Column:
         Name = 0
@@ -190,12 +190,12 @@ class SensorsModel(QtCore.QAbstractTableModel):
         return len(self.sensors)
 
     def columnCount(self, parent: QtCore.QModelIndex | None = None) -> int:
-        return len(self.columns)
+        return len(self.COLUMNS)
 
-    def headerData(self, section, orientation, role = QtCore.Qt.ItemDataRole.DisplayRole):
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if orientation == QtCore.Qt.Orientation.Horizontal:
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
-                return self.columns[section]
+                return self.COLUMNS[section]
             elif role == QtCore.Qt.ItemDataRole.ToolTipRole:
                 if section == self.Column.Temperature:
                     return "Temperature"
@@ -207,7 +207,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return section + 1
 
-    def data(self, index, role = QtCore.Qt.ItemDataRole.DisplayRole):
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return
 
@@ -231,11 +231,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
             elif index.column() == self.Column.Temperature:
                 if sensor.enabled:
                     if not sensor.temperature is None:
-                        return "{:.2f} °C".format(sensor.temperature)
+                        return f"{sensor.temperature:.2f} °C"
             elif index.column() == self.Column.TemperatureOffset:
-                return "{:+.2f} °C".format(sensor.temperature_offset)
+                return f"{sensor.temperature_offset:+.2f} °C"
             elif index.column() == self.Column.Resistivity:
-                return "{:d} Ohm".format(sensor.resistivity)
+                return f"{sensor.resistivity:d} Ohm"
 
         elif role == QtCore.Qt.ItemDataRole.DecorationRole:
             if index.column() == self.Column.Name:
@@ -266,7 +266,9 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.ItemDataRole.CheckStateRole:
             if index.column() == self.Column.Name:
-                return [QtCore.Qt.CheckState.Unchecked, QtCore.Qt.CheckState.Checked][sensor.enabled]
+                return [QtCore.Qt.CheckState.Unchecked, QtCore.Qt.CheckState.Checked][
+                    sensor.enabled
+                ]
 
         elif role == QtCore.Qt.ItemDataRole.EditRole:
             if index.column() == self.Column.Name:
@@ -276,7 +278,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if index.column() == self.Column.Resistivity:
                 return sensor.resistivity
 
-    def setData(self, index, value, role = QtCore.Qt.ItemDataRole.EditRole) -> bool:
+    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.EditRole) -> bool:
         if not index.isValid():
             return False
         sensor = self.sensors[index.row()]
@@ -314,7 +316,11 @@ class SensorsModel(QtCore.QAbstractTableModel):
         # sensor = self.sensors[index.row()]
         if self.sensors.isEditable():
             if index.column() == self.Column.Name:
-                return flags | QtCore.Qt.ItemFlag.ItemIsUserCheckable | QtCore.Qt.ItemFlag.ItemIsEditable
+                return (
+                    flags
+                    | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                    | QtCore.Qt.ItemFlag.ItemIsEditable
+                )
             # if index.column() == self.Column.HV:
             #     if sensor.enabled:
             #         return flags | QtCore.Qt.ItemIsEditable
@@ -324,13 +330,12 @@ class SensorsModel(QtCore.QAbstractTableModel):
 
 
 class SensorManager:
-
     def __init__(self, count: int) -> None:
         self.sensors: list[Sensor] = []
         for i in range(count):
             sensor = Sensor(i + 1)
-            sensor.color = Colors[i]
-            sensor.resistivity = CalibratedResistors[i]
+            sensor.color = SENSOR_COLORS[i]
+            sensor.resistivity = CALIBRATED_RESISTORS[i]
             self.sensors.append(sensor)
         self.setEditable(True)
 
@@ -341,13 +346,15 @@ class SensorManager:
             if sensor.index in data:
                 sensor.enabled = data.get(sensor.index, {}).get("enabled", False)
                 sensor.name = data.get(sensor.index, {}).get(
-                    "name", "Unnamed{}".format(sensor.index)
+                    "name", f"Unnamed{sensor.index}"
                 )
                 sensor.temperature_offset = float(
                     data.get(sensor.index, {}).get("temperature_offset", 0)
                 )
                 sensor.resistivity = int(
-                    data.get(sensor.index, {}).get("resistivity", CalibratedResistors[i])
+                    data.get(sensor.index, {}).get(
+                        "resistivity", CALIBRATED_RESISTORS[i]
+                    )
                 )
 
     def writeSettings(self) -> None:

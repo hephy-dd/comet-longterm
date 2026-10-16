@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -6,26 +6,22 @@ from ..utils import escape_string, unescape_string
 
 
 class PreferencesWidget(QtWidgets.QWidget):
-
-    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context: dict, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.context: dict = context
 
-    def readSettings(self, settings: QtCore.QSettings) -> None:
-        ...
+    def readSettings(self, settings: QtCore.QSettings) -> None: ...
 
-    def writeSettings(self, settings: QtCore.QSettings) -> None:
-        ...
+    def writeSettings(self, settings: QtCore.QSettings) -> None: ...
 
 
 class ResourcesWidget(PreferencesWidget):
+    DEFAULT_READ_TERMINATION = "\r\n"
+    DEFAULT_WRITE_TERMINATION = "\r\n"
+    DEFAULT_TIMEOUT = 2000
+    DEFAULT_VISA_LIBRARY = "@py"
 
-    DefaultReadTermination = "\r\n"
-    DefaultWriteTermination = "\r\n"
-    DefaultTimeout = 2000
-    DefaultVisaLibrary = "@py"
-
-    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context: dict, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(context, parent)
         self.setWindowTitle(self.tr("Resources"))
 
@@ -72,7 +68,7 @@ class ResourcesWidget(PreferencesWidget):
                     try:
                         value = int(value)
                     except ValueError:
-                        value = self.DefaultTimeout
+                        value = self.DEFAULT_TIMEOUT
                 options[key] = value
             resources[name] = options
         return resources
@@ -92,7 +88,9 @@ class ResourcesWidget(PreferencesWidget):
                     [
                         "read_termination",
                         escape_string(
-                            options.get("read_termination", self.DefaultReadTermination)
+                            options.get(
+                                "read_termination", self.DEFAULT_READ_TERMINATION
+                            )
                         ),
                     ]
                 )
@@ -103,7 +101,7 @@ class ResourcesWidget(PreferencesWidget):
                         "write_termination",
                         escape_string(
                             options.get(
-                                "write_termination", self.DefaultWriteTermination
+                                "write_termination", self.DEFAULT_WRITE_TERMINATION
                             )
                         ),
                     ]
@@ -111,14 +109,14 @@ class ResourcesWidget(PreferencesWidget):
             )
             item.addChild(
                 QtWidgets.QTreeWidgetItem(
-                    ["timeout", format(options.get("timeout", self.DefaultTimeout))]
+                    ["timeout", format(options.get("timeout", self.DEFAULT_TIMEOUT))]
                 )
             )
             item.addChild(
                 QtWidgets.QTreeWidgetItem(
                     [
                         "visa_library",
-                        options.get("visa_library", self.DefaultVisaLibrary),
+                        options.get("visa_library", self.DEFAULT_VISA_LIBRARY),
                     ]
                 )
             )
@@ -155,14 +153,12 @@ class ResourcesWidget(PreferencesWidget):
             options = {}
             options["resource_name"] = resource.resource_name
             options["read_termination"] = resource.options.get(
-                "read_termination", self.DefaultReadTermination
+                "read_termination", self.DEFAULT_READ_TERMINATION
             )
             options["write_termination"] = resource.options.get(
-                "write_termination", self.DefaultWriteTermination
+                "write_termination", self.DEFAULT_WRITE_TERMINATION
             )
-            options["timeout"] = resource.options.get(
-                "timeout", self.DefaultTimeout
-            )
+            options["timeout"] = resource.options.get("timeout", self.DEFAULT_TIMEOUT)
             options["visa_library"] = resource.visa_library
             resources[name] = options
         # Migrate old style settings (<= 0.12.x)
@@ -180,8 +176,7 @@ class ResourcesWidget(PreferencesWidget):
 
 
 class OperatorsWidget(PreferencesWidget):
-
-    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context: dict, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(context, parent)
         self.setWindowTitle(self.tr("Operators"))
 
@@ -267,8 +262,7 @@ class OperatorsWidget(PreferencesWidget):
 
 
 class PreferencesDialog(QtWidgets.QDialog):
-
-    def __init__(self, context: dict, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context: dict, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Preferences"))
         self.resize(480, 320)

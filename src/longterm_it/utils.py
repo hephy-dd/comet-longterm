@@ -1,11 +1,10 @@
-from datetime import datetime, UTC
-from typing import Optional
+from datetime import UTC, datetime
 
 __all__ = [
-    "escape_string",
-    "unescape_string",
     "auto_unit",
+    "escape_string",
     "make_iso",
+    "unescape_string",
 ]
 
 

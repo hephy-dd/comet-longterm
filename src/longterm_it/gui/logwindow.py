@@ -1,11 +1,7 @@
 import logging
-from pydoc import cli
 import threading
-import html
-import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -18,7 +14,7 @@ def setRowColor(item: QtWidgets.QTreeWidgetItem, color: QtGui.QBrush) -> None:
         item.setForeground(index, color)
 
 
-@dataclass
+@dataclass(slots=True)
 class Message:
     created: str
     level: str
@@ -40,22 +36,20 @@ class MessageQueue:
 
     def fetch(self) -> list[Message]:
         with self._lock:
-            messages = self._messages[-self._size:]
+            messages = self._messages[-self._size :]
             self._messages.clear()
             return messages
 
 
 class LogHandlerObject(QtCore.QObject):
-
     message = QtCore.pyqtSignal(logging.LogRecord)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
 
 class LogHandler(logging.Handler):
-
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__()
         self.object = LogHandlerObject(parent)
 
@@ -64,15 +58,14 @@ class LogHandler(logging.Handler):
 
 
 class LogWindow(QtWidgets.QWidget):
+    MAXIMUM_MESSAGE_COUNT: int = 1000
+    UPDATE_INTERVAL: int = 250
 
-    MaximumMessageCount: int = 1000
-    UpdateInterval: int = 250
-
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Logging"))
 
-        self.messageQueue: MessageQueue = MessageQueue(self.MaximumMessageCount)
+        self.messageQueue: MessageQueue = MessageQueue(self.MAXIMUM_MESSAGE_COUNT)
 
         self.handler = LogHandler(self)
         self.handler.object.message.connect(self.appendRecord)
@@ -83,7 +76,9 @@ class LogWindow(QtWidgets.QWidget):
         self.treeWidget.setRootIsDecorated(False)
         self.treeWidget.setSortingEnabled(False)
         self.treeWidget.setWordWrap(True)
-        self.treeWidget.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.treeWidget.setContextMenuPolicy(
+            QtCore.Qt.ContextMenuPolicy.CustomContextMenu
+        )
         self.treeWidget.customContextMenuRequested.connect(self.showContextMenu)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
@@ -96,7 +91,7 @@ class LogWindow(QtWidgets.QWidget):
 
         self.updateTimer = QtCore.QTimer(self)
         self.updateTimer.timeout.connect(self.updateMessages)
-        self.updateTimer.setInterval(self.UpdateInterval)
+        self.updateTimer.setInterval(self.UPDATE_INTERVAL)
         self.updateTimer.start()
 
     def setLevel(self, level) -> None:
@@ -123,7 +118,9 @@ class LogWindow(QtWidgets.QWidget):
             orange = QtGui.QBrush(QtGui.QColor("orange"))
             red = QtGui.QBrush(QtGui.QColor("red"))
             for message in self.messageQueue.fetch():
-                item = QtWidgets.QTreeWidgetItem([message.created, message.level, message.message])
+                item = QtWidgets.QTreeWidgetItem(
+                    [message.created, message.level, message.message]
+                )
                 color = None
                 if message.levelno >= logging.WARNING:
                     color = orange
@@ -138,14 +135,16 @@ class LogWindow(QtWidgets.QWidget):
                 self.truncateMessages()
 
     def truncateMessages(self) -> None:
-        while self.treeWidget.topLevelItemCount() > self.MaximumMessageCount:
+        while self.treeWidget.topLevelItemCount() > self.MAXIMUM_MESSAGE_COUNT:
             item = self.treeWidget.takeTopLevelItem(0)
             del item
 
     @QtCore.pyqtSlot(logging.LogRecord)
     def appendRecord(self, record: logging.LogRecord) -> None:
         created = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S")
-        message = Message(created, record.levelname, record.levelno, record.getMessage())
+        message = Message(
+            created, record.levelname, record.levelno, record.getMessage()
+        )
         self.messageQueue.put(message)
 
     def showContextMenu(self, position):
@@ -162,7 +161,9 @@ class LogWindow(QtWidgets.QWidget):
     def copyToClipboard(self):
         item = self.treeWidget.currentItem()
         if item:
-            content = "\t".join(item.text(col) for col in range(self.treeWidget.columnCount()))
+            content = "\t".join(
+                item.text(col) for col in range(self.treeWidget.columnCount())
+            )
             # Set the text to the clipboard
             clipboard = QtWidgets.QApplication.clipboard()
             if clipboard is not None:

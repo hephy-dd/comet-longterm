@@ -1,11 +1,14 @@
-from typing import cast
-
 import pyvisa
 from pyvisa.resources import MessageBasedResource
 
-class Resource:
 
-    def __init__(self, resource_name: str, visa_library: str | None = None, options: dict | None = None) -> None:
+class Resource:
+    def __init__(
+        self,
+        resource_name: str,
+        visa_library: str | None = None,
+        options: dict | None = None,
+    ) -> None:
         self.resource_name: str = resource_name
         self.visa_library: str = visa_library if visa_library is not None else "@py"
         self.options: dict = {}

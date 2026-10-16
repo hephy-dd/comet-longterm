@@ -1,4 +1,3 @@
-import csv
 import contextlib
 import logging
 import math
@@ -6,21 +5,17 @@ import os
 import re
 import threading
 import time
-import traceback
-from typing import Any, Callable, Optional
-
-import pyvisa.errors
-
-from PyQt5 import QtCore
-
-from comet.functions import LinearRange
+from collections.abc import Callable
+from typing import Any
 
 from comet.driver.cts.itc import ITC
 from comet.driver.keithley import K2410
+from comet.functions import LinearRange
+from PyQt5 import QtCore
 
 from .driver import K2700, ShuntBox  # TODO
 from .utils import make_iso
-from .writers import IVWriter, ItWriter
+from .writers import ItWriter, IVWriter
 
 __all__ = ["EnvironWorker", "MeasureWorker"]
 
@@ -44,8 +39,8 @@ def parse_reading(s):  # TODO
     """Returns list of dictionaries containing reading values."""
     readings = []
     # split '-4.32962079e-05VDC,+0.000SECS,+0.0000RDNG#,...'
-    for values in re.findall(r'([^#]+)#\,?', s):
-        values = re.findall(r'([+-]?\d+(?:\.\d+)?(?:E[+-]\d+)?)([A-Z]+)\,?', values)
+    for values in re.findall(r"([^#]+)#\,?", s):
+        values = re.findall(r"([+-]?\d+(?:\.\d+)?(?:E[+-]\d+)?)([A-Z]+)\,?", values)
         readings.append({suffix: float(value) for value, suffix in values})
     return readings
 
@@ -67,7 +62,7 @@ class EnvironWorker(QtCore.QObject):
     failed = QtCore.pyqtSignal(Exception)
     reading = QtCore.pyqtSignal(dict)
 
-    def __init__(self, resources, parent: Optional[QtCore.QObject] = None) -> None:
+    def __init__(self, resources, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self.resources = resources
         self.abort_requested = threading.Event()
@@ -116,7 +111,7 @@ class EnvironWorker(QtCore.QObject):
                             self.failedConnectionAttempts = 0
                             time.sleep(self.interval)
             except Exception as exc:
-                logger.exception(exc)
+                logger.exception("Failed to read from CTS")
                 if not self.failedConnectionAttempts:
                     self.failed.emit(exc)
                 self.failedConnectionAttempts += 1
@@ -151,7 +146,7 @@ class MeasureWorker(QtCore.QObject):
     itReading = QtCore.pyqtSignal(object)
     smuReading = QtCore.pyqtSignal(object)
 
-    def __init__(self, resources, parent: Optional[QtCore.QObject] = None) -> None:
+    def __init__(self, resources, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self.abort_requested = threading.Event()
         self.resources = resources
@@ -164,22 +159,26 @@ class MeasureWorker(QtCore.QObject):
         self.setStatus("N/A")
         self.setProgram(0)
 
-        self.params.update({
-            "smu.route.terminals": "rear",
-            "smu.filter.enable": False,
-            "smu.fitler.type": "repeat",
-            "smu.filter.count": 0,
-        })
+        self.params.update(
+            {
+                "smu.route.terminals": "rear",
+                "smu.filter.enable": False,
+                "smu.fitler.type": "repeat",
+                "smu.filter.count": 0,
+            }
+        )
 
-        self.params.update({
-            "dmm.filter.enable": False,
-            "dmm.fitler.type": "repeat",
-            "dmm.filter.count": 0,
-            "dmm.channels.slot": 1,
-            "dmm.channels.offset": 0,
-            "dmm.trigger.delay_auto": True,
-            "dmm.trigger.delay": 0,
-        })
+        self.params.update(
+            {
+                "dmm.filter.enable": False,
+                "dmm.fitler.type": "repeat",
+                "dmm.filter.count": 0,
+                "dmm.channels.slot": 1,
+                "dmm.channels.offset": 0,
+                "dmm.trigger.delay_auto": True,
+                "dmm.trigger.delay": 0,
+            }
+        )
 
     def abort(self) -> None:
         self.abort_requested.set()
@@ -328,7 +327,9 @@ class MeasureWorker(QtCore.QObject):
         smu.resource.query("*OPC?")
         error = smu.next_error()
         if error:
-            raise RuntimeError(f"{smu.resource.resource_name}: {error.code}, {error.message}")
+            raise RuntimeError(
+                f"{smu.resource.resource_name}: {error.code}, {error.message}"
+            )
         # Reset multimeter
         logger.info("Reset Multimeter...")
         multi.resource.write("*RST")
@@ -340,7 +341,9 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.query("*OPC?")
         error = multi.next_error()
         if error:
-            raise RuntimeError(f"{multi.resource.resource_name}: {error.code}, {error.message}")
+            raise RuntimeError(
+                f"{multi.resource.resource_name}: {error.code}, {error.message}"
+            )
 
     def scan(self, smu, multi) -> dict:
         """Scan selected channels and return dictionary of readings.
@@ -485,7 +488,9 @@ class MeasureWorker(QtCore.QObject):
 
         offset = (dmm_channels_slot * 100) + dmm_channels_offset
 
-        multi.resource.write(f':FUNC "VOLT:DC", (@{offset+1}:{offset+1+n_channels})')
+        multi.resource.write(
+            f':FUNC "VOLT:DC", (@{offset + 1}:{offset + 1 + n_channels})'
+        )
         multi.resource.query("*OPC?")
         # delete instrument buffer
         multi.resource.write(":TRACE:CLEAR")
@@ -531,7 +536,10 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.write(f":SENS:VOLT:AVER:STAT {dmm_filter_enable:d}")
         multi.resource.query("*OPC?")
 
-        if int(multi.resource.query(":SENS:VOLT:AVER:STAT?").strip()) != dmm_filter_enable:
+        if (
+            int(multi.resource.query(":SENS:VOLT:AVER:STAT?").strip())
+            != dmm_filter_enable
+        ):
             raise RuntimeError("failed to configure dmm.filter.enable")
 
         dmm_filter_type: str = self.params.get("dmm.filter.type", "repeat")
@@ -548,7 +556,10 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.write(f":SENS:VOLT:AVER:COUN {dmm_filter_count:d}")
         multi.resource.query("*OPC?")
 
-        if int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip()) != dmm_filter_count:
+        if (
+            int(multi.resource.query(":SENS:VOLT:AVER:COUN?").strip())
+            != dmm_filter_count
+        ):
             raise RuntimeError("failed to configure dmm.filter.count")
 
         dmm_trigger_delay_auto = self.params.get("dmm.trigger.delay_auto", False)
@@ -556,7 +567,10 @@ class MeasureWorker(QtCore.QObject):
         multi.resource.write(f":TRIG:DEL:AUTO {dmm_trigger_delay_auto:d}")
         multi.resource.query("*OPC?")
 
-        if bool(int(multi.resource.query(":TRIG:DEL:AUTO?").strip())) != dmm_trigger_delay_auto:
+        if (
+            bool(int(multi.resource.query(":TRIG:DEL:AUTO?").strip()))
+            != dmm_trigger_delay_auto
+        ):
             raise RuntimeError("failed to configure dmm.trigger.delay_auto")
 
         dmm_trigger_delay = self.params.get("dmm.trigger.delay", 0)
@@ -651,8 +665,12 @@ class MeasureWorker(QtCore.QObject):
                 if sensor.enabled:
                     name = sensor.name
                     filename = os.path.join(self.path(), f"IV-{name}-{timestamp}.txt")
-                    writer = IVWriter(stack.enter_context(open(filename, "w", newline="")))
-                    writer.write_meta(sensor, self.operator(), timestamp, self.ivEndVoltage())
+                    writer = IVWriter(
+                        stack.enter_context(open(filename, "w", newline=""))
+                    )
+                    writer.write_meta(
+                        sensor, self.operator(), timestamp, self.ivEndVoltage()
+                    )
                     writer.write_header()
                     writers[sensor.index] = writer
             step = (
@@ -673,7 +691,9 @@ class MeasureWorker(QtCore.QObject):
                 reading = self.scan(smu, multi)
                 logger.info("scan reading: %s", reading)
                 self.ivReading.emit(reading)
-                self.smuReading.emit({"U": self.currentVoltage(), "I": reading.get("I")})
+                self.smuReading.emit(
+                    {"U": self.currentVoltage(), "I": reading.get("I")}
+                )
                 for sensor in self.sensors():
                     if sensor.enabled:
                         # Time delta since start of IV
@@ -681,9 +701,13 @@ class MeasureWorker(QtCore.QObject):
                         writers[sensor.index].write_row(
                             timestamp=dt,
                             voltage=reading.get("U", math.nan),
-                            current=reading.get("channels", {})[sensor.index].get("I", math.nan),
+                            current=reading.get("channels", {})[sensor.index].get(
+                                "I", math.nan
+                            ),
                             smu_current=reading.get("I", math.nan),
-                            pt100=reading.get("channels", {})[sensor.index].get("temp", math.nan),
+                            pt100=reading.get("channels", {})[sensor.index].get(
+                                "temp", math.nan
+                            ),
                             cts_temperature=self.temperature(),
                             cts_humidity=self.humidity(),
                             cts_status=self.status(),
@@ -738,8 +762,12 @@ class MeasureWorker(QtCore.QObject):
                     name = sensor.name
                     timestamp = make_iso(self.startTime())
                     filename = os.path.join(self.path(), f"it-{name}-{timestamp}.txt")
-                    writer = ItWriter(stack.enter_context(open(filename, "w", newline="")))
-                    writer.write_meta(sensor, self.operator(), timestamp, self.biasVoltage())
+                    writer = ItWriter(
+                        stack.enter_context(open(filename, "w", newline=""))
+                    )
+                    writer.write_meta(
+                        sensor, self.operator(), timestamp, self.biasVoltage()
+                    )
                     writer.write_header()
                     writers[sensor.index] = writer
             while not self.abort_requested.is_set():
@@ -752,7 +780,9 @@ class MeasureWorker(QtCore.QObject):
                 reading = self.scan(smu, multi)
                 logger.info("scan reading: %s", reading)
                 self.itReading.emit(reading)
-                self.smuReading.emit({"U": self.currentVoltage(), "I": reading.get("I")})
+                self.smuReading.emit(
+                    {"U": self.currentVoltage(), "I": reading.get("I")}
+                )
                 for sensor in self.sensors():
                     if sensor.enabled:
                         # Time delta since start of IV
@@ -760,9 +790,13 @@ class MeasureWorker(QtCore.QObject):
                         writers[sensor.index].write_row(
                             timestamp=dt,
                             voltage=reading.get("U", math.nan),
-                            current=reading.get("channels", {})[sensor.index].get("I", math.nan),
+                            current=reading.get("channels", {})[sensor.index].get(
+                                "I", math.nan
+                            ),
                             smu_current=reading.get("I", math.nan),
-                            pt100=reading.get("channels", {})[sensor.index].get("temp", math.nan),
+                            pt100=reading.get("channels", {})[sensor.index].get(
+                                "temp", math.nan
+                            ),
                             cts_temperature=self.temperature(),
                             cts_humidity=self.humidity(),
                             cts_status=self.status(),
@@ -821,7 +855,9 @@ class MeasureWorker(QtCore.QObject):
             # Open connection to instruments
             with contextlib.ExitStack() as stack:
                 smu = get_driver("smu")(stack.enter_context(self.resources.get("smu")))
-                multi = get_driver("dmm")(stack.enter_context(self.resources.get("multi")))
+                multi = get_driver("dmm")(
+                    stack.enter_context(self.resources.get("multi"))
+                )
                 try:
                     self.setup(smu, multi)
                     self.rampUp(smu, multi)
@@ -834,7 +870,7 @@ class MeasureWorker(QtCore.QObject):
                     self.showMessage("Stopped")
                     self.hideProgress()
         except Exception as exc:
-            logger.exception(exc)
+            logger.exception("Measuremet failed")
             self.failed.emit(exc)
         finally:
             self.finished.emit()

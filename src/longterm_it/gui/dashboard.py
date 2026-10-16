@@ -1,21 +1,24 @@
-from typing import Optional
+from PyQt5 import QtChart, QtCore, QtWidgets
 
-from PyQt5 import QtCore, QtWidgets, QtChart
-
-from QCharted import ChartView
-
+from .charts import (
+    CtsChart,
+    ItChart,
+    ItSourceChart,
+    ItTempChart,
+    IVChart,
+    IVSourceChart,
+    IVTempChart,
+    ShuntBoxChart,
+)
 from .controlswidget import ControlsWidget
-from .sensorswidget import SensorsWidget, SensorManager
+from .sensorswidget import SensorManager, SensorsWidget
 from .statuswidget import StatusWidget
-from .charts import IVChart, ItChart, CtsChart, IVTempChart, ItTempChart
-from .charts import ShuntBoxChart, IVSourceChart, ItSourceChart
 
 __all__ = ["DashboardWidget"]
 
 
 class DashboardWidget(QtWidgets.QWidget):
-
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Longterm It")
 
@@ -29,12 +32,12 @@ class DashboardWidget(QtWidgets.QWidget):
         self.controlsWidget = ControlsWidget(self)
 
         self.ivTab = QtWidgets.QWidget()
-        self.ivChartView = ChartView()
+        self.ivChartView = QtChart.QChartView()
         ivTabLayout = QtWidgets.QGridLayout(self.ivTab)
         ivTabLayout.addWidget(self.ivChartView, 0, 0, 1, 1)
 
         self.itTab = QtWidgets.QWidget()
-        self.itChartView = ChartView()
+        self.itChartView = QtChart.QChartView()
         itTabLayout = QtWidgets.QGridLayout(self.itTab)
         itTabLayout.addWidget(self.itChartView, 0, 0, 1, 1)
 
@@ -44,32 +47,32 @@ class DashboardWidget(QtWidgets.QWidget):
         self.topTabWidget.setCurrentIndex(0)
 
         self.ctsTab = QtWidgets.QWidget()
-        self.ctsChartView = ChartView(self.ctsTab)
+        self.ctsChartView = QtChart.QChartView(self.ctsTab)
         ctsTabLayout = QtWidgets.QGridLayout(self.ctsTab)
         ctsTabLayout.addWidget(self.ctsChartView, 0, 0, 1, 1)
 
         self.ivTempTab = QtWidgets.QWidget()
-        self.ivTempChartView = ChartView(self.ivTempTab)
+        self.ivTempChartView = QtChart.QChartView(self.ivTempTab)
         ivTempTabLayout = QtWidgets.QGridLayout(self.ivTempTab)
         ivTempTabLayout.addWidget(self.ivTempChartView, 0, 0, 1, 1)
 
         self.itTempTab = QtWidgets.QWidget()
-        self.itTempChartView = ChartView(self.itTempTab)
+        self.itTempChartView = QtChart.QChartView(self.itTempTab)
         itTempTabLayout = QtWidgets.QGridLayout(self.itTempTab)
         itTempTabLayout.addWidget(self.itTempChartView, 0, 0, 1, 1)
 
         self.ivSourceTab = QtWidgets.QWidget()
-        self.ivSourceChartView = ChartView(self.ivSourceTab)
+        self.ivSourceChartView = QtChart.QChartView(self.ivSourceTab)
         ivSourceTabLayout = QtWidgets.QGridLayout(self.ivSourceTab)
         ivSourceTabLayout.addWidget(self.ivSourceChartView, 0, 0, 1, 1)
 
         self.itSourceTab = QtWidgets.QWidget()
-        self.itSourceChartView = ChartView(self.itSourceTab)
+        self.itSourceChartView = QtChart.QChartView(self.itSourceTab)
         itSourceTabLayout = QtWidgets.QGridLayout(self.itSourceTab)
         itSourceTabLayout.addWidget(self.itSourceChartView, 0, 0, 1, 1)
 
         self.shuntBoxTab = QtWidgets.QWidget()
-        self.shuntBoxChartView = ChartView(self.shuntBoxTab)
+        self.shuntBoxChartView = QtChart.QChartView(self.shuntBoxTab)
         shuntBoxTabLayout = QtWidgets.QGridLayout(self.shuntBoxTab)
         shuntBoxTabLayout.addWidget(self.shuntBoxChartView, 0, 0, 1, 1)
 
@@ -147,7 +150,9 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.ivChart.axis_x.rangeChanged.connect(ivRangeChanged)
 
-        def itRangeChanged(minimum: QtCore.QDateTime, maximum: QtCore.QDateTime) -> None:
+        def itRangeChanged(
+            minimum: QtCore.QDateTime, maximum: QtCore.QDateTime
+        ) -> None:
             self.itTempChart.fit()
             self.itTempChart.axis_x.setRange(minimum, maximum)
             self.itSourceChart.fit()
@@ -192,7 +197,9 @@ class DashboardWidget(QtWidgets.QWidget):
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get("channels", {})[sensor.index].get("I")
-                sensor.temperature = reading.get("channels", {})[sensor.index].get("temp")
+                sensor.temperature = reading.get("channels", {})[sensor.index].get(
+                    "temp"
+                )
         self.sensorsWidget.dataChanged()  # HACK keep updated
         self.ivTempChart.append(reading)
         self.shuntBoxChart.append(reading)
@@ -204,7 +211,9 @@ class DashboardWidget(QtWidgets.QWidget):
         for sensor in self.sensors():
             if sensor.enabled:
                 sensor.current = reading.get("channels", {})[sensor.index].get("I")
-                sensor.temperature = reading.get("channels", {})[sensor.index].get("temp")
+                sensor.temperature = reading.get("channels", {})[sensor.index].get(
+                    "temp"
+                )
         self.sensorsWidget.dataChanged()  # HACK keep updated
         self.itTempChart.append(reading)
         self.shuntBoxChart.append(reading)

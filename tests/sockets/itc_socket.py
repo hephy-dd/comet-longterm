@@ -1,34 +1,34 @@
 """CTS climate chamber simulation on TCP socket."""
 
-import socketserver
-import random, time
-import datetime
 import argparse
+import datetime
+import random
 import re
+import socketserver
+import time
 
 
 def fake_analog_channel(channel, minimum, maximum):
     """Retruns analog channel fake reading."""
     actual = random.uniform(minimum, maximum)
     target = random.uniform(minimum, maximum)
-    return "{} {:05.1f} {:05.1f}".format(channel, actual, target)
+    return f"{channel} {actual:05.1f} {target:05.1f}"
 
 
 class ClimateHandler(socketserver.BaseRequestHandler):
-
     temp = 24.0
     humid = 55.0
 
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
-            print("recv ({}, {})".format(len(data), data), flush=True)
+            print(f"recv ({len(data)}, {data})", flush=True)
         return data.decode()
 
     def send(self, message):
         data = message.encode()
         self.request.send(data)
-        print("send ({}, {})".format(len(data), data), flush=True)
+        print(f"send ({len(data)}, {data})", flush=True)
 
     def handle(self):
         # Keep socket alive
@@ -48,7 +48,7 @@ class ClimateHandler(socketserver.BaseRequestHandler):
             elif re.match(r"A0", data):
                 self.temp += random.uniform(-0.25, +0.25)
                 self.temp = min(60.0, max(20.0, self.temp))
-                self.send("{} {:05.1f} {:05.1f}".format(data, self.temp, 24.0))
+                self.send(f"{data} {self.temp:05.1f} {24.0:05.1f}")
 
             elif re.match(r"A[34]", data):
                 result = fake_analog_channel(data, -45.0, +185.0)
@@ -57,7 +57,7 @@ class ClimateHandler(socketserver.BaseRequestHandler):
             elif re.match(r"A1", data):
                 self.humid += random.uniform(-0.25, +0.25)
                 self.humid = min(95.0, max(15.0, self.humid))
-                self.send("{} {:05.1f} {:05.1f}".format(data, self.humid, 55.0))
+                self.send(f"{data} {self.humid:05.1f} {55.0:05.1f}")
 
             elif re.match(r"A2", data):
                 result = fake_analog_channel(data, +0.0, +15.0)

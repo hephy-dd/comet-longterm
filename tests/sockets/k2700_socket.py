@@ -1,14 +1,13 @@
 """Keithley 2700 simulation on TCP socket."""
 
-import socketserver
-import random, time
-import datetime
 import argparse
+import random
 import re
+import socketserver
+import time
 
 
 class K2700Handler(socketserver.BaseRequestHandler):
-
     write_termination = "\r\n"
 
     channels = 10
@@ -23,13 +22,13 @@ class K2700Handler(socketserver.BaseRequestHandler):
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
-            print("recv ({}, {})".format(len(data), data), flush=True)
+            print(f"recv ({len(data)}, {data})", flush=True)
         return data.decode()
 
     def send(self, message):
-        data = "{}{}".format(message, self.write_termination).encode()
+        data = f"{message}{self.write_termination}".encode()
         self.request.send(data)
-        print("send ({}, {})".format(len(data), data), flush=True)
+        print(f"send ({len(data)}, {data})", flush=True)
 
     def handle(self):
         # Keep socket alive
@@ -51,7 +50,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
                     self.send('0,"no error"')
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\?", data):
-                    self.send("{:d}".format(type(self).average_enable))
+                    self.send(f"{type(self).average_enable:d}")
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\s+(ON|OFF|1|0)", data):
                     value = data.split()[-1]
@@ -67,7 +66,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
                     type(self).average_type = value
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:COUN\?", data):
-                    self.send("{:d}".format(type(self).average_count))
+                    self.send(f"{type(self).average_count:d}")
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:COUN\s+(\d+)", data):
                     value = int(data.split()[-1])
@@ -80,14 +79,16 @@ class K2700Handler(socketserver.BaseRequestHandler):
                     self.send(",".join(["0.000024"] * type(self).channels))
 
                 elif re.match(r"\:?TRIG:DEL:AUTO\?", data):
-                    self.send("{:d}".format(type(self).trigger_delay_auto))
+                    self.send(f"{type(self).trigger_delay_auto:d}")
 
                 elif re.match(r"\:?TRIG:DEL:AUTO\s+(OFF|ON|0|1)", data):
-                    value = {"OFF": False, "ON": True, "0": False, "1": True}.get(data.split()[-1], False)
+                    value = {"OFF": False, "ON": True, "0": False, "1": True}.get(
+                        data.split()[-1], False
+                    )
                     type(self).trigger_delay_auto = value
 
                 elif re.match(r"\:?TRIG:DEL\?", data):
-                    self.send("{:E}".format(type(self).trigger_delay))
+                    self.send(f"{type(self).trigger_delay:E}")
 
                 elif re.match(r"\:?TRIG:DEL\s+(.*)", data):
                     value = float(data.split()[-1])
@@ -97,7 +98,7 @@ class K2700Handler(socketserver.BaseRequestHandler):
                     values = []
                     for i in range(type(self).channels):
                         vdc = random.uniform(0.00025, 0.001)
-                        values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
+                        values.append(f"{vdc:E}VDC,+0.000SECS,+0.0000RDNG#")
                     time.sleep(random.uniform(0.5, 1.0))  # rev B10 ;)
                     self.send(",".join(values))
 

@@ -1,11 +1,9 @@
 import os
-from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 
 
 class ControlsWidget(QtWidgets.QWidget):
-
     started = QtCore.pyqtSignal()
     stopRequest = QtCore.pyqtSignal()
     halted = QtCore.pyqtSignal()
@@ -21,7 +19,7 @@ class ControlsWidget(QtWidgets.QWidget):
     itDurationChanged = QtCore.pyqtSignal(float)
     itIntervalChanged = QtCore.pyqtSignal(float)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Controls")
 
@@ -484,9 +482,15 @@ class ControlsWidget(QtWidgets.QWidget):
         )
         self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
         self.dmmWidget.setChannelsSlot(settings.value("dmm/channels/slot", 1, type=int))
-        self.dmmWidget.setChannelsOffset(settings.value("dmm/channels/offset", 0, type=int))
-        self.dmmWidget.setTriggerDelayAuto(settings.value("dmm/trigger/delayAuto", True, type=bool))
-        self.dmmWidget.setTriggerDelay(settings.value("dmm/trigger/delay", 0, type=float))
+        self.dmmWidget.setChannelsOffset(
+            settings.value("dmm/channels/offset", 0, type=int)
+        )
+        self.dmmWidget.setTriggerDelayAuto(
+            settings.value("dmm/trigger/delayAuto", True, type=bool)
+        )
+        self.dmmWidget.setTriggerDelay(
+            settings.value("dmm/trigger/delay", 0, type=float)
+        )
 
     def writeSettings(self):
         settings = QtCore.QSettings()
@@ -563,7 +567,9 @@ class ControlsWidget(QtWidgets.QWidget):
         self.dmmWidget.slotComboBox.setEnabled(True)
         self.dmmWidget.offsetSpinBox.setEnabled(True)
         self.dmmWidget.triggerDelayAutoCheckBox.setEnabled(True)
-        self.dmmWidget.triggerDelaySpinBox.setEnabled(not self.dmmWidget.triggerDelayAuto())
+        self.dmmWidget.triggerDelaySpinBox.setEnabled(
+            not self.dmmWidget.triggerDelayAuto()
+        )
         self.operatorGroupBox.setEnabled(True)
         self.pathGroupBox.setEnabled(True)
         self.halted.emit()
@@ -593,7 +599,6 @@ class ControlsWidget(QtWidgets.QWidget):
 
 
 class SMUWidget(QtWidgets.QWidget):
-
     filterEnableChanged = QtCore.pyqtSignal(bool)
     filterTypeChanged = QtCore.pyqtSignal(str)
     filterCountChanged = QtCore.pyqtSignal(int)
@@ -694,7 +699,6 @@ class SMUWidget(QtWidgets.QWidget):
 
 
 class DMMWidget(QtWidgets.QWidget):
-
     filterEnableChanged = QtCore.pyqtSignal(bool)
     filterTypeChanged = QtCore.pyqtSignal(str)
     filterCountChanged = QtCore.pyqtSignal(int)
@@ -798,7 +802,9 @@ class DMMWidget(QtWidgets.QWidget):
         self.filterCountSpinBox.editingFinished.connect(self.onFilterCountChanged)
         self.slotComboBox.currentIndexChanged.connect(self.onChannelsSlotChanged)
         self.offsetSpinBox.editingFinished.connect(self.onFilterCountChanged)
-        self.triggerDelayAutoCheckBox.stateChanged.connect(self.onTriggerDelayAutoChanged)
+        self.triggerDelayAutoCheckBox.stateChanged.connect(
+            self.onTriggerDelayAutoChanged
+        )
         self.triggerDelaySpinBox.editingFinished.connect(self.onTriggerDelayChanged)
 
         self.onFilterEnableChanged()

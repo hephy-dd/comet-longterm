@@ -1,15 +1,15 @@
 """Keithley 2410 simulation on TCP socket."""
 
-import socketserver
-import random, time
-import datetime
 import argparse
+import random
 import re
+import socketserver
+import time
+from typing import ClassVar
 
 
 class K2410Handler(socketserver.BaseRequestHandler):
-
-    state = {"OUTP": 0, "VDC": 0.0}
+    state: ClassVar = {"OUTP": 0, "VDC": 0.0}
 
     write_termination = "\r\n"
 
@@ -22,13 +22,13 @@ class K2410Handler(socketserver.BaseRequestHandler):
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
-            print("recv ({}, {})".format(len(data), data), flush=True)
+            print(f"recv ({len(data)}, {data})", flush=True)
         return data.decode()
 
     def send(self, message):
-        data = "{}{}".format(message, self.write_termination).encode()
+        data = f"{message}{self.write_termination}".encode()
         self.request.send(data)
-        print("send ({}, {})".format(len(data), data), flush=True)
+        print(f"send ({len(data)}, {data})", flush=True)
 
     def handle(self):
         # Keep socket alive
@@ -50,7 +50,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                     self.send('0,"no error"')
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\?", data):
-                    self.send("{:d}".format(type(self).average_enable))
+                    self.send(f"{type(self).average_enable:d}")
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:STAT\s+(ON|OFF|1|0)", data):
                     value = data.split()[-1]
@@ -66,7 +66,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                     type(self).average_type = value
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:COUN\?", data):
-                    self.send("{:d}".format(type(self).average_count))
+                    self.send(f"{type(self).average_count:d}")
 
                 elif re.match(r"\:SENS\:VOLT\:AVER\:COUN\s+(\d+)", data):
                     value = int(data.split()[-1])
@@ -100,7 +100,7 @@ class K2410Handler(socketserver.BaseRequestHandler):
                     values = []
                     for i in range(self.channels):
                         vdc = self.state.get("VDC", 0.0) + random.uniform(-0.1, +0.1)
-                        values.append("{:E}VDC,+0.000SECS,+0.0000RDNG#".format(vdc))
+                        values.append(f"{vdc:E}VDC,+0.000SECS,+0.0000RDNG#")
                     self.send(",".join(values))
 
 

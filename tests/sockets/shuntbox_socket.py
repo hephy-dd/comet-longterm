@@ -1,20 +1,19 @@
 """HEPHY ShuntBox simulation on TCP socket."""
 
-import socketserver
-import random, time
-import datetime
 import argparse
+import random
 import re
+import socketserver
+import time
 
 start_time = time.time()
 
 
-def uptime():
-    return int(round(time.time() - start_time))
+def uptime() -> int:
+    return round(time.time() - start_time)
 
 
 class ShuntBoxHandler(socketserver.BaseRequestHandler):
-
     write_termination = "\r\n"
 
     channels = 10
@@ -22,13 +21,13 @@ class ShuntBoxHandler(socketserver.BaseRequestHandler):
     def recv(self, n):
         data = self.request.recv(1024)
         if data:
-            print("recv ({}, {})".format(len(data), data), flush=True)
+            print(f"recv ({len(data)}, {data})", flush=True)
         return data.decode()
 
     def send(self, message):
-        data = "{}{}".format(message, self.write_termination).encode()
+        data = f"{message}{self.write_termination}".encode()
         self.request.send(data)
-        print("send ({}, {})".format(len(data), data), flush=True)
+        print(f"send ({len(data)}, {data})", flush=True)
 
     def handle(self):
         # Keep socket alive
@@ -50,7 +49,7 @@ class ShuntBoxHandler(socketserver.BaseRequestHandler):
                     values = []
                     for i in range(self.channels):
                         temp = random.uniform(22.0, 26.0)
-                        values.append("{:.1f}".format(temp))
+                        values.append(f"{temp:.1f}")
                     self.send(",".join(values))
 
                 elif re.match(r"GET:TEMP \d+", data):

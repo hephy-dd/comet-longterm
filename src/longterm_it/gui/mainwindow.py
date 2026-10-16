@@ -1,10 +1,9 @@
 import logging
 import os
 import re
-from tkinter import Widget
 import traceback
 import webbrowser
-from typing import Optional, cast
+from typing import cast
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -16,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
-
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.resources: dict = {}
@@ -92,8 +90,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.dashboard = DashboardWidget(self)
         self.setCentralWidget(self.dashboard)
-        self.startAction.triggered.connect(self.dashboard.controlsWidget.startPushButton.click)
-        self.stopAction.triggered.connect(self.dashboard.controlsWidget.stopPushButton.click)
+        self.startAction.triggered.connect(
+            self.dashboard.controlsWidget.startPushButton.click
+        )
+        self.stopAction.triggered.connect(
+            self.dashboard.controlsWidget.stopPushButton.click
+        )
 
         # Status bar
 
@@ -162,7 +164,9 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog = QtWidgets.QMessageBox(self)
         dialog.setIcon(dialog.Icon.Critical)
         dialog.setWindowTitle(self.tr("Exception occured"))
-        dialog.setText(format(format(exc), " <80"))  # quick-fix: increase width of dialog by appending spaces
+        dialog.setText(
+            format(format(exc), " <80")
+        )  # quick-fix: increase width of dialog by appending spaces
         dialog.setDetailedText(details)
         dialog.exec()
 
@@ -182,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         resistors.append(int(token))
                 if len(resistors) < count:
                     raise RuntimeError(
-                        "Missing calibration values, expected at least {}".format(count)
+                        f"Missing calibration values, expected at least {count}"
                     )
                 for i in range(count):
                     logger.info("sensor[%s].resistivity = %s", i, resistors[i])
@@ -190,10 +194,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.information(
                     self,
                     self.tr("Success"),
-                    self.tr("Sucessfully imported {} calibration resistor values.".format(count)),
+                    self.tr(
+                        f"Sucessfully imported {count} calibration resistor values."
+                    ),
                 )
-            except Exception as exc:
-                self.onShowException(exc)
+            except Exception:
+                self.onShowException("Failed to import calibration values")
 
     def onShowLogWindow(self) -> None:
         self.logWindow.toBottom()

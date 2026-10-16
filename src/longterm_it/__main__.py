@@ -15,14 +15,20 @@ logger = logging.getLogger(__name__)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", dest="verbose", action="store_true", help="show verbose information")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "-v", dest="verbose", action="store_true", help="show verbose information"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
     return parser.parse_args()
 
 
 def create_loggers(level) -> None:
     logger = logging.getLogger()
-    formatter = logging.Formatter("%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S")
+    formatter = logging.Formatter(
+        "%(asctime)s::%(name)s::%(levelname)s::%(message)s", "%Y-%m-%dT%H:%M:%S"
+    )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -46,7 +52,11 @@ def main() -> None:
     app.setApplicationName("comet-longterm")
     app.setApplicationVersion(__version__)
     app.setApplicationDisplayName(f"Longterm It {__version__}")
-    app.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), "assets", "icons", "longterm.ico")))
+    app.setWindowIcon(
+        QtGui.QIcon(
+            os.path.join(os.path.dirname(__file__), "assets", "icons", "longterm.ico")
+        )
+    )
     app.setOrganizationName("HEPHY")
     app.setOrganizationDomain("hephy.at")
 
@@ -65,7 +75,8 @@ def main() -> None:
     # Controller
     window = MainWindow()
     window.setProperty("contentsUrl", "https://github.com/hephy-dd/comet-longterm")
-    window.setProperty("aboutText",
+    window.setProperty(
+        "aboutText",
         f"""<h3>Longterm It</h3>
         <p>Version {__version__}</p>
         <p>Long term sensor It measurements in CTS climate chamber.</p>

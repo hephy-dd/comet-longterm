@@ -1,6 +1,3 @@
-from typing import Optional
-
-
 class Sensor:
     """Represents state of a sensor."""
 
@@ -12,10 +9,10 @@ class Sensor:
         self.index: int = index
         self.enabled: bool = False
         self.color: str = "#000000"
-        self.name: str = "Unnamed{}".format(index)
-        self.status: Optional[str] = None
-        self.hv: Optional[bool] = None  # valid: None, True, False
-        self.current: Optional[float] = None
-        self.temperature: Optional[float] = None
+        self.name: str = f"Unnamed{index}"
+        self.status: str | None = None
+        self.hv: bool | None = None  # valid: None, True, False
+        self.current: float | None = None
+        self.temperature: float | None = None
         self.temperature_offset: float = 0.0
         self.resistivity: float = 0.0
