@@ -2,7 +2,7 @@ import math
 from collections.abc import Iterable
 from typing import Final
 
-from PyQt5 import QtChart, QtCore, QtGui
+from PySide6 import QtCharts, QtCore, QtGui
 
 __all__ = [
     "CtsChart",
@@ -18,30 +18,30 @@ __all__ = [
 DATE_TIME_FORMAT: Final = "dd-MM-yyyy hh:mm:ss"
 
 
-class Chart(QtChart.QChart):
+class Chart(QtCharts.QChart):
     """Small convenience layer implemented entirely with QtCharts.
 
     Charts remain QChart instances suitable for QChartView(chart).
     Timestamp readings are Unix seconds; QDateTimeAxis uses milliseconds.
     """
 
-    def addValueAxis(self, alignment) -> QtChart.QValueAxis:
-        axis = QtChart.QValueAxis()
+    def addValueAxis(self, alignment) -> QtCharts.QValueAxis:
+        axis = QtCharts.QValueAxis()
         self.addAxis(axis, alignment)
         return axis
 
-    def addDateTimeAxis(self, alignment) -> QtChart.QDateTimeAxis:
-        axis = QtChart.QDateTimeAxis()
+    def addDateTimeAxis(self, alignment) -> QtCharts.QDateTimeAxis:
+        axis = QtCharts.QDateTimeAxis()
         self.addAxis(axis, alignment)
         return axis
 
-    def addCategoryAxis(self, alignment) -> QtChart.QCategoryAxis:
-        axis = QtChart.QCategoryAxis()
+    def addCategoryAxis(self, alignment) -> QtCharts.QCategoryAxis:
+        axis = QtCharts.QCategoryAxis()
         self.addAxis(axis, alignment)
         return axis
 
-    def addLineSeries(self, axis_x, axis_y) -> QtChart.QLineSeries:
-        series = QtChart.QLineSeries()
+    def addLineSeries(self, axis_x, axis_y) -> QtCharts.QLineSeries:
+        series = QtCharts.QLineSeries()
         self.addSeries(series)
         series.attachAxis(axis_x)
         series.attachAxis(axis_y)
@@ -53,7 +53,7 @@ class Chart(QtChart.QChart):
             margin = max(abs(low) * 0.05, 1.0)
             low -= margin
             high += margin
-        if isinstance(axis, QtChart.QDateTimeAxis):
+        if isinstance(axis, QtCharts.QDateTimeAxis):
             axis.setRange(
                 QtCore.QDateTime.fromMSecsSinceEpoch(round(low)),
                 QtCore.QDateTime.fromMSecsSinceEpoch(round(high)),
@@ -63,7 +63,7 @@ class Chart(QtChart.QChart):
 
     @staticmethod
     def _axis_bounds(axis):
-        if isinstance(axis, QtChart.QDateTimeAxis):
+        if isinstance(axis, QtCharts.QDateTimeAxis):
             return axis.min().toMSecsSinceEpoch(), axis.max().toMSecsSinceEpoch()
         return axis.min(), axis.max()
 
@@ -77,14 +77,14 @@ class Chart(QtChart.QChart):
 
         fixed_bounds = self._axis_bounds(axis) if axis is not None else None
         for target in self.axes():
-            if target is axis or isinstance(target, QtChart.QCategoryAxis):
+            if target is axis or isinstance(target, QtCharts.QCategoryAxis):
                 continue
             is_x = target in self.axes(QtCore.Qt.Horizontal)  # type: ignore
             values = []
             for series in self.series():
                 if not series.isVisible() or target not in series.attachedAxes():
                     continue
-                if not isinstance(series, QtChart.QLineSeries):
+                if not isinstance(series, QtCharts.QLineSeries):
                     continue
                 for point in series.pointsVector():
                     x, y = point.x(), point.y()

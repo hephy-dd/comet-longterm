@@ -1,7 +1,8 @@
 from typing import Any
 
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
+from ..settings import SettingsAdapter
 from ..utils import escape_string, unescape_string
 
 
@@ -124,7 +125,7 @@ class ResourcesWidget(PreferencesWidget):
             self.treeWidget.expandItem(item)
         self.treeWidget.resizeColumnToContents(0)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def editResource(self) -> None:
         item = self.treeWidget.currentItem()
         if item:
@@ -135,13 +136,13 @@ class ResourcesWidget(PreferencesWidget):
                 self,
                 self.tr("Resource {}").format(parent.text(0)),
                 item.text(0),
-                QtWidgets.QLineEdit.Normal,
+                QtWidgets.QLineEdit.EchoMode.Normal,
                 item.text(1),
             )
             if ok:
                 item.setText(1, text)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def selectionChanged(self) -> None:
         item = self.treeWidget.currentItem()
         if item:
@@ -161,18 +162,23 @@ class ResourcesWidget(PreferencesWidget):
             options["timeout"] = resource.options.get("timeout", self.DEFAULT_TIMEOUT)
             options["visa_library"] = resource.visa_library
             resources[name] = options
+
+        settings_adapter = SettingsAdapter(settings)
         # Migrate old style settings (<= 0.12.x)
-        if not settings.value("resources2", {}, dict):
-            for name, resource_name in settings.value("resources", {}, dict).items():
+        if not settings_adapter.get("resources2", {}, dict):
+            for name, resource_name in settings_adapter.get(
+                "resources", {}, dict
+            ).items():
                 resources.update({name: {"resource_name": resource_name}})
-        for name, options in settings.value("resources2", {}, dict).items():
+        for name, options in settings_adapter.get("resources2", {}, dict).items():
             if name in resources:
                 for key, value in options.items():
                     resources[name][key] = value
         self.setResources(resources)
 
     def writeSettings(self, settings: QtCore.QSettings) -> None:
-        settings.setValue("resources2", self.resources())
+        settings_adapter = SettingsAdapter(settings)
+        settings_adapter.set("resources2", self.resources())
 
 
 class OperatorsWidget(PreferencesWidget):
@@ -217,16 +223,20 @@ class OperatorsWidget(PreferencesWidget):
         for text in operators:
             self.listWidget.addItem(text)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def addOperator(self) -> None:
         text, ok = QtWidgets.QInputDialog.getText(
-            self, self.tr("Operator"), self.tr("Name"), QtWidgets.QLineEdit.Normal
+            self,
+            self.tr("Operator"),
+            self.tr("Name"),
+            QtWidgets.QLineEdit.EchoMode.Normal,
         )
         if ok and text:
             item = self.listWidget.addItem(text)
-            self.listWidget.setCurrentItem(item)
+            if item is not None:
+                self.listWidget.setCurrentItem(item)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def editOperator(self) -> None:
         item = self.listWidget.currentItem()
         if item:
@@ -234,31 +244,33 @@ class OperatorsWidget(PreferencesWidget):
                 self,
                 self.tr("Operator"),
                 self.tr("Name"),
-                QtWidgets.QLineEdit.Normal,
+                QtWidgets.QLineEdit.EchoMode.Normal,
                 item.text(),
             )
             if ok and text:
                 item.setText(text)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def removeOperator(self) -> None:
         item = self.listWidget.currentItem()
         if item is not None:
             row = self.listWidget.row(item)
             self.listWidget.takeItem(row)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def selectionChanged(self) -> None:
         item = self.listWidget.currentItem()
         self.editButton.setEnabled(item is not None)
         self.removeButton.setEnabled(item is not None)
 
     def readSettings(self, settings: QtCore.QSettings) -> None:
-        operators = settings.value("operators", [], list)
+        settings_adapter = SettingsAdapter(settings)
+        operators = settings_adapter.get("operators", [], list)
         self.setOperators(operators)
 
     def writeSettings(self, settings: QtCore.QSettings) -> None:
-        settings.setValue("operators", self.operators())
+        settings_adapter = SettingsAdapter(settings)
+        settings_adapter.set("operators", self.operators())
 
 
 class PreferencesDialog(QtWidgets.QDialog):
@@ -276,8 +288,8 @@ class PreferencesDialog(QtWidgets.QDialog):
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
-        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 

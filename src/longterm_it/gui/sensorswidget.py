@@ -1,9 +1,10 @@
 import logging
 from typing import ClassVar, Final
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..sensor import Sensor
+from ..settings import SettingsAdapter
 from ..utils import auto_unit
 
 SENSOR_COLORS: Final[list[str]] = [
@@ -66,7 +67,7 @@ class HVDelegate(QtWidgets.QItemDelegate):
         editorIndex = editor.currentIndex()
         model.setData(index, bool(editorIndex))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def currentIndexChanged(self) -> None:
         self.commitData.emit(self.sender())
 
@@ -83,8 +84,12 @@ class SensorsWidget(QtWidgets.QWidget):
         self.tableView = QtWidgets.QTableView()
         self.tableView.setProperty("showDropIndicator", False)
         self.tableView.setDragDropOverwriteMode(False)
-        self.tableView.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.tableView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.tableView.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.tableView.setSelectionBehavior(
+            QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows
+        )
         self.tableView.setCornerButtonEnabled(False)
         horizontal_header = self.tableView.horizontalHeader()
         if horizontal_header is not None:
@@ -99,7 +104,7 @@ class SensorsWidget(QtWidgets.QWidget):
         self.tableView.setColumnWidth(4, 64)
         self.tableView.setItemDelegateForColumn(2, HVDelegate())
         self.tableView.setSizeAdjustPolicy(
-            QtWidgets.QAbstractScrollArea.AdjustToContents
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
         )
         self.tableView.doubleClicked.connect(self.editTableItem)
 
@@ -186,13 +191,15 @@ class SensorsModel(QtCore.QAbstractTableModel):
         super().__init__()
         self.sensors = sensors
 
-    def rowCount(self, parent: QtCore.QModelIndex | None = None) -> int:
+    def rowCount(self, parent=None) -> int:
         return len(self.sensors)
 
-    def columnCount(self, parent: QtCore.QModelIndex | None = None) -> int:
+    def columnCount(self, parent=None) -> int:
         return len(self.COLUMNS)
 
-    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+    def headerData(
+        self, section, orientation, role: int = QtCore.Qt.ItemDataRole.DisplayRole
+    ):
         if orientation == QtCore.Qt.Orientation.Horizontal:
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return self.COLUMNS[section]
@@ -207,7 +214,7 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return section + 1
 
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+    def data(self, index, role: int = QtCore.Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return
 
@@ -278,7 +285,9 @@ class SensorsModel(QtCore.QAbstractTableModel):
             if index.column() == self.Column.Resistivity:
                 return sensor.resistivity
 
-    def setData(self, index, value, role=QtCore.Qt.ItemDataRole.EditRole) -> bool:
+    def setData(
+        self, index, value, role: int = QtCore.Qt.ItemDataRole.EditRole
+    ) -> bool:
         if not index.isValid():
             return False
         sensor = self.sensors[index.row()]
@@ -340,8 +349,8 @@ class SensorManager:
         self.setEditable(True)
 
     def readSettings(self) -> None:
-        settings = QtCore.QSettings()
-        data = settings.value("sensors", {})
+        settings = SettingsAdapter(QtCore.QSettings())
+        data = settings.get("sensors", {}, dict)
         for i, sensor in enumerate(self.sensors):
             if sensor.index in data:
                 sensor.enabled = data.get(sensor.index, {}).get("enabled", False)
@@ -365,8 +374,8 @@ class SensorManager:
             data[sensor.index]["name"] = str(sensor.name)
             data[sensor.index]["temperature_offset"] = float(sensor.temperature_offset)
             data[sensor.index]["resistivity"] = int(sensor.resistivity)
-        settings = QtCore.QSettings()
-        settings.setValue("sensors", data)
+        settings = SettingsAdapter(QtCore.QSettings())
+        settings.set("sensors", data)
 
     def isEditable(self) -> bool:
         return self.__editable

@@ -3,7 +3,7 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 __all__ = ["LogWindow"]
 
@@ -42,7 +42,7 @@ class MessageQueue:
 
 
 class LogHandlerObject(QtCore.QObject):
-    message = QtCore.pyqtSignal(logging.LogRecord)
+    message = QtCore.Signal(logging.LogRecord)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -82,7 +82,9 @@ class LogWindow(QtWidgets.QWidget):
         self.treeWidget.customContextMenuRequested.connect(self.showContextMenu)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
-        self.buttonBox.setStandardButtons(self.buttonBox.Close)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.StandardButton.Close
+        )
         self.buttonBox.rejected.connect(lambda: self.hide())
 
         layout = QtWidgets.QGridLayout(self)
@@ -108,11 +110,11 @@ class LogWindow(QtWidgets.QWidget):
         if item:
             self.treeWidget.scrollToItem(item)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def clear(self) -> None:
         self.treeWidget.clear()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def updateMessages(self) -> None:
         with QtCore.QSignalBlocker(self.treeWidget):
             orange = QtGui.QBrush(QtGui.QColor("orange"))
@@ -139,7 +141,7 @@ class LogWindow(QtWidgets.QWidget):
             item = self.treeWidget.takeTopLevelItem(0)
             del item
 
-    @QtCore.pyqtSlot(logging.LogRecord)
+    @QtCore.Slot(logging.LogRecord)
     def appendRecord(self, record: logging.LogRecord) -> None:
         created = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S")
         message = Message(

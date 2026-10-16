@@ -4,7 +4,7 @@ import os
 import signal
 import sys
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from . import __version__
 from .controller import Controller
@@ -45,7 +45,10 @@ def main() -> None:
     logger.info("Longterm It version %s", __version__)
 
     # Set the locale to EN-US
-    locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
+    locale = QtCore.QLocale(
+        QtCore.QLocale.Language.English,
+        QtCore.QLocale.Country.UnitedStates,
+    )
     QtCore.QLocale.setDefault(locale)
 
     app = QtWidgets.QApplication(sys.argv)

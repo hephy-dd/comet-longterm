@@ -45,7 +45,6 @@ a = Analysis(
         "pyvisa_py",
         "pyserial",
         "pyusb",
-        "PyQt5.sip",
     ],
     hookspath=[],
     runtime_hooks=[],

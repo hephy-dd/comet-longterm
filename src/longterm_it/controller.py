@@ -4,9 +4,10 @@ import threading
 import time
 from datetime import UTC, datetime
 
-from PyQt5 import QtCore
+from PySide6 import QtCore
 
 from .resource import Resource
+from .settings import SettingsAdapter
 from .workers import EnvironWorker, MeasureWorker
 
 __all__ = ["Controller"]
@@ -42,11 +43,11 @@ class Controller:
         self.view.environ_thread.start()
 
     def loadResources(self):
-        settings = QtCore.QSettings()
-        resources = settings.value("resources2", {}, dict)
+        settings = SettingsAdapter(QtCore.QSettings())
+        resources = settings.get("resources2", {}, dict)
         # Migrate old style settings (<= 0.12.x)
         if not resources:
-            for name, resource_name in settings.value("resources", {}, dict).items():
+            for name, resource_name in settings.get("resources", {}, dict).items():
                 resources.update({name: {"resource_name": resource_name}})
         tr = {"timeout": int}
         for name, resource in self.view.resources.items():

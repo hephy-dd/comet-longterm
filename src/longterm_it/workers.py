@@ -11,7 +11,7 @@ from typing import Any
 from comet.driver.cts.itc import ITC
 from comet.driver.keithley import K2410
 from comet.functions import LinearRange
-from PyQt5 import QtCore
+from PySide6 import QtCore
 
 from .driver import K2700, ShuntBox  # TODO
 from .utils import make_iso
@@ -59,8 +59,8 @@ class EnvironWorker(QtCore.QObject):
 
     failedConnectionAttempts: int = 0
 
-    failed = QtCore.pyqtSignal(Exception)
-    reading = QtCore.pyqtSignal(dict)
+    failed = QtCore.Signal(Exception)
+    reading = QtCore.Signal(dict)
 
     def __init__(self, resources, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
@@ -132,19 +132,19 @@ class MeasureWorker(QtCore.QObject):
     If any of the first four stages fails, a ramp down will be executed.
     """
 
-    failed = QtCore.pyqtSignal(Exception)
-    finished = QtCore.pyqtSignal()
+    failed = QtCore.Signal(Exception)
+    finished = QtCore.Signal()
 
-    messageChanged = QtCore.pyqtSignal(str)
-    messageCleared = QtCore.pyqtSignal()
-    progressChanged = QtCore.pyqtSignal(int, int)
-    progressHidden = QtCore.pyqtSignal()
+    messageChanged = QtCore.Signal(str)
+    messageCleared = QtCore.Signal()
+    progressChanged = QtCore.Signal(int, int)
+    progressHidden = QtCore.Signal()
 
-    ivStarted = QtCore.pyqtSignal()
-    itStarted = QtCore.pyqtSignal()
-    ivReading = QtCore.pyqtSignal(object)
-    itReading = QtCore.pyqtSignal(object)
-    smuReading = QtCore.pyqtSignal(object)
+    ivStarted = QtCore.Signal()
+    itStarted = QtCore.Signal()
+    ivReading = QtCore.Signal(object)
+    itReading = QtCore.Signal(object)
+    smuReading = QtCore.Signal(object)
 
     def __init__(self, resources, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)

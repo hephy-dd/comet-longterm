@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 from ..utils import auto_unit
 
@@ -31,7 +31,10 @@ class StatusWidget(QtWidgets.QWidget):
         smuGroupBoxLayout.addWidget(self.currentLabel, 0, 1, 1, 1)
         smuGroupBoxLayout.addWidget(self.currentLineEdit, 1, 1, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(
-            20, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            20,
+            0,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
         )
         smuGroupBoxLayout.addItem(spacerItem, 1, 2, 1, 1)
 
@@ -68,7 +71,10 @@ class StatusWidget(QtWidgets.QWidget):
         ctsGroupBoxLayout.addWidget(self.statusLineEdit, 1, 2, 1, 1)
 
         spacerItem1 = QtWidgets.QSpacerItem(
-            0, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+            0,
+            20,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
         )
         ctsGroupBoxLayout.addItem(spacerItem1, 1, 3, 1, 1)
 

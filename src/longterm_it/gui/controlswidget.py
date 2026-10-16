@@ -1,23 +1,25 @@
 import os
 
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
+
+from ..settings import SettingsAdapter
 
 
 class ControlsWidget(QtWidgets.QWidget):
-    started = QtCore.pyqtSignal()
-    stopRequest = QtCore.pyqtSignal()
-    halted = QtCore.pyqtSignal()
+    started = QtCore.Signal()
+    stopRequest = QtCore.Signal()
+    halted = QtCore.Signal()
 
-    useShuntBoxChanged = QtCore.pyqtSignal(bool)
-    ivEndVoltageChanged = QtCore.pyqtSignal(float)
-    ivStepChanged = QtCore.pyqtSignal(float)
-    ivDelayChanged = QtCore.pyqtSignal(float)
-    biasVoltageChanged = QtCore.pyqtSignal(float)
-    totalComplianceChanged = QtCore.pyqtSignal(float)
-    singleComplianceChanged = QtCore.pyqtSignal(float)
-    continueInComplianceChanged = QtCore.pyqtSignal(bool)
-    itDurationChanged = QtCore.pyqtSignal(float)
-    itIntervalChanged = QtCore.pyqtSignal(float)
+    useShuntBoxChanged = QtCore.Signal(bool)
+    ivEndVoltageChanged = QtCore.Signal(float)
+    ivStepChanged = QtCore.Signal(float)
+    ivDelayChanged = QtCore.Signal(float)
+    biasVoltageChanged = QtCore.Signal(float)
+    totalComplianceChanged = QtCore.Signal(float)
+    singleComplianceChanged = QtCore.Signal(float)
+    continueInComplianceChanged = QtCore.Signal(bool)
+    itDurationChanged = QtCore.Signal(float)
+    itIntervalChanged = QtCore.Signal(float)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
@@ -108,7 +110,10 @@ class ControlsWidget(QtWidgets.QWidget):
         complGroupBoxLayout.addWidget(self.continueInComplianceCheckBox, 6, 0, 1, 1)
 
         spacerItem1 = QtWidgets.QSpacerItem(
-            20, 12, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+            20,
+            12,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
         complGroupBoxLayout.addItem(spacerItem1, 7, 0, 1, 1)
 
@@ -154,7 +159,10 @@ class ControlsWidget(QtWidgets.QWidget):
         ivGroupBoxLayout.addWidget(self.ivDelayLabel, 4, 0, 1, 1)
         ivGroupBoxLayout.addWidget(self.ivDelaySpinBox, 5, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+            20,
+            40,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
         ivGroupBoxLayout.addItem(spacerItem, 6, 0, 1, 1)
 
@@ -197,7 +205,10 @@ class ControlsWidget(QtWidgets.QWidget):
         itGroupBoxLayout.addWidget(self.itIntervalLabel, 4, 0, 1, 1)
         itGroupBoxLayout.addWidget(self.itIntervalSpinBox, 5, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(
-            20, 89, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+            20,
+            89,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
         itGroupBoxLayout.addItem(spacerItem, 6, 0, 1, 1)
 
@@ -437,86 +448,76 @@ class ControlsWidget(QtWidgets.QWidget):
         return os.path.normpath(self.pathComboBox.currentText())
 
     def readSettings(self) -> None:
-        settings = QtCore.QSettings()
+        settings = SettingsAdapter(QtCore.QSettings())
         home = os.path.join(os.path.expanduser("~"), "longterm")
-        names = settings.value("operators") or []
-        index = settings.value("currentOperator", 0, type=int)
-        path = settings.value("path", home)
+        names = settings.get("operators", [], list)
+        index = settings.get("currentOperator", 0, int)
+        path = settings.get("path", home, str)
         self.operatorComboBox.addItems(names)
         self.operatorComboBox.setCurrentIndex(min(index, len(names) - 1))
-        self.operatorComboBox.currentIndexChanged[str].connect(self.onOperatorChanged)
+        self.operatorComboBox.currentIndexChanged.connect(self.onOperatorChanged)
         self.pathComboBox.addItem(path)
         self.pathComboBox.setCurrentText(path)
         if home != path:
             self.pathComboBox.addItem(home)
-        self.setEnvironEnabled(settings.value("useEnviron", True, type=bool))
-        self.setShuntBoxEnabled(settings.value("useShuntBox", True, type=bool))
-        self.setIvEndVoltage(settings.value("ivEndVoltage", 800.0, type=float))
+        self.setEnvironEnabled(settings.get("useEnviron", True, bool))
+        self.setShuntBoxEnabled(settings.get("useShuntBox", True, bool))
+        self.setIvEndVoltage(settings.get("ivEndVoltage", 800.0, float))
         self.onIvEndVoltageChanged()
-        self.setIvStep(settings.value("ivStep", 5.0, type=float))
-        self.setIvDelay(settings.value("ivDelay", 1.0, type=float))
-        self.setBiasVoltage(settings.value("biasVoltage", 600.0, type=float))
+        self.setIvStep(settings.get("ivStep", 5.0, float))
+        self.setIvDelay(settings.get("ivDelay", 1.0, float))
+        self.setBiasVoltage(settings.get("biasVoltage", 600.0, float))
         self.setTotalCompliance(
-            settings.value("totalCompliance", 80.0 / 1000 / 1000, type=float)
+            settings.get("totalCompliance", 80.0 / 1000 / 1000, float)
         )
         self.setSingleCompliance(
-            settings.value("singleCompliance", 25.0 / 1000 / 1000, type=float)
+            settings.get("singleCompliance", 25.0 / 1000 / 1000, float)
         )
-        self.setContinueInCompliance(
-            settings.value("continueInCompliance", True, type=bool)
-        )
-        self.setItDuration(settings.value("itDuration", 0.0, type=float))
-        self.setItInterval(settings.value("itInterval", 60.0, type=float))
-        self.smuWidget.setFilterEnable(
-            settings.value("smu/filter/enable", False, type=bool)
-        )
-        self.smuWidget.setFilterType(
-            settings.value("smu/filter/type", "repeat", type=str)
-        )
-        self.smuWidget.setFilterCount(settings.value("smu/filter/count", 10, type=int))
-        self.dmmWidget.setFilterEnable(
-            settings.value("dmm/filter/enable", False, type=bool)
-        )
-        self.dmmWidget.setFilterType(
-            settings.value("dmm/filter/type", "repeat", type=str)
-        )
-        self.dmmWidget.setFilterCount(settings.value("dmm/filter/count", 10, type=int))
-        self.dmmWidget.setChannelsSlot(settings.value("dmm/channels/slot", 1, type=int))
-        self.dmmWidget.setChannelsOffset(
-            settings.value("dmm/channels/offset", 0, type=int)
-        )
-        self.dmmWidget.setTriggerDelayAuto(
-            settings.value("dmm/trigger/delayAuto", True, type=bool)
-        )
-        self.dmmWidget.setTriggerDelay(
-            settings.value("dmm/trigger/delay", 0, type=float)
-        )
+        self.setContinueInCompliance(settings.get("continueInCompliance", True, bool))
+        self.setItDuration(settings.get("itDuration", 0.0, float))
+        self.setItInterval(settings.get("itInterval", 60.0, float))
+        with settings.group("smu"):
+            self.smuWidget.setFilterEnable(settings.get("filter/enable", False, bool))
+            self.smuWidget.setFilterType(settings.get("filter/type", "repeat", str))
+            self.smuWidget.setFilterCount(settings.get("filter/count", 10, int))
+        with settings.group("dmm"):
+            self.dmmWidget.setFilterEnable(settings.get("filter/enable", False, bool))
+            self.dmmWidget.setFilterType(settings.get("filter/type", "repeat", str))
+            self.dmmWidget.setFilterCount(settings.get("filter/count", 10, int))
+            self.dmmWidget.setChannelsSlot(settings.get("channels/slot", 1, int))
+            self.dmmWidget.setChannelsOffset(settings.get("channels/offset", 0, int))
+            self.dmmWidget.setTriggerDelayAuto(
+                settings.get("trigger/delayAuto", True, bool)
+            )
+            self.dmmWidget.setTriggerDelay(settings.get("trigger/delay", 0, float))
 
     def writeSettings(self):
-        settings = QtCore.QSettings()
-        settings.setValue("useEnviron", self.isEnvironEnabled())
-        settings.setValue("useShuntBox", self.isShuntBoxEnabled())
-        settings.setValue("ivEndVoltage", self.ivEndVoltage())
-        settings.setValue("ivStep", self.ivStep())
-        settings.setValue("ivDelay", self.ivDelay())
-        settings.setValue("biasVoltage", self.biasVoltage())
-        settings.setValue("totalCompliance", self.totalCompliance())
-        settings.setValue("singleCompliance", self.singleCompliance())
-        settings.setValue("continueInCompliance", self.continueInCompliance())
-        settings.setValue("itDuration", self.itDuration())
-        settings.setValue("itInterval", self.itInterval())
-        settings.setValue("smu/filter/enable", self.smuWidget.filterEnable())
-        settings.setValue("smu/filter/type", self.smuWidget.filterType())
-        settings.setValue("smu/filter/count", self.smuWidget.filterCount())
-        settings.setValue("dmm/filter/enable", self.dmmWidget.filterEnable())
-        settings.setValue("dmm/filter/type", self.dmmWidget.filterType())
-        settings.setValue("dmm/filter/count", self.dmmWidget.filterCount())
-        settings.setValue("dmm/channels/slot", self.dmmWidget.channelsSlot())
-        settings.setValue("dmm/channels/offset", self.dmmWidget.channelsOffset())
-        settings.setValue("dmm/trigger/delayAuto", self.dmmWidget.triggerDelayAuto())
-        settings.setValue("dmm/trigger/delay", self.dmmWidget.triggerDelay())
+        settings = SettingsAdapter(QtCore.QSettings())
+        settings.set("useEnviron", self.isEnvironEnabled())
+        settings.set("useShuntBox", self.isShuntBoxEnabled())
+        settings.set("ivEndVoltage", self.ivEndVoltage())
+        settings.set("ivStep", self.ivStep())
+        settings.set("ivDelay", self.ivDelay())
+        settings.set("biasVoltage", self.biasVoltage())
+        settings.set("totalCompliance", self.totalCompliance())
+        settings.set("singleCompliance", self.singleCompliance())
+        settings.set("continueInCompliance", self.continueInCompliance())
+        settings.set("itDuration", self.itDuration())
+        settings.set("itInterval", self.itInterval())
+        with settings.group("smu"):
+            settings.set("filter/enable", self.smuWidget.filterEnable())
+            settings.set("filter/type", self.smuWidget.filterType())
+            settings.set("filter/count", self.smuWidget.filterCount())
+        with settings.group("dmm"):
+            settings.set("filter/enable", self.dmmWidget.filterEnable())
+            settings.set("filter/type", self.dmmWidget.filterType())
+            settings.set("filter/count", self.dmmWidget.filterCount())
+            settings.set("channels/slot", self.dmmWidget.channelsSlot())
+            settings.set("channels/offset", self.dmmWidget.channelsOffset())
+            settings.set("trigger/delayAuto", self.dmmWidget.triggerDelayAuto())
+            settings.set("trigger/delay", self.dmmWidget.triggerDelay())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onStart(self):
         self.startPushButton.setChecked(True)
         self.startPushButton.setEnabled(False)
@@ -541,13 +542,13 @@ class ControlsWidget(QtWidgets.QWidget):
         self.pathGroupBox.setEnabled(False)
         self.started.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onStop(self):
         self.stopPushButton.setChecked(False)
         self.stopPushButton.setEnabled(False)
         self.stopRequest.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onHalted(self):
         self.startPushButton.setChecked(False)
         self.startPushButton.setEnabled(True)
@@ -574,7 +575,7 @@ class ControlsWidget(QtWidgets.QWidget):
         self.pathGroupBox.setEnabled(True)
         self.halted.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onSelectPath(self):
         """Select output directory using a file dialog."""
         path = self.pathComboBox.currentText() or QtCore.QDir.home().path()
@@ -587,21 +588,21 @@ class ControlsWidget(QtWidgets.QWidget):
             settings = QtCore.QSettings()
             settings.setValue("path", path)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def onOperatorChanged(self, name):
         """Store current operator name to settings."""
-        settings = QtCore.QSettings()
-        operators = settings.value("operators") or []
+        settings = SettingsAdapter(QtCore.QSettings())
+        operators = settings.get("operators", [], list)
         if name not in operators:
             operators.append(name)
-        settings.setValue("operators", operators)
-        settings.setValue("currentOperator", operators.index(name))
+        settings.set("operators", operators)
+        settings.set("currentOperator", operators.index(name))
 
 
 class SMUWidget(QtWidgets.QWidget):
-    filterEnableChanged = QtCore.pyqtSignal(bool)
-    filterTypeChanged = QtCore.pyqtSignal(str)
-    filterCountChanged = QtCore.pyqtSignal(int)
+    filterEnableChanged = QtCore.Signal(bool)
+    filterTypeChanged = QtCore.Signal(str)
+    filterCountChanged = QtCore.Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -682,30 +683,30 @@ class SMUWidget(QtWidgets.QWidget):
         """Set filter count."""
         self.filterCountSpinBox.setValue(count)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterEnableChanged(self):
         enabled = self.filterEnable()
         self.filterTypeComboBox.setEnabled(enabled)
         self.filterCountSpinBox.setEnabled(enabled)
         self.filterEnableChanged.emit(enabled)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterTypeChanged(self):
         self.filterTypeChanged.emit(self.filterType())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterCountChanged(self):
         self.filterCountChanged.emit(self.filterCount())
 
 
 class DMMWidget(QtWidgets.QWidget):
-    filterEnableChanged = QtCore.pyqtSignal(bool)
-    filterTypeChanged = QtCore.pyqtSignal(str)
-    filterCountChanged = QtCore.pyqtSignal(int)
-    channelsSlotChanged = QtCore.pyqtSignal(int)
-    channelsOffsetChanged = QtCore.pyqtSignal(int)
-    triggerDelayAutoChanged = QtCore.pyqtSignal(bool)
-    triggerDelayChanged = QtCore.pyqtSignal(float)
+    filterEnableChanged = QtCore.Signal(bool)
+    filterTypeChanged = QtCore.Signal(str)
+    filterCountChanged = QtCore.Signal(int)
+    channelsSlotChanged = QtCore.Signal(int)
+    channelsOffsetChanged = QtCore.Signal(int)
+    triggerDelayAutoChanged = QtCore.Signal(bool)
+    triggerDelayChanged = QtCore.Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -863,35 +864,35 @@ class DMMWidget(QtWidgets.QWidget):
     def setTriggerDelay(self, delay: float) -> None:
         self.triggerDelaySpinBox.setValue(delay)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterEnableChanged(self):
         enabled = self.filterEnable()
         self.filterTypeComboBox.setEnabled(enabled)
         self.filterCountSpinBox.setEnabled(enabled)
         self.filterEnableChanged.emit(enabled)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterTypeChanged(self):
         self.filterTypeChanged.emit(self.filterType())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onFilterCountChanged(self):
         self.filterCountChanged.emit(self.filterCount())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onChannelsSlotChanged(self):
         self.channelsSlotChanged.emit(self.channelsSlot())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onChannelsOffsetChanged(self):
         self.channelsOffsetChanged.emit(self.channelsOffset())
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onTriggerDelayAutoChanged(self):
         enabled = self.triggerDelayAuto()
         self.triggerDelayAutoChanged.emit(enabled)
         self.triggerDelaySpinBox.setEnabled(not enabled)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def onTriggerDelayChanged(self):
         self.triggerDelayChanged.emit(self.triggerDelay())

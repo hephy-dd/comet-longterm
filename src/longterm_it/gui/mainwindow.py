@@ -5,8 +5,9 @@ import traceback
 import webbrowser
 from typing import cast
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..settings import SettingsAdapter
 from .dashboard import DashboardWidget
 from .logwindow import LogWindow
 from .preferencesdialog import PreferencesDialog
@@ -22,42 +23,42 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Actions
 
-        self.importCalibAction = QtWidgets.QAction(self)
+        self.importCalibAction = QtGui.QAction(self)
         self.importCalibAction.setText(self.tr("Import &Calibrations..."))
         self.importCalibAction.setStatusTip("Import calibrations from file.")
         self.importCalibAction.triggered.connect(self.onImportCalib)
 
-        self.quitAction = QtWidgets.QAction(self)
+        self.quitAction = QtGui.QAction(self)
         self.quitAction.setText("&Quit")
         self.quitAction.setShortcut(QtGui.QKeySequence("Ctrl+Q"))
         self.quitAction.setStatusTip("Quit the application")
         self.quitAction.triggered.connect(self.close)  # type: ignore
 
-        self.preferencesAction = QtWidgets.QAction(self)
+        self.preferencesAction = QtGui.QAction(self)
         self.preferencesAction.setText(self.tr("Preferences..."))
         self.preferencesAction.triggered.connect(self.onShowPreferences)
 
-        self.loggingAction = QtWidgets.QAction(self)
+        self.loggingAction = QtGui.QAction(self)
         self.loggingAction.setText(self.tr("Logging..."))
         self.loggingAction.triggered.connect(self.onShowLogWindow)
 
-        self.startAction = QtWidgets.QAction(self)
+        self.startAction = QtGui.QAction(self)
         self.startAction.setText(self.tr("Start"))
 
-        self.stopAction = QtWidgets.QAction(self)
+        self.stopAction = QtGui.QAction(self)
         self.stopAction.setText(self.tr("Stop"))
         self.stopAction.setEnabled(False)
 
-        self.contentsAction = QtWidgets.QAction(self)
+        self.contentsAction = QtGui.QAction(self)
         self.contentsAction.setText(self.tr("&Contents"))
         self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
         self.contentsAction.triggered.connect(self.onShowContents)
 
-        self.aboutQtAction = QtWidgets.QAction(self)
+        self.aboutQtAction = QtGui.QAction(self)
         self.aboutQtAction.setText(self.tr("About &Qt"))
         self.aboutQtAction.triggered.connect(self.onShowAboutQt)
 
-        self.aboutAction = QtWidgets.QAction(self)
+        self.aboutAction = QtGui.QAction(self)
         self.aboutAction.setText(self.tr("&About"))
         self.aboutAction.triggered.connect(self.onShowAbout)
 
@@ -116,11 +117,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.logWindow.hide()
 
     def readSettings(self) -> None:
-        settings = QtCore.QSettings()
-        settings.beginGroup("mainwindow")
-        geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
-        state = settings.value("state", QtCore.QByteArray(), QtCore.QByteArray)
-        settings.endGroup()
+        settings = SettingsAdapter(QtCore.QSettings())
+        with settings.group("mainwindow"):
+            geometry = settings.get("geometry", QtCore.QByteArray(), QtCore.QByteArray)
+            state = settings.get("state", QtCore.QByteArray(), QtCore.QByteArray)
 
         if not geometry.isEmpty():
             self.restoreGeometry(geometry)
@@ -129,29 +129,28 @@ class MainWindow(QtWidgets.QMainWindow):
             self.restoreState(state)
 
     def writeSettings(self) -> None:
-        settings = QtCore.QSettings()
-        settings.beginGroup("mainwindow")
-        settings.setValue("geometry", self.saveGeometry())
-        settings.setValue("state", self.saveState())
-        settings.endGroup()
+        settings = SettingsAdapter(QtCore.QSettings())
+        with settings.group("mainwindow"):
+            settings.set("geometry", self.saveGeometry())
+            settings.set("state", self.saveState())
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def showMessage(self, message: str) -> None:
         self.messageLabel.setText(message)
         self.messageLabel.show()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def clearMessage(self) -> None:
         self.messageLabel.clear()
         self.messageLabel.hide()
 
-    @QtCore.pyqtSlot(int, int)
+    @QtCore.Slot(int, int)
     def showProgress(self, value: int, maximum: int) -> None:
         self.progressBar.setRange(0, maximum)
         self.progressBar.setValue(value)
         self.progressBar.show()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def hideProgress(self) -> None:
         self.progressBar.hide()
 
@@ -211,7 +210,7 @@ class MainWindow(QtWidgets.QMainWindow):
         context = {"resources": self.resources}
         dialog = PreferencesDialog(context, self)
         dialog.readSettings()
-        if dialog.exec() == dialog.Accepted:
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             dialog.writeSettings()
             QtWidgets.QMessageBox.information(
                 self,
@@ -235,15 +234,18 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(aboutText, str):
             QtWidgets.QMessageBox.about(self, "About", aboutText)
 
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # type: ignore
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         dialog = QtWidgets.QMessageBox(self)
-        dialog.setIcon(QtWidgets.QMessageBox.Question)
+        dialog.setIcon(QtWidgets.QMessageBox.Icon.Question)
         dialog.setText(self.tr("Quit application?"))
-        dialog.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-        dialog.setDefaultButton(QtWidgets.QMessageBox.No)
+        dialog.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No
+        )
+        dialog.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
         dialog.exec()
 
-        if dialog.result() == dialog.Yes:
+        if dialog.result() == QtWidgets.QMessageBox.StandardButton.Yes:
             progress = QtWidgets.QProgressDialog(self)
             progress.setRange(0, 0)
             progress.setValue(0)
@@ -251,12 +253,12 @@ class MainWindow(QtWidgets.QMainWindow):
             progress.setLabelText("Stopping active threads...")
 
             def stop_processes():
-                self.meas_worker.abort()
-                self.environ_worker.abort()
-                if self.meas_thread.is_alive():
-                    self.meas_thread.join()
-                if self.environ_thread.is_alive():
-                    self.environ_thread.join()
+                self.meas_worker.abort()  # type: ignore
+                self.environ_worker.abort()  # type: ignore
+                if self.meas_thread.is_alive():  # type: ignore
+                    self.meas_thread.join()  # type: ignore
+                if self.environ_thread.is_alive():  # type: ignore
+                    self.environ_thread.join()  # type: ignore
                 progress.close()
 
             QtCore.QTimer.singleShot(250, stop_processes)
