@@ -1,0 +1,17 @@
+emulators:
+  itc:
+    model: urn:comet:model:cts:itc
+    port: 1080
+    termination: ""
+  smu:
+    model: urn:comet:model:keithley:2410
+    port: 10002
+    termination: "\r\n"
+  dmm:
+    model: urn:comet:model:keithley:2700
+    port: 10003
+    termination: "\r\n"
+  shuntbox:
+    model: urn:comet:model:hephy:shuntbox
+    port: 10001
+    termination: "\r\n"
